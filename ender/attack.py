@@ -1,17 +1,16 @@
 # attack.py, Merkbot, Zerg bot
 # 20 may 2022
-from common import Common
-import sc2
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.effect_id import EffectId
-from sc2.ids.buff_id import BuffId
-from sc2.position import Point2
-from sc2.constants import TARGET_AIR, TARGET_GROUND
-from enum import Enum
-from math import sqrt,cos,sin,pi,acos
+
 import random
+
+from sc2.constants import TARGET_AIR, TARGET_GROUND
+from sc2.ids.ability_id import AbilityId
+from sc2.ids.effect_id import EffectId
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
+from sc2.position import Point2
+from ender.common import Common
+
 
 class Attack(Common):
 

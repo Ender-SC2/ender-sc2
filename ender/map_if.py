@@ -1,17 +1,14 @@
 # map_if.py, Merkbot, Zerg sandbox bot
 # 20 may 2022
-from common import Common
-from rocks_if import Rocks_if
-import sc2
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.buff_id import BuffId
-from sc2.position import Point2
+
 from enum import Enum, auto
-from math import sqrt,cos,sin,pi,acos
-import random
+
 import numpy
+
+from ender.common import Common
+from ender.rocks_if import Rocks_if
+from sc2.position import Point2
+
 
 class Map_if(Common):
 

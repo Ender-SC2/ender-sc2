@@ -1,19 +1,21 @@
 # Main.py, Ender, Zerg bot
 # 20 may 2022
-#
-from attack import Attack
-from creep import Creep
-from making import Making
-from queens import Queens
-from workers import Workers
-from parts import Parts
-from endstep import Endstep 
-#
+
+from ender.attack import Attack
+from ender.creep import Creep
+from ender.making import Making
+from ender.queens import Queens
+from ender.workers import Workers
+from ender.parts import Parts
+from ender.endstep import Endstep
+
 import sc2
 from sc2.data import Race, Difficulty
 from sc2.main import run_game
 from sc2.player import Bot, Computer
 import random
+
+
 #                          BotAI
 #                            |
 #                          Common
