@@ -1,17 +1,14 @@
 # common.py, Merkbot, Zerg sandbox bot
 # 20 may 2022
-import sc2
+
+from enum import Enum, auto
+from math import sqrt
+
 from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.ability_id import AbilityId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.buff_id import BuffId
 from sc2.position import Point2
-from sc2.data import Race, Difficulty
-from sc2.main import run_game
-from enum import Enum, auto
-from math import sqrt,cos,sin,pi,acos
-import random
+
 
 class Common(BotAI):
 

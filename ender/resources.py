@@ -1,16 +1,12 @@
 # resources.py, Merkbot, Zerg bot
 # 20 may 2022
-from common import Common
-import sc2
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.buff_id import BuffId
-from sc2.position import Point2
-from sc2.data import Race, Difficulty
+
 from enum import Enum, auto
-from math import sqrt,cos,sin,pi,acos
-import random
+
+import sc2
+from ender.common import Common
+from sc2.ids.unit_typeid import UnitTypeId
+
 
 class Resources(Common):
 

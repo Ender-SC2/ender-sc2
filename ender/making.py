@@ -1,18 +1,17 @@
 # making.py, Merkbot, Zerg bot
 # 20 may 2022
-from map_if import Map_if
-from resources import Resources
-from strategy import Strategy
-import sc2
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.buff_id import BuffId
-from sc2.position import Point2
-from sc2.data import Race, Difficulty
-from enum import Enum
-from math import sqrt,cos,sin,pi,acos
+
 import random
+
+import sc2
+from ender.map_if import Map_if
+from ender.resources import Resources
+from sc2.ids.ability_id import AbilityId
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
+from sc2.position import Point2
+from ender.strategy import Strategy
+
 
 class Making(Map_if, Resources, Strategy):
 
