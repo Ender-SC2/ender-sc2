@@ -122,8 +122,6 @@ class Common(BotAI):
     listenframe_of_structure = {} # frame the command will have arrived
     listenframe_of_function = {} # frame the command will have arrived
     limbo = {} # per tag of a disappeared unit: the frame to forget it
-    restrict_hatcheries = 0 # report from strategy.py to making.py, attack.py
-    restrict_extractors = 0 # report from strategy.py to making.py
     armyplan = {} # report from strategy.py to attack.py
     bigattack_count = 0 # report from attack to strategy
     next_expansion = None # report from making to attack (block)

@@ -1,5 +1,5 @@
 # attack.py, Merkbot, Zerg bot
-# 20 may 2022
+# 24 may 2022
 
 import random
 
@@ -141,31 +141,16 @@ class Attack(Common):
         # sometimes renew defendgoal
         if self.frame >= self.renew_defendgoal:
             self.renew_defendgoal = self.frame + self.minutes
-            if False:
-                # centerstyle
-                sx = 0
-                sy = 0
-                n = 0
-                for hall in self.townhalls:
-                    sx += hall.position.x
-                    sy += hall.position.y
-                    n += 1
-                if n > 0:
-                    mid = Point2((sx/n, sy/n))
-                    self.defendgoal = mid.towards(self.map_center,8)
-            else:
-                # agressive base
-                # most forward base (with dist to hismain > 50)
-                bestdist = 99999
-                for hall in self.townhalls:
-                    pos = hall.position
-                    dist = self.distance(pos, self.enemymain)
-                    if dist > 50:
-                        if dist < bestdist:
-                            bestdist = dist
-                            bestpos = pos
-                if bestdist < 99999:
-                    self.defendgoal = bestpos.towards(self.map_center,8)                  
+            bestval = -99999
+            for hall in self.townhalls:
+                pos = hall.position
+                val = abs(hall.tag) % 54321
+                #print(str(val))
+                if val > bestval:
+                    bestval = val
+                    bestpos = pos
+            if bestval > -99999:
+                self.defendgoal = bestpos.towards(self.map_center,8)                  
         # 
         if self.function_listens('defend',20):
             if self.frame >= self.bigattack_end:
@@ -191,9 +176,10 @@ class Attack(Common):
         # attack now?
         if self.frame > self.bigattack_end:
             now = True
-            for typ in self.armyplan:
-                if 4 * len(self.units(typ)) < 3 * self.armyplan[typ]:
-                    now = False
+            for typ in self.make_plan:
+                if typ in self.all_armytypes:
+                    if 4 * len(self.units(typ)) < 3 * self.make_plan[typ]:
+                        now = False
             if (self.armysupply_used >= 90) or (self.supply_used >= 190):
                 eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON}
                 eggs = 0
@@ -628,7 +614,7 @@ class Attack(Common):
                 del self.pos_of_blocker[tag]
                 del self.blocker_of_pos[pos]
             # recruit
-            if self.restrict_hatcheries >= 3:
+            if self.nbases >= 3:
                 for unt in self.units(UnitTypeId.ZERGLING):
                     tag = unt.tag
                     job = self.job_of_unit[tag]
@@ -746,7 +732,7 @@ class Attack(Common):
     async def wounded(self):
         ourcorner = self.ourmain.towards(self.map_center,-8)
         for typ in self.all_unittypes:
-            if typ != UnitTypeId.BANELING:
+            if typ not in {UnitTypeId.BANELING, UnitTypeId.OVERLORDTRANSPORT}:
                 for unt in self.units(typ):
                     if unt.tag in self.last_health:
                         if unt.health < 0.7 * self.last_health[unt.tag]:

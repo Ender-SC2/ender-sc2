@@ -1,5 +1,5 @@
 # making.py, Merkbot, Zerg bot
-# 20 may 2022
+# 24 may 2022
 
 import random
 
@@ -16,52 +16,6 @@ from ender.strategy import Strategy
 class Making(Map_if, Resources, Strategy):
 
     creation = {} # per unittype the ability of making it. One source, so misses unburrows.
-    tech_chains = [] # We can make a thing only if the things before it are finished.
-    # Direct creator tech_chains are omitted.
-    tech_chains.append([UpgradeId.ZERGMISSILEWEAPONSLEVEL1, 
-                        UnitTypeId.LAIR,
-                        UpgradeId.ZERGMISSILEWEAPONSLEVEL2, UnitTypeId.HIVE,
-                        UpgradeId.ZERGMISSILEWEAPONSLEVEL3])
-    tech_chains.append([UpgradeId.ZERGMELEEWEAPONSLEVEL1,
-                        UnitTypeId.LAIR,
-                        UpgradeId.ZERGMELEEWEAPONSLEVEL2,
-                        UnitTypeId.HIVE,
-                        UpgradeId.ZERGMELEEWEAPONSLEVEL3])
-    tech_chains.append([UpgradeId.ZERGGROUNDARMORSLEVEL1, UnitTypeId.LAIR,
-                        UpgradeId.ZERGGROUNDARMORSLEVEL2, UnitTypeId.HIVE,
-                        UpgradeId.ZERGGROUNDARMORSLEVEL3])
-    tech_chains.append([UnitTypeId.HIVE, UpgradeId.ZERGLINGATTACKSPEED])
-    tech_chains.append([UpgradeId.ZERGFLYERARMORSLEVEL1, UnitTypeId.LAIR,
-                        UpgradeId.ZERGFLYERARMORSLEVEL2, UnitTypeId.HIVE,
-                        UpgradeId.ZERGFLYERARMORSLEVEL3])
-    tech_chains.append([UpgradeId.ZERGFLYERWEAPONSLEVEL1, UnitTypeId.LAIR,
-                        UpgradeId.ZERGFLYERWEAPONSLEVEL2, UnitTypeId.HIVE,
-                        UpgradeId.ZERGFLYERWEAPONSLEVEL3])
-    tech_chains.append([UnitTypeId.LAIR, UpgradeId.LURKERRANGE])
-    tech_chains.append([UnitTypeId.LAIR, UpgradeId.CENTRIFICALHOOKS])
-    tech_chains.append([UnitTypeId.LAIR, UpgradeId.GLIALRECONSTITUTION])
-    # tech_chains units and buildings
-    tech_chains.append([UnitTypeId.HIVE, UnitTypeId.GREATERSPIRE, UnitTypeId.BROODLORD])
-    tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.QUEEN])
-    tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.SPINECRAWLER])
-    tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.SPORECRAWLER])
-    tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.BANELINGNEST, UnitTypeId.BANELING])
-    tech_chains.append([UnitTypeId.HATCHERY, UnitTypeId.EVOLUTIONCHAMBER])
-    tech_chains.append([UnitTypeId.LAIR, UnitTypeId.HYDRALISKDEN, UnitTypeId.HYDRALISK])
-    tech_chains.append([UnitTypeId.LAIR, UnitTypeId.INFESTATIONPIT, UnitTypeId.HIVE,
-                        UnitTypeId.ULTRALISKCAVERN, UnitTypeId.ULTRALISK])
-    tech_chains.append([UnitTypeId.HYDRALISKDEN, UnitTypeId.LURKERDENMP, UnitTypeId.LURKERMP])
-    tech_chains.append([UnitTypeId.LAIR, UnitTypeId.NYDUSNETWORK])
-    tech_chains.append([UnitTypeId.HATCHERY, UnitTypeId.SPAWNINGPOOL, UnitTypeId.ROACHWARREN, UnitTypeId.ROACH])
-    tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.LAIR, UnitTypeId.SPIRE, UnitTypeId.CORRUPTOR])
-    tech_chains.append([UnitTypeId.INFESTATIONPIT, UnitTypeId.INFESTOR])
-    tech_chains.append([UnitTypeId.SPIRE, UnitTypeId.MUTALISK])
-    tech_chains.append([UnitTypeId.INFESTATIONPIT, UnitTypeId.SWARMHOSTMP])
-    tech_chains.append([UnitTypeId.HIVE, UnitTypeId.VIPER])
-    tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.ZERGLING])
-    tech_chains.append([UnitTypeId.LAIR, UnitTypeId.OVERLORDTRANSPORT])
-    tech_chains.append([UnitTypeId.LAIR, UnitTypeId.OVERSEER])
-    tech_chains.append([UnitTypeId.HATCHERY, UnitTypeId.RAVAGER])
     #
     # upgrade_chain to start upgrades in this order (provided creatable)
     upgrade_chain = [UpgradeId.ZERGLINGMOVEMENTSPEED,
@@ -104,7 +58,7 @@ class Making(Map_if, Resources, Strategy):
     walkers = set() # expanding with a drone prewalking
     expiration_of_builder = {} # it is a temporal job
     experience = [] # walktime for walkers
-    example = UnitTypeId.HATCHERY
+    example = UnitTypeId.SPAWNINGPOOL
     #
 
     def __step0(self):
@@ -361,7 +315,7 @@ class Making(Map_if, Resources, Strategy):
 
     async def expand(self):
         typ = UnitTypeId.HATCHERY
-        if self.atleast_started(typ) < self.restrict_hatcheries:
+        if self.atleast_started(typ) < self.make_plan[typ]:
             if self.next_expansion == self.nowhere:
                 if self.frame % 17 == 16:
                     self.choose_next_expansion()
@@ -432,7 +386,7 @@ class Making(Map_if, Resources, Strategy):
 
     async def build_extractors(self):
         it = UnitTypeId.EXTRACTOR
-        if self.atleast_started(it) < self.restrict_extractors:
+        if self.atleast_started(it) < self.make_plan[it]:
             if len(self.freegeysers) > 0:
                 if (len(self.freeexpos) <= 1) or (self.atleast_started(it) < self.nbases) \
                 or (self.minerals > 1200):
@@ -619,7 +573,7 @@ class Making(Map_if, Resources, Strategy):
                 return False
         return True
         
-    def check_wannado_upgrade(self, upg):
+    def check_wannado_upgrade(self, upg) -> bool:
         if self.atleast_some_started(upg):
             return False
         #
@@ -639,7 +593,7 @@ class Making(Map_if, Resources, Strategy):
         #
         return True
 
-    def check_wannado_unit(self, unty):
+    def check_wannado_unit(self, unty) -> bool:
         if not self.tech_check(unty):
             return False
         #
@@ -648,13 +602,13 @@ class Making(Map_if, Resources, Strategy):
             max_count = 90
         if unty == UnitTypeId.QUEEN:
             max_count = min(5, self.nbases)
-        if unty in self.armyplan:
-            max_count = self.armyplan[unty]
+        if unty in self.make_plan:
+            max_count = self.make_plan[unty]
         if not (self.units.of_type(unty).amount + self.started(unty) < max_count):
             return False
         return True
 
-    def check_wannado_structure(self, unty):
+    def check_wannado_structure(self, unty) -> bool:
         # tech demand
         if self.tech_requirement_progress(unty) < 0.8:
             if unty == self.example:
@@ -662,13 +616,10 @@ class Making(Map_if, Resources, Strategy):
             return False
         # the chosen amount of needed hatcheries
         if len(self.structures(UnitTypeId.HATCHERY)) < self.needhatches[unty]: # just-started hatcheries
-            if (unty == UnitTypeId.SPAWNINGPOOL) and (self.restrict_hatcheries == 1):
-                pass
-            else:
-                if unty == self.example:
-                    print('example ' + self.example.name + ' waits for hatches')
-                    print(str(len(self.structures(UnitTypeId.HATCHERY))), ' ' , str(self.needhatches[unty]))
-                return False
+            if unty == self.example:
+                print('example ' + self.example.name + ' waits for hatches')
+                print(str(len(self.structures(UnitTypeId.HATCHERY))), ' ' , str(self.needhatches[unty]))
+            return False
         # the chosen structype order
         if unty in self.structype_order:
             canstart = True
@@ -678,7 +629,9 @@ class Making(Map_if, Resources, Strategy):
                 if not seen: # before
                     if not self.atleast_some_started(thing):
                         if self.tech_requirement_progress(thing) >= 0.8:
-                            canstart = False
+                            if thing in self.make_plan:
+                                if self.make_plan[thing] > 0:
+                                    canstart = False
             if (not canstart):
                 if unty == self.example:
                     print('example ' + self.example.name + ' waits for structype_order')
@@ -690,10 +643,8 @@ class Making(Map_if, Resources, Strategy):
                 max_count = 2
         if unty in self.all_sporetypes:
             max_count = 70
-        if unty == UnitTypeId.HATCHERY:
-            max_count = self.restrict_hatcheries
-        if unty == UnitTypeId.EXTRACTOR:
-            max_count = self.restrict_extractors
+        if unty in self.make_plan:
+            max_count = self.make_plan[unty]
         if not (self.structures.of_type(unty).amount + self.started(unty) < max_count):
             if unty == self.example:
                 print('example ' + self.example.name + ' is at maxcount.')

@@ -19,14 +19,16 @@ import random
 #                          BotAI
 #                            |
 #                          Common
+#                                       \
+#                                        Tech
 #                        /  |       \       \       \       \     \      \
 #                  Attack Map_if Resources Strategy Queens Workers Parts Endstep
-#                            |   \    |    /
-#                           Creep   Making
+#                           |   \    |    /
+#                         Creep   Making
 #
-#                        \   |       /            /      /      /     /
+#                       \   |       /            /      /      /     /
 #
-#                          Ender
+#                         Ender
 #
 class Ender(Attack, Creep, Making, Queens, Workers, Parts, Endstep):
 
