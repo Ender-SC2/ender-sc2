@@ -12,7 +12,8 @@ from sc2.position import Point2
 
 class Common(BotAI):
 
-    ladderversion = 'Ender by MerkMore and Ratosh, version 25 may 2022'
+    version = 'v25052022'
+    bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
     notag = -1
