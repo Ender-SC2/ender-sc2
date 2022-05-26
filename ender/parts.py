@@ -176,7 +176,7 @@ class Parts(Common):
                     human = words[1]
                     self.botnames[code] = human
                 # chat
-                await self._client.chat_send(self.ladderversion, team_only=False)
+                await self._client.chat_send(self.bot_name, team_only=False)
                 code = self.opponent[0:8]
                 if code in self.botnames:
                     human = self.botnames[code]
@@ -184,6 +184,7 @@ class Parts(Common):
                     human = code
                 await self._client.chat_send('Good luck and have fun, ' + human, team_only=False)
                 await self._client.chat_send('Tag:' + code, team_only=False)
+                await self._client.chat_send('Tag:' + self.version, team_only=False)
 
     def family(self, mapname):
         mapfamily = ''
