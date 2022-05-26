@@ -5,7 +5,7 @@
             "Type": "Python",
             "RootPath": "./",
             "FileName": "run.py",
-            "Debug": false,
+            "Debug": true,
             "SurrenderPhrase": "pineapple"
         }
     }

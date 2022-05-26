@@ -8,6 +8,7 @@ from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
+from sc2.units import Units
 
 
 class Common(BotAI):
@@ -113,7 +114,7 @@ class Common(BotAI):
     last_living = set() # last programrun
     last_health = {}
     hospital = None
-    extractors = [] # extractors not empty
+    extractors = None  # extractors not empty
     civiliansupply_used = 12
     armysupply_used = 0
     #
@@ -144,9 +145,8 @@ class Common(BotAI):
         self.map_bottom = self.game_info.playable_area.y
         self.map_top = self.game_info.playable_area.height+self.game_info.playable_area.y
         #
-        for unt in self.units(UnitTypeId.DRONE):
-            self.job_of_unit[unt.tag] = self.Job.MIMMINER
-        self.hospital = self.ourmain.towards(self.map_center,-7)
+        self.hospital = self.ourmain.towards(self.map_center, -7)
+        self.extractors = self.structures(UnitTypeId.EXTRACTOR)
 
     async def on_step(self):
         # game init
