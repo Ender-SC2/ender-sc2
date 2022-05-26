@@ -1,14 +1,28 @@
-# parts.py, Merkbot, Zerg sandbox bot
-# 20 may 2022
+# parts.py, Ender
+# 25 may 2022
 
 from ender.common import Common
+import sc2
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.data import Race
+from sc2.position import Point2
+import os
 
 
 class Parts(Common):
 
     __did_step0 = False
     #
+    chatted = False
+    enemy_species = 'unknown'
+    opponent = 'unknown'
+    botnames = {}
+    #
+    startoverlord = False
+    readoverlord = False
+    lords = {} # numbering the overlords
+    overlords = set()
+
 
     def __step0(self):
         self.init_all_structures()
@@ -19,6 +33,8 @@ class Parts(Common):
             self.__step0()
             self.__did_step0 = True
         #
+        await self.chatting()
+        await self.overlordscout()
         #await self.show()
  
                     
@@ -128,3 +144,106 @@ class Parts(Common):
         self.init_structures('Z','e',UnitTypeId.CREEPTUMOR, 11, 1)
         self.init_structures('Z','e',UnitTypeId.CREEPTUMORBURROWED, 11, 1)
         self.init_structures('Z','e',UnitTypeId.CREEPTUMORQUEEN, 11, 1)
+
+
+    async def chatting(self):
+        if self.frame >= 7.7 * self.seconds:
+            if not self.chatted:
+                self.chatted = True
+                # enemy_species
+                if self.enemy_race == Race.Zerg:
+                    self.enemy_species = 'zerg'
+                elif self.enemy_race == Race.Terran:
+                    self.enemy_species = 'terran'
+                elif self.enemy_race == Race.Protoss:
+                    self.enemy_species = 'protoss'
+                else:
+                    self.enemy_species = 'someone'
+                # opponent
+                self.opponent = self.opponent_id
+                if self.opponent is None:
+                    self.opponent = self.enemy_species
+                # botnames
+                print('reading data/botnames.txt')
+                pl = open(os.path.join('data','botnames.txt'),'r')
+                lines = pl.read().splitlines()
+                pl.close()
+                self.botnames = {}
+                for line in lines:
+                    #print(line) # debug
+                    words = line.split()
+                    code = words[0]
+                    human = words[1]
+                    self.botnames[code] = human
+                # chat
+                await self._client.chat_send(self.ladderversion, team_only=False)
+                code = self.opponent[0:8]
+                if code in self.botnames:
+                    human = self.botnames[code]
+                else:
+                    human = code
+                await self._client.chat_send('Good luck and have fun, ' + human, team_only=False)
+                await self._client.chat_send('Tag:' + code, team_only=False)
+
+    def family(self, mapname):
+        mapfamily = ''
+        for ch in mapname.replace('LE', '').replace('AIE', ''):
+            if ('a' <= ch <= 'z') or ('A' <= ch <= 'Z'):
+                mapfamily += ch.lower()
+        return mapfamily
+
+    async def overlordscout(self):
+        if self.function_listens('overlordscout',10):
+            # initial start
+            if not self.startoverlord:
+                self.startoverlord = True
+                for ovi in self.units(UnitTypeId.OVERLORD):
+                    ovi.move(self.map_center)
+            # mapdependant points
+            if self.frame > 5 * self.seconds:
+                if not self.readoverlord:
+                    self.readoverlord = True
+                    #
+                    mapname = self.family(self.game_info.map_name)
+                    startx = str(self.ourmain.x)
+                    starty = str(self.ourmain.y)
+                    #
+                    # overlords.txt: has lines e.g.:   atmospheres 186.5 174.5 0 3.5 20.6 20.3
+                    # So on map 2000Atmospheres.AIE starting (186.5,174.5), move lord 0 at 3.5 seconds to (20.6,20.3)
+                    self.overlords = set()
+                    print('reading data/overlords.txt')
+                    pl = open(os.path.join('data','overlords.txt'),'r')
+                    lines = pl.read().splitlines()
+                    pl.close()
+                    for line in lines:
+                        #print(line) # debug
+                        words = line.split()
+                        if len(words) > 0:
+                            if (words[0] == mapname) and (words[1] == startx) and (words[2] == starty):
+                                self.overlords.add((float(words[3]), float(words[4]), float(words[5]), float(words[6])))
+                    if len(self.overlords) == 0:
+                        self.overlords.add((0, 0, self.enemymain.x, self.enemymain.y))
+                        print('append to data/overlords.txt:')
+                        print(mapname + ' ' + startx + ' ' + starty + ' 0 0 '+str(self.enemymain.x) + ' ' + str(self.enemymain.y))
+                # id the lords
+                if len(self.units(UnitTypeId.OVERLORD)) > len(self.lords):
+                    for ovi in self.units(UnitTypeId.OVERLORD):
+                        if ovi.tag not in self.lords.values():
+                            nr = len(self.lords)
+                            self.lords[nr] = ovi.tag
+                # move the lords
+                used = set()
+                for moveplan in self.overlords:
+                    (o_id, o_sec, o_x, o_y) = moveplan
+                    pos = Point2((o_x,o_y))
+                    if self.frame >= o_sec * self.seconds:
+                        if o_id in self.lords:
+                            tag = self.lords[o_id]
+                            for ovi in self.units(UnitTypeId.OVERLORD):
+                                if ovi.tag == tag:
+                                    ovi.move(pos)
+                                    used.add(moveplan)
+                self.overlords -= used
+
+
+

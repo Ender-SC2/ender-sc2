@@ -1,5 +1,5 @@
-# common.py, Merkbot, Zerg sandbox bot
-# 20 may 2022
+# common.py, Ender
+# 25 may 2022
 
 from enum import Enum, auto
 from math import sqrt
@@ -12,6 +12,7 @@ from sc2.position import Point2
 
 class Common(BotAI):
 
+    ladderversion = 'Ender by MerkMore and Ratosh, version 25 may 2022'
     # constants after step0:
     nowhere = Point2((1,1))
     notag = -1
@@ -122,15 +123,16 @@ class Common(BotAI):
     listenframe_of_structure = {} # frame the command will have arrived
     listenframe_of_function = {} # frame the command will have arrived
     limbo = {} # per tag of a disappeared unit: the frame to forget it
-    armyplan = {} # report from strategy.py to attack.py
     bigattack_count = 0 # report from attack to strategy
     next_expansion = None # report from making to attack (block)
     current_expandings = {} # report from making to attack (block)
     to_root = set() # sporespinecrawlers uprooted to be picked up by 'making'.
+    resign = False
     #
     __did_step0 = False
     _last_structures_len = 0 # internal speedup
     _last_enemy_struc_mem_len = 0 # internal speedup
+
 
     async def __step0(self):
         self.enemymain = self.enemy_start_locations[0].position

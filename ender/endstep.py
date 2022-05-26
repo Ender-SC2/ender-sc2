@@ -1,7 +1,8 @@
 # endstep.py, Merkbot, Zerg sandbox bot
-# 20 may 2022
+# 25 may 2022
 
 from ender.common import Common
+import sc2
 
 
 class Endstep(Common):
@@ -25,5 +26,10 @@ class Endstep(Common):
                 self.last_health[myn.tag] = myn.health
         # last_living
         self.last_living = self.living
+        #
+        await self.may_resign()
         
-    
+    async def may_resign(self):
+        if self.resign:
+            await self._client.quit()
+

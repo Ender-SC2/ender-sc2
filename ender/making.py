@@ -265,6 +265,7 @@ class Making(Map_if, Resources, Strategy):
 
     def builder(self, pos):
         dist = 99999
+        him = None
         for unt in self.units(UnitTypeId.DRONE):
             tag = unt.tag
             job = self.job_of_unit[tag]
@@ -273,8 +274,11 @@ class Making(Map_if, Resources, Strategy):
                 if itsdist < dist:
                     dist = itsdist
                     him = unt
-        self.job_of_unit[him.tag] = self.Job.APPRENTICE
-        self.expiration_of_builder[him.tag] = self.frame + 80 * self.seconds
+        if dist < 99999:
+            self.job_of_unit[him.tag] = self.Job.APPRENTICE
+            self.expiration_of_builder[him.tag] = self.frame + 80 * self.seconds
+        else:
+            self.resign = True
         return him
 
     async def sporespine(self):
@@ -323,7 +327,7 @@ class Making(Map_if, Resources, Strategy):
                 await self.build_structure('hatc',typ)
 
     async def make_overlords(self):
-        need_spare = -1 + 3 * self.nbases
+        need_spare = 2 + 4 * (self.nbases - 1)
         soon_supply = 0 # may be too high (for some seconds)
         soon_supply += 6 * self.started(UnitTypeId.OVERLORD)
         for stru in self.structures(UnitTypeId.HATCHERY):
