@@ -115,7 +115,7 @@ class Common(BotAI):
     last_living = set() # last programrun
     last_health = {}
     hospital = None
-    extractors = [] # extractors not empty
+    extractors = None  # extractors not empty
     civiliansupply_used = 12
     armysupply_used = 0
     #
@@ -148,7 +148,8 @@ class Common(BotAI):
         #
         for unt in self.units(UnitTypeId.DRONE):
             self.job_of_unit[unt.tag] = self.Job.MIMMINER
-        self.hospital = self.ourmain.towards(self.map_center,-7)
+        self.hospital = self.ourmain.towards(self.map_center, -7)
+        self.extractors = self.structures(UnitTypeId.EXTRACTOR)
 
     async def on_step(self):
         # game init
