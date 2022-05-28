@@ -1,5 +1,4 @@
-# strategy.py, Merkbot, Zerg bot
-# 23 may 2022
+# strategy.py, Ender
 
 import random
 from enum import Enum, auto
@@ -31,24 +30,20 @@ class Strategy(Tech):
 
     def __step0(self):
         #
-        # init:
-        self.set_gameplan(self.Gameplan.ENDGAME)
+        self.standard_structype_order()
         #
-        # the choice:
         choice = random.choice(list(self.Gameplan))
-        # choice must be an opening
-        while choice in {self.Gameplan.LINGWAVE}:
+        while choice not in {self.Gameplan.ONEBASE_NOGAS, self.Gameplan.ONEBASE, self.Gameplan.TWOBASE_NOGAS, self.Gameplan.TWOBASE}:
             choice = random.choice(list(self.Gameplan))
-        choice = self.Gameplan.ONEBASE_NOGAS # test
+        #choice = self.Gameplan.TWOBASE_NOGAS # debug
         self.set_gameplan(choice)
         #
-        if self.make_plan[UnitTypeId.HATCHERY] == 99:
-            self.make_plan[UnitTypeId.HATCHERY] = random.randrange(4,10)
 
     async def on_step(self):
         await Tech.on_step(self)
         if not self.__did_step0:
             self.__step0()
+            await self._client.chat_send('Tag:' + self.gameplan.name, team_only=False)
             self.__did_step0 = True
         #
         if self.bigattack_count != self.last_bigattack_count:
@@ -56,9 +51,18 @@ class Strategy(Tech):
             # change strategy to followup
             plan = self.followup
             if plan == self.Gameplan.ENDGAME:
-                if self.minerals > 2500:
+                if self.minerals > 3000:
                     plan = self.Gameplan.LINGWAVE
             self.set_gameplan(plan)
+
+    def add_morphers(self):
+        # if 7 ravagers are in make_plan, 7 roaches are added
+        lookat = set(self.make_plan.keys())
+        for rava in lookat:
+            if self.make_plan[rava] > 0:
+                if rava in self.morphed:
+                    roach = self.morphed[rava]
+                    self.make_plan[roach] += self.make_plan[rava]
 
     def tech_close(self):
         # in make_plan, if roaches > 0, then roachwarrant will be made at least 1.
@@ -74,46 +78,49 @@ class Strategy(Tech):
                             for thing in tech_chain:
                                 seen = seen or (thing == roach)
                                 if not seen: # before
-                                    # make at least 1
-                                    if thing in self.make_plan:
-                                        if self.make_plan[thing] < 1:
-                                            self.make_plan[thing] = 1
-                                            changed = True
-                                    else:
+                                    if self.make_plan[thing] < 1:
                                         self.make_plan[thing] = 1
                                         changed = True
 
     def set_gameplan(self, gameplan):
         self.gameplan = gameplan
-        self.make_plan = {}
-        self.standard_structype_order()
+        self.zero_make_plan()
         self.standard_needhatches()
         if gameplan == self.Gameplan.ONEBASE_NOGAS:
             self.make_plan[UnitTypeId.HATCHERY] = 1
-            self.make_plan[UnitTypeId.EXTRACTOR] = 0
             self.make_plan[UnitTypeId.ZERGLING] = 12
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE:
             self.make_plan[UnitTypeId.HATCHERY] = 1
             self.make_plan[UnitTypeId.EXTRACTOR] = 2
             self.make_plan[UnitTypeId.ZERGLING] = 2
             self.make_plan[UnitTypeId.ROACH] = 10
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.TWOBASE_NOGAS:
             self.make_plan[UnitTypeId.HATCHERY] = 2
             self.make_plan[UnitTypeId.EXTRACTOR] = 0
             self.make_plan[UnitTypeId.ZERGLING] = 36
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE:
             self.make_plan[UnitTypeId.HATCHERY] = 2
             self.make_plan[UnitTypeId.EXTRACTOR] = 2
             self.make_plan[UnitTypeId.ZERGLING] = 12
             self.make_plan[UnitTypeId.ROACH] = 16
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.THREEBASE_NOGAS:
             self.make_plan[UnitTypeId.HATCHERY] = 3
             self.make_plan[UnitTypeId.EXTRACTOR] = 0
             self.make_plan[UnitTypeId.ZERGLING] = 60
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.LINGBANEMUTA
         elif gameplan == self.Gameplan.THREEBASE:
             self.make_plan[UnitTypeId.HATCHERY] = 3
@@ -121,12 +128,16 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.ZERGLING] = 12
             self.make_plan[UnitTypeId.BANELING] = 10
             self.make_plan[UnitTypeId.ROACH] = 16
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.MUTAS:
             self.make_plan[UnitTypeId.HATCHERY] = 4
             self.make_plan[UnitTypeId.EXTRACTOR] = 5
             self.make_plan[UnitTypeId.ZERGLING] = 20
             self.make_plan[UnitTypeId.MUTALISK] = 20
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.LINGBANEMUTA:
             self.make_plan[UnitTypeId.HATCHERY] = 4
@@ -134,6 +145,8 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.ZERGLING] = 20
             self.make_plan[UnitTypeId.BANELING] = 20
             self.make_plan[UnitTypeId.MUTALISK] = 20
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR]
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.ENDGAME:
             self.make_plan[UnitTypeId.HATCHERY] = 99
@@ -146,11 +159,22 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.CORRUPTOR] = 16
             self.make_plan[UnitTypeId.BROODLORD] = 8
             self.make_plan[UnitTypeId.VIPER] = 4
+            self.make_plan[UnitTypeId.DRONE] = 90
+            self.make_plan[UnitTypeId.QUEEN] = 10
         elif gameplan == self.Gameplan.LINGWAVE:
             self.make_plan[UnitTypeId.HATCHERY] = 99
             self.make_plan[UnitTypeId.EXTRACTOR] = 99
-            self.make_plan[UnitTypeId.ZERGLING] = 200
+            self.make_plan[UnitTypeId.ZERGLING] = 180
+            self.make_plan[UnitTypeId.DRONE] = 90
+            self.make_plan[UnitTypeId.QUEEN] = 10
+        self.add_morphers()
         self.tech_close()
+        # debug
+        lookat = set(self.make_plan.keys())
+        for rava in lookat:
+            if self.make_plan[rava] > 0:
+                print('make_plan: ' + rava.name + ' ' + str(self.make_plan[rava]))
+        #
         self.needhatches_restrict(self.make_plan[UnitTypeId.HATCHERY])
 
     def needhatches_restrict(self, hatches):
@@ -158,6 +182,14 @@ class Strategy(Tech):
             if struc in self.make_plan:
                 if self.make_plan[struc] > 0:
                     self.needhatches[struc] = min(hatches, self.needhatches[struc])
+
+    def zero_make_plan(self):
+        self.make_plan = {}
+        for unt in self.all_unittypes:
+            self.make_plan[unt] = 0
+        for stru in self.all_structuretypes:
+            self.make_plan[stru] = 0
+        # upgrades are not in make_plan
 
     def standard_structype_order(self):
         self.structype_order = []
