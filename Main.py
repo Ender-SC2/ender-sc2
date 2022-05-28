@@ -58,7 +58,7 @@ def main():
     run_game(sc2.maps.get(map), [
         Bot(Race.Zerg, Ender()),
         Computer(opponentspecies, Difficulty.VeryHard)
-        ], realtime = False)
+        ], realtime = True)
 
 if __name__ == "__main__":
     main()
