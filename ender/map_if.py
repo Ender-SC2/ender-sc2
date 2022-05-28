@@ -1,5 +1,4 @@
-# map_if.py, Merkbot, Zerg sandbox bot
-# 20 may 2022
+# map_if.py, Ender
 
 from enum import Enum, auto
 

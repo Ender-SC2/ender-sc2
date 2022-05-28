@@ -1,5 +1,4 @@
-# Main.py, Ender, Zerg bot
-# 20 may 2022
+# Main.py, Ender
 
 from ender.attack import Attack
 from ender.creep import Creep
@@ -21,11 +20,11 @@ import random
 #                          Common
 #                                       \
 #                                        Tech
-#                        /  |       \       \       \       \     \      \
+#                        /  |          /   \       \       \     \      \
 #                  Attack Map_if Resources Strategy Queens Workers Parts Endstep
 #                           |   \    |    /
 #                         Creep   Making
-#
+# 
 #                       \   |       /            /      /      /     /
 #
 #                         Ender
@@ -35,9 +34,8 @@ class Ender(Attack, Creep, Making, Queens, Workers, Parts, Endstep):
     async def on_step(self, iteration: int):
         self.did_common_onstep = False
         self.did_map_onstep = False
+        self.did_tech_onstep = False
         self.iteration = iteration
-        if self.frame >= 12 * self.minutes: # debug
-            breakthis = True # debug
         await Attack.on_step(self)
         await Creep.on_step(self)
         await Making.on_step(self)
@@ -55,7 +53,7 @@ def main():
     #map = '2000AtmospheresAIE'
     opponentspecies = random.choice([Race.Terran,Race.Zerg,Race.Protoss])
     # TO TEST use next line
-    #opponentspecies = Race.Protoss
+    #opponentspecies = Race.Terran
     # Easy/Medium/Hard/VeryHard
     run_game(sc2.maps.get(map), [
         Bot(Race.Zerg, Ender()),

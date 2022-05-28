@@ -2,6 +2,7 @@
 # 25 may 2022
 
 from ender.common import Common
+from sc2.ids.unit_typeid import UnitTypeId
 import sc2
 
 
@@ -30,6 +31,8 @@ class Endstep(Common):
         await self.may_resign()
         
     async def may_resign(self):
+        if len(self.units(UnitTypeId.DRONE)) < 2:
+            self.resign = True
         if self.resign:
             await self._client.quit()
 

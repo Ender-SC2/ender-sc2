@@ -1,5 +1,4 @@
 # common.py, Ender
-# 25 may 2022
 
 from enum import Enum, auto
 from math import sqrt
@@ -8,12 +7,11 @@ from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
-from sc2.units import Units
 
 
 class Common(BotAI):
 
-    version = 'v25052022'
+    version = 'v28052022'
     bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
@@ -76,7 +74,9 @@ class Common(BotAI):
                     UpgradeId.EVOLVEMUSCULARAUGMENTS, UpgradeId.NEURALPARASITE,
                     UpgradeId.GLIALRECONSTITUTION}
                     # all means: known to this bot
-    all_unittypes = all_armytypes | all_burrowtypes | {UnitTypeId.DRONE, UnitTypeId.LARVA, UnitTypeId.EGG,
+    all_eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON, 
+                    UnitTypeId.TRANSPORTOVERLORDCOCOON, UnitTypeId.OVERLORDCOCOON, UnitTypeId.LURKERMPEGG}
+    all_unittypes = all_armytypes | all_burrowtypes | all_eggtypes | {UnitTypeId.DRONE, UnitTypeId.LARVA,
                      UnitTypeId.OVERLORD}
     all_sporetypes = {UnitTypeId.SPORECRAWLER, UnitTypeId.SPINECRAWLER, UnitTypeId.SPORECRAWLERUPROOTED,
                       UnitTypeId.SPINECRAWLERUPROOTED}
@@ -95,7 +95,6 @@ class Common(BotAI):
     map_bottom = 0
     #
     builddura_of_structure = {}
-    category_of_structure = {}
     size_of_structure = {}
     species_of_structure = {}
     #
@@ -103,6 +102,7 @@ class Common(BotAI):
     # constant in the step (after init_step):
     did_common_onstep = False
     did_map_onstep = False
+    did_tech_onstep = False
     iteration = 0
     frame = 0 # will have even numbers if game_step=2
     nbases = 1 # own halls > 80% ready
@@ -146,6 +146,8 @@ class Common(BotAI):
         self.map_bottom = self.game_info.playable_area.y
         self.map_top = self.game_info.playable_area.height+self.game_info.playable_area.y
         #
+        for unt in self.units(UnitTypeId.DRONE):
+            self.job_of_unit[unt.tag] = self.Job.MIMMINER
         self.hospital = self.ourmain.towards(self.map_center, -7)
         self.extractors = self.structures(UnitTypeId.EXTRACTOR)
 

@@ -1,5 +1,4 @@
-# attack.py, Merkbot, Zerg bot
-# 24 may 2022
+# attack.py, Ender
 
 import random
 
@@ -9,10 +8,10 @@ from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
-from ender.common import Common
+from ender.tech import Tech
 
 
-class Attack(Common):
+class Attack(Tech):
 
     speed = {} # in griddist/sec
     minam = {} # minimum to keep when bigattacking.
@@ -90,7 +89,7 @@ class Attack(Common):
         self.kite_back = {UnitTypeId.BROODLORD, UnitTypeId.INFESTOR}
 
     async def on_step(self):
-        await Common.on_step(self)
+        await Tech.on_step(self)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
@@ -178,12 +177,14 @@ class Attack(Common):
             now = True
             for typ in self.make_plan:
                 if typ in self.all_armytypes:
-                    if 4 * len(self.units(typ)) < 3 * self.make_plan[typ]:
+                    having = len(self.units(typ))
+                    if typ in self.morpher:
+                        having += len(self.units(self.morpher[typ]))
+                    if 4 * having < 3 * self.make_plan[typ]:
                         now = False
             if (self.armysupply_used >= 90) or (self.supply_used >= 190):
-                eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON}
                 eggs = 0
-                for typ in eggtypes:
+                for typ in self.all_eggtypes:
                     eggs += len(self.units(typ))
                 if eggs < 4:
                     now = True
@@ -207,8 +208,7 @@ class Attack(Common):
                 # get approachdura
                 approachdura = 0
                 for typ in self.all_armytypes:
-                    if typ not in {UnitTypeId.OVERLORDTRANSPORT, UnitTypeId.LURKERMP, UnitTypeId.HYDRALISK,
-                           UnitTypeId.OVERSEERSIEGEMODE}:
+                    if typ not in {UnitTypeId.LURKERMP, UnitTypeId.OVERSEERSIEGEMODE}:
                         for unt in self.units(typ):
                             tag = unt.tag
                             if tag not in self.protected:
@@ -226,7 +226,7 @@ class Attack(Common):
                 self.minam[UnitTypeId.DRONE] = 80
         # get some bigattack units
         for typ in self.all_armytypes:
-            if typ not in {UnitTypeId.OVERLORDTRANSPORT, UnitTypeId.LURKERMP, UnitTypeId.OVERSEERSIEGEMODE}:
+            if typ not in {UnitTypeId.LURKERMP, UnitTypeId.OVERSEERSIEGEMODE}:
                 if typ not in self.all_burrowtypes:
                     for unt in self.units(typ):
                         tag = unt.tag
@@ -667,7 +667,8 @@ class Attack(Common):
     async def slaves(self):
         if self.function_listens('slaves',61):
             candidates = {UnitTypeId.INFESTOR, UnitTypeId.CORRUPTOR, UnitTypeId.ROACH, UnitTypeId.OVERSEER,
-                          UnitTypeId.MUTALISK, UnitTypeId.VIPER}
+                          UnitTypeId.MUTALISK, UnitTypeId.VIPER, UnitTypeId.HYDRALISK, UnitTypeId.OVERLORDTRANSPORT,
+                          UnitTypeId.ULTRALISK, UnitTypeId.ZERGLING}
             # dead master
             todel = set()
             for slatag in self.master:
@@ -711,7 +712,7 @@ class Attack(Common):
                 for typ in candidates:
                     for sla in self.units(typ):
                         if self.job_of_unit[sla.tag] not in {self.Job.SLAVE, self.Job.SCRATCHED, self.Job.TIRED, 
-                                                             self.Job.WOUNDED, self.Job.BERSERKER}:
+                                                             self.Job.WOUNDED, self.Job.BERSERKER, self.Job.BLOCKER}:
                             self.job_of_unit[sla.tag] = self.Job.SLAVE
                             self.master[sla.tag] = self.units(UnitTypeId.BROODLORD).random.tag
             # move slaves
