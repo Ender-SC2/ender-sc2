@@ -11,6 +11,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from ender.strategy import Strategy
 
+from loguru import logger
 
 class Making(Map_if, Resources, Strategy):
 
@@ -619,13 +620,13 @@ class Making(Map_if, Resources, Strategy):
         # tech demand
         if self.tech_requirement_progress(unty) < 0.5:
             if unty == self.example:
-                print('example ' + self.example.name + ' waits for tech')
+                logger.info('example ' + self.example.name + ' waits for tech')
             return False
         # the chosen amount of needed hatcheries
         if len(self.structures(UnitTypeId.HATCHERY)) < self.needhatches[unty]: # just-started hatcheries
             if unty == self.example:
-                print('example ' + self.example.name + ' waits for hatches')
-                print(str(len(self.structures(UnitTypeId.HATCHERY))), ' ' , str(self.needhatches[unty]))
+                logger.info('example ' + self.example.name + ' waits for hatches')
+                logger.info(str(len(self.structures(UnitTypeId.HATCHERY))), ' ' , str(self.needhatches[unty]))
             return False
         # the chosen structype order
         if unty in self.structype_order:
@@ -639,7 +640,7 @@ class Making(Map_if, Resources, Strategy):
                             canstart = False
             if (not canstart):
                 if unty == self.example:
-                    print('example ' + self.example.name + ' waits for structype_order')
+                    logger.info('example ' + self.example.name + ' waits for structype_order')
                 return False
         # the chosen maximum amount
         max_count = 1
@@ -652,7 +653,7 @@ class Making(Map_if, Resources, Strategy):
             max_count = 70
         if not (self.structures.of_type(unty).amount + self.started(unty) < max_count):
             if unty == self.example:
-                print('example ' + self.example.name + ' is at maxcount.')
+                logger.info('example ' + self.example.name + ' is at maxcount.')
             return False
         return True
 
@@ -748,7 +749,7 @@ class Making(Map_if, Resources, Strategy):
                             bestevalu = evalu
                             bestpos = pos
         self.next_expansion = bestpos
-        print('next expansion '+str(bestpos.x)+','+str(bestpos.y))
+        logger.info('next expansion '+str(bestpos.x)+','+str(bestpos.y))
 
     async def builder_admin(self):
         if self.function_listens('builder_admin',17):

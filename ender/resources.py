@@ -2,6 +2,8 @@
 
 from enum import Enum, auto
 
+from loguru import logger
+
 import sc2
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
@@ -195,7 +197,7 @@ class Resources(Tech):
             buildnow = True
             if self.tech_requirement_progress(typ) < 1:
                 if typ == self.example:
-                    print('example lacking tech')
+                    logger.info('example lacking tech')
                 buildnow = False
             for res in self.Resource:
                 myres = resources[res]
@@ -204,12 +206,12 @@ class Resources(Tech):
                     nowres = self.resource_now[res]
                     if (nowres < vipres + myres):
                         if typ == self.example:
-                            print('example lacking ' + res.name)
+                            logger.info('example lacking ' + res.name)
                         buildnow = False
             #
             if buildnow:
                 if typ == self.example:
-                    print('example will build')
+                    logger.info('example will build')
                 del self.claims[claimindex]
                 short = self.frame + self.seconds
                 long = self.frame + self.minutes
