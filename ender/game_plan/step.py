@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from typing import List
 
 from ender.common import Common
 from ender.game_plan.action.action import Action

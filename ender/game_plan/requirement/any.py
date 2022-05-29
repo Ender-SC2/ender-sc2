@@ -1,15 +1,16 @@
-from typing import List
+from typing import List, Union
 
 from ender.common import Common
 from ender.game_plan.requirement.requirement import Requirement
+from ender.utils.type_utils import convert_into_iterable
 
 
 class Any(Requirement):
     def __init__(
             self,
-            conditions: List[Requirement]
+            conditions: Union[List[Requirement], Requirement]
     ):
-        self.conditions = conditions
+        self.conditions = convert_into_iterable(conditions)
 
     def setup(self, common: Common):
         super().setup(common)

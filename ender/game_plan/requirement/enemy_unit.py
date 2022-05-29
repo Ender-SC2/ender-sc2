@@ -3,7 +3,7 @@ from ender.game_plan.requirement.requirement import Requirement
 from sc2.ids.unit_typeid import UnitTypeId
 
 
-class EnemyUnitCondition(Requirement):
+class EnemyUnit(Requirement):
     def __init__(self, unit_type: UnitTypeId, amount: int = 1):
         self.common = None
         self.unit_type = unit_type

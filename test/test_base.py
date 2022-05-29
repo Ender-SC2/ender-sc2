@@ -3,12 +3,12 @@ from abc import abstractmethod
 from ender.common import Common
 
 
-class Action:
+class TestBase:
 
     @abstractmethod
     def setup(self, common: Common):
         pass
 
     @abstractmethod
-    async def execute(self):
+    async def on_step(self):
         pass
