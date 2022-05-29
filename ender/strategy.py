@@ -5,6 +5,8 @@ from enum import Enum, auto
 
 from loguru import logger
 
+from ender.game_plan.action.mineral_building_positioning import MineralBuildingPositioning
+from ender.game_plan.action.place_one_building_per_base_action import PlaceOneBuildingPerBaseAction
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -28,7 +30,10 @@ class Strategy(Tech):
     followup = Gameplan.ENDGAME
     last_bigattack_count = 0
     make_plan = {}
-    #
+
+    def __init__(self):
+        super().__init__()
+        self.spore_defense = PlaceOneBuildingPerBaseAction(UnitTypeId.SPINECRAWLER, MineralBuildingPositioning())
 
     def __step0(self):
         #
