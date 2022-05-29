@@ -1,4 +1,5 @@
 # parts.py, Ender
+from loguru import logger
 
 from ender.common import Common
 import sc2
@@ -39,7 +40,7 @@ class Parts(Common):
                     
                     
     async def show(self):
-        print('---------------- ' + str(self.frame) + '--------------------')
+        logger.info('---------------- ' + str(self.frame) + '--------------------')
         lines = []
         for unt in self.units:
             pos = unt.position
@@ -77,7 +78,7 @@ class Parts(Common):
                 if self.opponent is None:
                     self.opponent = self.enemy_species
                 # botnames
-                print('reading data/botnames.txt')
+                logger.info('reading data/botnames.txt')
                 pl = open(os.path.join('data','botnames.txt'),'r')
                 lines = pl.read().splitlines()
                 pl.close()
@@ -90,6 +91,7 @@ class Parts(Common):
                     self.botnames[code] = human
                 # chat
                 await self._client.chat_send(self.bot_name, team_only=False)
+                await self._client.chat_send(f'Tag: {self.version}', team_only=False)
                 code = self.opponent[0:8]
                 if code in self.botnames:
                     human = self.botnames[code]
@@ -124,7 +126,7 @@ class Parts(Common):
                     # overlords.txt: has lines e.g.:   atmospheres 186.5 174.5 0 3.5 20.6 20.3
                     # So on map 2000Atmospheres.AIE starting (186.5,174.5), move lord 0 at 3.5 seconds to (20.6,20.3)
                     self.overlords = set()
-                    print('reading data/overlords.txt')
+                    logger.info('reading data/overlords.txt')
                     pl = open(os.path.join('data','overlords.txt'),'r')
                     lines = pl.read().splitlines()
                     pl.close()
@@ -136,8 +138,8 @@ class Parts(Common):
                                 self.overlords.add((float(words[3]), float(words[4]), float(words[5]), float(words[6])))
                     if len(self.overlords) == 0:
                         self.overlords.add((0, 0, self.enemymain.x, self.enemymain.y))
-                        print('append to data/overlords.txt:')
-                        print(mapname + ' ' + startx + ' ' + starty + ' 0 0 '+str(self.enemymain.x) + ' ' + str(self.enemymain.y))
+                        logger.info('append to data/overlords.txt:')
+                        logger.info(mapname + ' ' + startx + ' ' + starty + ' 0 0 '+str(self.enemymain.x) + ' ' + str(self.enemymain.y))
                 # id the lords
                 if len(self.units(UnitTypeId.OVERLORD)) > len(self.lords):
                     for ovi in self.units(UnitTypeId.OVERLORD):

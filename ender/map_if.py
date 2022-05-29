@@ -3,6 +3,7 @@
 from enum import Enum, auto
 
 import numpy
+from loguru import logger
 
 from ender.common import Common
 from ender.rocks_if import Rocks_if
@@ -82,7 +83,7 @@ class Map_if(Common):
                     dy = -radius
                     dx = -radius
                     if radius == 25:
-                        print('ERROR: hanging in around()')
+                        logger.error('hanging in around()')
             point = Point2((center.x + dx, center.y + dy))
             ok = self.map_can_plan(point, size)
         return point
@@ -337,7 +338,7 @@ class Map_if(Common):
                 if self.frame >= expiration:
                     todel.add(cons)
                     self.map_unplan(position,size, oldcolor)
-                    print('outdated plan ' + str(size) + ' at ' + str(position.x) + ',' + str(position.y))
+                    logger.info('outdated plan ' + str(size) + ' at ' + str(position.x) + ',' + str(position.y))
             self.plans -= todel
             # drawings
             if self.structures_hash != self._last_structures_hash:

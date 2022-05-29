@@ -3,6 +3,8 @@
 import random
 from enum import Enum, auto
 
+from loguru import logger
+
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -173,7 +175,7 @@ class Strategy(Tech):
         lookat = set(self.make_plan.keys())
         for rava in lookat:
             if self.make_plan[rava] > 0:
-                print('make_plan: ' + rava.name + ' ' + str(self.make_plan[rava]))
+                logger.info('make_plan: ' + rava.name + ' ' + str(self.make_plan[rava]))
         #
         self.needhatches_restrict(self.make_plan[UnitTypeId.HATCHERY])
 
