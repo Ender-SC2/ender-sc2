@@ -6,21 +6,19 @@ from ender.utils.type_utils import convert_into_iterable
 
 
 class Any(Requirement):
-    def __init__(
-            self,
-            conditions: Union[List[Requirement], Requirement]
-    ):
-        self.conditions = convert_into_iterable(conditions)
+    def __init__(self, requirements: Union[List[Requirement], Requirement]):
+        self.requirements = convert_into_iterable(requirements)
 
     def setup(self, common: Common):
         super().setup(common)
 
-        for condition in self.conditions:
-            condition.setup(common)
+        for requirement in self.requirements:
+            requirement.setup(common)
 
     def check(self) -> bool:
-        for condition in self.conditions:
-            if condition.check():
+        for requirement in self.requirements:
+            if requirement.check():
+                print("Condition matched")
                 return True
 
         return False

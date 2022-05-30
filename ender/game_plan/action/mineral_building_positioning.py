@@ -6,6 +6,9 @@ from sc2.position import Point2
 
 class MineralLinePositioning(Positioning):
 
-    def placement(self, close_to: Point2, distance: Optional[int] = None) -> Point2:
-        return close_to.towards(self.common.mineral_field.closer_than(11, close_to).center, distance)
-
+    def position(self, close_to: Optional[Point2]) -> Point2:
+        if not close_to:
+            raise Exception("Mineral line positioning needs a reference")
+        print(f"Looking for mineral position {close_to}")
+        print(f"Center is {self.common.mineral_field.closer_than(11, close_to).center}")
+        return close_to.towards(self.common.mineral_field.closer_than(11, close_to).center, 6)

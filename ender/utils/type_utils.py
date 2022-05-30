@@ -6,3 +6,4 @@ def convert_into_iterable(obj):
         raise Exception("Possible a issue on setup.")
     if not isinstance(obj, Iterable):
         return [obj]
+    return obj

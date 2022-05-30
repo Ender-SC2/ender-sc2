@@ -26,15 +26,16 @@ class DefensiveSporeTest(TestBase):
         closest_unit = self.common.enemy_units.first
         if not closest_unit:
             return
+        if self.common.all_units.of_type(UnitTypeId.SPAWNINGPOOL).empty:
+            return
         self.created = True
         possible_units = {Race.Terran: UnitTypeId.BANSHEE, Race.Zerg: UnitTypeId.MUTALISK,
                           Race.Protoss: UnitTypeId.ORACLE}
         wanted_unit = possible_units[self.common.enemy_race]
 
-        if self.common.enemy_units.of_type(wanted_unit).closer_than(11, self.common.ourmain).amount == 0:
+        if self.common.enemy_units.of_type(wanted_unit).closer_than(11, self.common.ourmain).empty:
             await self.common.client.debug_create_unit(
                 [[wanted_unit, 1, self.common.ourmain, closest_unit.owner_id]])
 
     def check_response(self):
-        print(f"MID {self.common.player_id} OID {self.common.opponent_id}")
         pass

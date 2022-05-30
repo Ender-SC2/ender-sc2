@@ -15,5 +15,4 @@ class EnemyUnit(Requirement):
 
     def check(self) -> bool:
         enemy_units = self.common.enemy_units.of_type(self.unit_type)
-
         return enemy_units.amount >= self.amount

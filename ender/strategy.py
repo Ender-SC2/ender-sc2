@@ -8,7 +8,7 @@ from loguru import logger
 from ender.game_plan import GamePlan
 from ender.game_plan import Step
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
-from ender.game_plan.action.place_one_building_per_base import PlaceOneBuildingPerBase
+from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
 from ender.game_plan.requirement.any import Any
 from ender.game_plan.requirement.enemy_unit import EnemyUnit
 from ender.tech import Tech
@@ -38,7 +38,10 @@ class Strategy(Tech):
 
     def __step0(self):
         if not self.new_plan:
-            self.new_plan = GamePlan(Step(Any(EnemyUnit(UnitTypeId.BANSHEE)), PlaceOneBuildingPerBase(UnitTypeId.SPINECRAWLER, MineralLinePositioning())))
+            self.new_plan = GamePlan(Step(Any([EnemyUnit(UnitTypeId.BANSHEE),
+                                               EnemyUnit(UnitTypeId.ORACLE),
+                                               EnemyUnit(UnitTypeId.MUTALISK)]),
+                                          PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())))
             self.new_plan.setup(self)
 
         #
@@ -49,7 +52,6 @@ class Strategy(Tech):
             choice = random.choice(list(self.Gameplan))
         #choice = self.Gameplan.TWOBASE_NOGAS # debug
         self.set_gameplan(choice)
-        self.new_plan.execute()
         #
 
     async def on_step(self):
@@ -67,6 +69,7 @@ class Strategy(Tech):
                 if self.minerals > 3000:
                     plan = self.Gameplan.LINGWAVE
             self.set_gameplan(plan)
+        self.new_plan.execute()
 
     def add_morphers(self):
         # if 7 ravagers are in make_plan, 7 roaches are added

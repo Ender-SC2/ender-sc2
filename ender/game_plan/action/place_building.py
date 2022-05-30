@@ -23,24 +23,26 @@ class PlaceBuilding(Action):
 
     def execute(self):
         if self.has_building():
+            print("Already have building")
             return
-        if not self.can_affort():
+        if not self.common.can_afford(self.unit_type):
+            print("Can't afford")
             return
         position = self.get_position()
-        worker = self.common.units.of_type(UnitTypeId.DRONE).idle.closest_to(position)
-        self.common.job_of_unit[worker.tag] = self.common.Job.BUILDER
+        workers = self.common.units.of_type(UnitTypeId.DRONE).filter(lambda worker: self.common.job_of_unit[worker.tag] in [self.common.Job.MIMMINER, self.common.Job.MIMMINER])\
+
         print(f"Placing {self.unit_type} at {position}")
-        if worker:
+        if not workers.empty:
+            worker = workers.closest_to(position)
+            self.common.job_of_unit[worker.tag] = self.common.Job.BUILDER
+            self.common.expiration_of_builder[worker.tag] = self.common.frame + 8 * self.common.seconds  # shortens it
             worker.build(self.unit_type, position)
 
     def has_building(self):
         if not self.on_base:
-            return self.common.units.of_type(self.unit_type).amount >= self.amount
-        return self.common.units.of_type(self.unit_type).closer_than(11, self.on_base).amount >= self.amount
+            return self.common.all_units.of_type(self.unit_type).amount >= self.amount
+        return self.common.all_units.of_type(self.unit_type).closer_than(11, self.on_base).amount >= self.amount
 
     def get_position(self) -> Point2:
+        print(f"Getting position close to {self.on_base}")
         return self.building_positioning.position(self.on_base)
-
-    def can_affort(self):
-        self.common.can_afford(self.unit_type)
-        pass
