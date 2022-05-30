@@ -1,3 +1,5 @@
+from loguru import logger
+
 from ender.common import Common
 from ender.game_plan.action.action import Action
 from ender.game_plan.action.positioning import Positioning
@@ -23,15 +25,15 @@ class PlaceBuilding(Action):
 
     def execute(self):
         if self.has_building():
-            print("Already have building")
+            logger.info("Already have building")
             return
         if not self.common.can_afford(self.unit_type):
-            print("Can't afford")
+            logger.info("Can't afford")
             return
         position = self.get_position()
         workers = self.common.units.of_type(UnitTypeId.DRONE).filter(lambda worker: self.common.job_of_unit[worker.tag] in [self.common.Job.MIMMINER, self.common.Job.MIMMINER])\
 
-        print(f"Placing {self.unit_type} at {position}")
+        logger.info(f"Placing {self.unit_type} at {position}")
         if not workers.empty:
             worker = workers.closest_to(position)
             self.common.job_of_unit[worker.tag] = self.common.Job.BUILDER
@@ -44,5 +46,5 @@ class PlaceBuilding(Action):
         return self.common.all_units.of_type(self.unit_type).closer_than(11, self.on_base).amount >= self.amount
 
     def get_position(self) -> Point2:
-        print(f"Getting position close to {self.on_base}")
+        logger.info(f"Getting position close to {self.on_base}")
         return self.building_positioning.position(self.on_base)
