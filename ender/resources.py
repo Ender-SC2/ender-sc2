@@ -1,27 +1,28 @@
-# resources.py, Merkbot, Zerg bot
-# 20 may 2022
+# resources.py, Ender
 
 from enum import Enum, auto
+from loguru import logger
 
 import sc2
-from ender.common import Common
+from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
 
 
-class Resources(Common):
+class Resources(Tech):
 
     __did_step0 = False
     # a claim is needed to make a LAIR, as it needs money and a hatchery not making a queen.
     # claimtype = (typ,resources,importance,expiration)
     claims = [] # of claimtype. Typ will be unique.
     orderdelay = [] # of claimtype. The order has been given but did not arrive yet.
+    groupclaim = None # things, in make_plan but not started, hold a claim at importance 700.
     example = UnitTypeId.EXTRACTOR
 
     def __step0(self):
         self.init_resources()
 
     async def on_step(self):
-        await Common.on_step(self)
+        await Tech.on_step(self)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
@@ -59,103 +60,64 @@ class Resources(Common):
     claimed = [] # of (typ, resources, importance, expiration)
     resource_cost = {} # per typ: resource
     resource_now = {} # in step init.
-    creator = {} # per unittype the unit making it.
     resource_of_buildingtype = {} # match for upgrade buildings
 
     def init_resources(self):
-        # creator
-        for martype in sc2.dicts.unit_trained_from.UNIT_TRAINED_FROM:
-            apiset = sc2.dicts.unit_trained_from.UNIT_TRAINED_FROM[martype]
-            if len(apiset) == 1:
-                api = list(apiset)[0]
-                self.creator[martype] = api
-        for martype in sc2.dicts.upgrade_researched_from.UPGRADE_RESEARCHED_FROM:
-            api = sc2.dicts.upgrade_researched_from.UPGRADE_RESEARCHED_FROM[martype]
-            self.creator[martype] = api
-        for unt in self.all_changelings:
-            if unt != UnitTypeId.CHANGELING:
-                self.creator[unt] = UnitTypeId.CHANGELING
-        self.creator[UnitTypeId.LURKERMPBURROWED] = UnitTypeId.LURKERMP
-        self.creator[UnitTypeId.ULTRALISKBURROWED] = UnitTypeId.ULTRALISK
-        self.creator[UnitTypeId.DRONEBURROWED] = UnitTypeId.DRONE
-        self.creator[UnitTypeId.CHANGELING] = UnitTypeId.OVERSEER
-        self.creator[UnitTypeId.CREEPTUMOR] = UnitTypeId.CREEPTUMORBURROWED
-        self.creator[UnitTypeId.CREEPTUMORBURROWED] = UnitTypeId.CREEPTUMOR
-        self.creator[UnitTypeId.QUEEN] = UnitTypeId.HATCHERY # also lair etc
-        self.creator[UnitTypeId.OVERSEER] = UnitTypeId.OVERLORD
-        self.creator[UnitTypeId.OVERLORDTRANSPORT] = UnitTypeId.OVERLORD
-        self.creator[UnitTypeId.OVERSEERSIEGEMODE] = UnitTypeId.OVERSEER
-        self.creator[UnitTypeId.QUEENBURROWED] = UnitTypeId.QUEEN
-        self.creator[UnitTypeId.RAVAGERBURROWED] = UnitTypeId.RAVAGER
-        self.creator[UnitTypeId.ROACHBURROWED] = UnitTypeId.ROACH
-        self.creator[UnitTypeId.SPINECRAWLERUPROOTED] = UnitTypeId.SPINECRAWLER
-        self.creator[UnitTypeId.SPORECRAWLERUPROOTED] = UnitTypeId.SPORECRAWLER
-        self.creator[UnitTypeId.SWARMHOSTBURROWEDMP] = UnitTypeId.SWARMHOSTMP
-        self.creator[UnitTypeId.LOCUSTMPFLYING] = UnitTypeId.SWARMHOSTMP
-        self.creator[UnitTypeId.ULTRALISKBURROWED] = UnitTypeId.ULTRALISK
-        self.creator[UnitTypeId.ZERGLINGBURROWED] = UnitTypeId.ZERGLING
-        self.creator[UnitTypeId.BANELINGBURROWED] = UnitTypeId.BANELING
-        self.creator[UnitTypeId.HYDRALISKBURROWED] = UnitTypeId.HYDRALISK
-        self.creator[UnitTypeId.INFESTORBURROWED] = UnitTypeId.INFESTOR
-        self.creator[UnitTypeId.LOCUSTMP] = UnitTypeId.LOCUSTMPFLYING
-        self.creator[UnitTypeId.EGG] = UnitTypeId.LARVA
-        self.creator[UnitTypeId.EXTRACTORRICH] = UnitTypeId.DRONE
-        self.creator[UnitTypeId.LARVA] = UnitTypeId.HATCHERY
-        self.creator[UnitTypeId.BROODLING] = UnitTypeId.BROODLORD
-        #
         self.init_resource_of_buildingtype()
         #
         self.resource_cost = {}
         for typ in self.all_types:
-            creator = self.creator[typ]
-            resources = self.zero_resources.copy()
-            if typ not in {UnitTypeId.LARVA, UnitTypeId.EGG, UnitTypeId.EXTRACTORRICH, UnitTypeId.BROODLING}:
-                if typ not in self.all_changelings:
-                    cost = self.calculate_cost(typ)
-                    resources[self.Resource.MINERALS] = cost.minerals
-                    resources[self.Resource.VESPENE] = cost.vespene
-            if creator == UnitTypeId.HATCHERY:
-                resources[self.Resource.HATCHERIES] = 1
-            if typ in {UnitTypeId.OVERLORD, UnitTypeId.DRONE}:
-                resources[self.Resource.LARVAE] = 1
-            if typ in self.all_armytypes:
-                if creator == UnitTypeId.LARVA:
+            if typ not in self.all_eggtypes:
+                creator = self.creator[typ]
+                resources = self.zero_resources.copy()
+                if typ not in {UnitTypeId.LARVA, UnitTypeId.EXTRACTORRICH, UnitTypeId.BROODLING}:
+                    if typ not in self.all_changelings:
+                        cost = self.calculate_cost(typ)
+                        resources[self.Resource.MINERALS] = cost.minerals
+                        resources[self.Resource.VESPENE] = cost.vespene
+                if creator == UnitTypeId.HATCHERY:
+                    resources[self.Resource.HATCHERIES] = 1
+                if typ in {UnitTypeId.OVERLORD, UnitTypeId.DRONE}:
                     resources[self.Resource.LARVAE] = 1
-            if typ in self.all_structuretypes:
-                if creator == UnitTypeId.DRONE:
-                    resources[self.Resource.DRONES] = 1
-            if typ == UnitTypeId.DRONE:
-                resources[self.Resource.SUPPLY] = 1
-            if typ in self.all_armytypes:
-                resources[self.Resource.SUPPLY] = self.calculate_supply_cost(typ)
-            if typ in self.all_upgrades:
-                resource = self.resource_of_buildingtype[creator]
-                resources[resource] = 1
-            if typ == UnitTypeId.HATCHERY:
-                resources[self.Resource.EXPOS] = 1
-            if typ == UnitTypeId.EXTRACTOR:
-                resources[self.Resource.GEYSERS] = 1
-            if typ == UnitTypeId.BROODLORD:
-                resources[self.Resource.CORRUPTORS] = 1
-            if creator == UnitTypeId.SPIRE:
-                resources[self.Resource.SPIRES] = 1
-            if typ == UnitTypeId.LURKERMP:
-                resources[self.Resource.HYDRALISKS] = 1
-            if creator == UnitTypeId.OVERLORD:
-                resources[self.Resource.OVERLORDS] = 1
-            if creator == UnitTypeId.ZERGLING:
-                resources[self.Resource.ZERGLINGS] = 1
-            if creator == UnitTypeId.OVERSEER:
-                resources[self.Resource.OVERSEERS] = 1
-            if creator == UnitTypeId.SWARMHOSTMP:
-                resources[self.Resource.SWARMHOSTS] = 1
-            if creator == UnitTypeId.NYDUSNETWORK:
-                resources[self.Resource.NYDUSNETWORKS] = 1
-            if creator == UnitTypeId.ROACH:
-                resources[self.Resource.ROACHES] = 1
-            #
-            self.resource_cost[typ] = resources
-        # print(self.resource_cost[UnitTypeId.GREATERSPIRE])
+                if typ in self.all_armytypes:
+                    if creator == UnitTypeId.LARVA:
+                        resources[self.Resource.LARVAE] = 1
+                if typ in self.all_structuretypes:
+                    if creator == UnitTypeId.DRONE:
+                        resources[self.Resource.DRONES] = 1
+                if typ == UnitTypeId.DRONE:
+                    resources[self.Resource.SUPPLY] = 1
+                if typ in self.all_armytypes:
+                    resources[self.Resource.SUPPLY] = self.calculate_supply_cost(typ)
+                if typ in self.all_upgrades:
+                    resource = self.resource_of_buildingtype[creator]
+                    resources[resource] = 1
+                if typ == UnitTypeId.HATCHERY:
+                    resources[self.Resource.EXPOS] = 1
+                if typ == UnitTypeId.EXTRACTOR:
+                    resources[self.Resource.GEYSERS] = 1
+                if typ == UnitTypeId.BROODLORD:
+                    resources[self.Resource.CORRUPTORS] = 1
+                if creator == UnitTypeId.SPIRE:
+                    resources[self.Resource.SPIRES] = 1
+                if typ == UnitTypeId.LURKERMP:
+                    resources[self.Resource.HYDRALISKS] = 1
+                if creator == UnitTypeId.OVERLORD:
+                    resources[self.Resource.OVERLORDS] = 1
+                if creator == UnitTypeId.ZERGLING:
+                    resources[self.Resource.ZERGLINGS] = 1
+                if creator == UnitTypeId.OVERSEER:
+                    resources[self.Resource.OVERSEERS] = 1
+                if creator == UnitTypeId.SWARMHOSTMP:
+                    resources[self.Resource.SWARMHOSTS] = 1
+                if creator == UnitTypeId.NYDUSNETWORK:
+                    resources[self.Resource.NYDUSNETWORKS] = 1
+                if creator == UnitTypeId.ROACH:
+                    resources[self.Resource.ROACHES] = 1
+                #
+                self.resource_cost[typ] = resources
+        # logger.info(self.resource_cost[UnitTypeId.GREATERSPIRE])
+        self.zero_groupclaim()
 
     async def calc_resource_now(self):
         self.resource_now = {}
@@ -165,7 +127,7 @@ class Resources(Common):
         # drones may idle but not build
         drones = 0
         for unt in self.units(UnitTypeId.DRONE):
-            if self.job_of_unit[unt.tag] != self.Job.BUILDER:
+            if self.job_of_unit[unt.tag] not in {self.Job.APPRENTICE, self.Job.WALKER, self.Job.BUILDER}:
                 drones += 1
         self.resource_now[self.Resource.DRONES] = drones
         self.resource_now[self.Resource.SUPPLY] = self.supply_left
@@ -186,20 +148,34 @@ class Resources(Common):
             resource = self.resource_of_buildingtype[building]
             self.resource_now[resource] = len(self.structures(building).ready.idle)
 
+    def zero_groupclaim(self):
+        self.groupclaim = self.zero_resources.copy()
+
+    def add_groupclaim(self, typ, amount):
+        resources = self.resource_cost[typ]
+        for res in self.Resource:
+            self.groupclaim[res] += amount * resources[res]
+
     def claim_resources(self, typ, importance):
         resources = self.resource_cost[typ]
         expiration = self.frame + self.minutes
+        claim = (typ, resources, importance, expiration)
         #
         # in claims?
+        # the importance of a claim can be increased
+        todel = []
         inclaims = False
         for hclaim in self.claims:
             (htyp, hresource, himportance, hexpiration) = hclaim
             if htyp == typ:
-                inclaims = True
+                if importance > himportance:
+                    todel.append(hclaim)
+                else:
+                    inclaims = True
         if not inclaims:
-            claim = (typ,resources,importance,expiration)
             self.claims.append(claim)
-        return False
+        for hclaim in todel:
+            del self.claims[self.claims.index(hclaim)]
 
     def check_resources(self, typ, importance) -> bool:
         resources = self.resource_cost[typ]
@@ -225,12 +201,16 @@ class Resources(Common):
                 (htyp,hresources,himportance,hexpiration) = hclaim
                 for res in self.Resource:
                     vipclaimed[res] += hresources[res]
+            # groupclaim at importance 700
+            if importance < 700:
+                for res in self.Resource:
+                    vipclaimed[res] += self.groupclaim[res]
             #
             # build now?
             buildnow = True
             if self.tech_requirement_progress(typ) < 1:
                 if typ == self.example:
-                    print('example lacking tech')
+                    logger.info('example lacking tech')
                 buildnow = False
             for res in self.Resource:
                 myres = resources[res]
@@ -239,12 +219,12 @@ class Resources(Common):
                     nowres = self.resource_now[res]
                     if (nowres < vipres + myres):
                         if typ == self.example:
-                            print('example lacking ' + res.name)
+                            logger.info('example lacking ' + res.name)
                         buildnow = False
             #
             if buildnow:
                 if typ == self.example:
-                    print('example will build')
+                    logger.info('example will build')
                 del self.claims[claimindex]
                 short = self.frame + self.seconds
                 long = self.frame + self.minutes
@@ -259,6 +239,7 @@ class Resources(Common):
             return False
 
     def unclaim_resources(self, typ):
+        logger.info('Making a ' + typ.name)
         lex = 9999999
         expiration = self.frame + 5
         for hclaim in self.orderdelay:
@@ -286,6 +267,9 @@ class Resources(Common):
             (htyp,hresources,himportance,hexpiration) = hclaim
             spent += hresources[res]
         amfree -= spent
+        # groupclaim
+        if importance < 700:
+            amfree -= self.groupclaim[res]
         return (amfree > 0)
 
     def mineral_gap(self, typ) -> int:
@@ -310,6 +294,9 @@ class Resources(Common):
             (htyp,hresources,himportance,hexpiration) = hclaim
             spent += hresources[res]
         amfree -= spent
+        # groupclaim
+        if importance < 700:
+            amfree -= self.groupclaim[res]
         return - amfree
     
     def vespene_gap(self, typ) -> int:
@@ -334,6 +321,9 @@ class Resources(Common):
             (htyp,hresources,himportance,hexpiration) = hclaim
             spent += hresources[res]
         amfree -= spent
+        # groupclaim
+        if importance < 700:
+            amfree -= self.groupclaim[res]
         return - amfree
     
         
@@ -357,7 +347,7 @@ class Resources(Common):
                 todel.append(claim)
         for claim in todel:
             del self.orderdelay[self.orderdelay.index(claim)] 
-        # print(show)
+        # logger.info(show)
 
     def init_resource_of_buildingtype(self):
         # for upgrades

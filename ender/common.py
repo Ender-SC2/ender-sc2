@@ -1,5 +1,4 @@
-# common.py, Merkbot, Zerg sandbox bot
-# 20 may 2022
+# common.py, Ender
 
 from enum import Enum, auto
 from math import sqrt
@@ -12,6 +11,8 @@ from sc2.position import Point2
 
 class Common(BotAI):
 
+    version = 'v31052022'
+    bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
     notag = -1
@@ -73,7 +74,9 @@ class Common(BotAI):
                     UpgradeId.EVOLVEMUSCULARAUGMENTS, UpgradeId.NEURALPARASITE,
                     UpgradeId.GLIALRECONSTITUTION}
                     # all means: known to this bot
-    all_unittypes = all_armytypes | all_burrowtypes | {UnitTypeId.DRONE, UnitTypeId.LARVA, UnitTypeId.EGG,
+    all_eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON, 
+                    UnitTypeId.TRANSPORTOVERLORDCOCOON, UnitTypeId.OVERLORDCOCOON, UnitTypeId.LURKERMPEGG}
+    all_unittypes = all_armytypes | all_burrowtypes | all_eggtypes | {UnitTypeId.DRONE, UnitTypeId.LARVA,
                      UnitTypeId.OVERLORD}
     all_sporetypes = {UnitTypeId.SPORECRAWLER, UnitTypeId.SPINECRAWLER, UnitTypeId.SPORECRAWLERUPROOTED,
                       UnitTypeId.SPINECRAWLERUPROOTED}
@@ -92,7 +95,6 @@ class Common(BotAI):
     map_bottom = 0
     #
     builddura_of_structure = {}
-    category_of_structure = {}
     size_of_structure = {}
     species_of_structure = {}
     #
@@ -100,6 +102,7 @@ class Common(BotAI):
     # constant in the step (after init_step):
     did_common_onstep = False
     did_map_onstep = False
+    did_tech_onstep = False
     iteration = 0
     frame = 0 # will have even numbers if game_step=2
     nbases = 1 # own halls > 80% ready
@@ -115,6 +118,9 @@ class Common(BotAI):
     extractors = [] # extractors not empty
     civiliansupply_used = 12
     armysupply_used = 0
+    supplycap_drones = 90
+    supplycap_queens = 20
+    supplycap_army = 90
     #
     # variables:
     job_of_unit = {}
@@ -122,15 +128,16 @@ class Common(BotAI):
     listenframe_of_structure = {} # frame the command will have arrived
     listenframe_of_function = {} # frame the command will have arrived
     limbo = {} # per tag of a disappeared unit: the frame to forget it
-    armyplan = {} # report from strategy.py to attack.py
     bigattack_count = 0 # report from attack to strategy
     next_expansion = None # report from making to attack (block)
     current_expandings = {} # report from making to attack (block)
     to_root = set() # sporespinecrawlers uprooted to be picked up by 'making'.
+    resign = False
     #
     __did_step0 = False
     _last_structures_len = 0 # internal speedup
     _last_enemy_struc_mem_len = 0 # internal speedup
+
 
     async def __step0(self):
         self.enemymain = self.enemy_start_locations[0].position
@@ -278,6 +285,7 @@ class Common(BotAI):
                 geysers_nonemp = self.vespene_geyser.filter(lambda gey: gey.has_vespene)
                 geysers_nonemp_pos = [gey.position for gey in geysers_nonemp]
                 self.extractors = self.structures(UnitTypeId.EXTRACTOR).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
+                self.extractors |= self.structures(UnitTypeId.EXTRACTORRICH).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
             # supply_used civilian/army (omitting eggs)
             self.civiliansupply_used = len(self.units(UnitTypeId.DRONE)) + 2 * len(self.units(UnitTypeId.QUEEN))
             self.armysupply_used = self.supply_used - self.civiliansupply_used

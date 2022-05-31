@@ -1,16 +1,16 @@
-# making.py, Merkbot, Zerg bot
-# 24 may 2022
+# making.py, Ender
 
 import random
+from loguru import logger
 
-import sc2
 from ender.map_if import Map_if
 from ender.resources import Resources
+from ender.strategy import Strategy
+import sc2
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
-from ender.strategy import Strategy
 
 
 class Making(Map_if, Resources, Strategy):
@@ -19,36 +19,35 @@ class Making(Map_if, Resources, Strategy):
     #
     # upgrade_chain to start upgrades in this order (provided creatable)
     upgrade_chain = [UpgradeId.ZERGLINGMOVEMENTSPEED,
+                     UpgradeId.BURROW,
+                     UpgradeId.OVERLORDSPEED,
+                     UpgradeId.GLIALRECONSTITUTION,
+                     UpgradeId.ZERGLINGATTACKSPEED,
+                     UpgradeId.LURKERRANGE,
+                     UpgradeId.CENTRIFICALHOOKS, 
+                     UpgradeId.NEURALPARASITE,
+                     UpgradeId.CHITINOUSPLATING,
+                     UpgradeId.EVOLVEGROOVEDSPINES,
+                     UpgradeId.ZERGFLYERARMORSLEVEL1,
+                     UpgradeId.ZERGFLYERARMORSLEVEL2,
+                     UpgradeId.ZERGFLYERARMORSLEVEL3,
+                     UpgradeId.ZERGFLYERWEAPONSLEVEL1,
+                     UpgradeId.ZERGFLYERWEAPONSLEVEL2,
+                     UpgradeId.ZERGFLYERWEAPONSLEVEL3,
                      UpgradeId.ZERGMISSILEWEAPONSLEVEL1,
                      UpgradeId.ZERGMELEEWEAPONSLEVEL1,
                      UpgradeId.ZERGMISSILEWEAPONSLEVEL2,
                      UpgradeId.ZERGMELEEWEAPONSLEVEL2,
                      UpgradeId.ZERGGROUNDARMORSLEVEL1,
-                     UpgradeId.BURROW,
-                     UpgradeId.OVERLORDSPEED,
-                     UpgradeId.GLIALRECONSTITUTION,
-                     UpgradeId.ZERGFLYERARMORSLEVEL1,
-                     UpgradeId.ZERGFLYERARMORSLEVEL2,
                      UpgradeId.ZERGGROUNDARMORSLEVEL2,
                      UpgradeId.ZERGMISSILEWEAPONSLEVEL3,
                      UpgradeId.ZERGMELEEWEAPONSLEVEL3,
                      UpgradeId.ZERGGROUNDARMORSLEVEL3,
-                     UpgradeId.ZERGLINGATTACKSPEED,
-                     UpgradeId.ZERGFLYERARMORSLEVEL3,
-                     UpgradeId.ZERGFLYERWEAPONSLEVEL1,
-                     UpgradeId.ZERGFLYERWEAPONSLEVEL2,
-                     UpgradeId.ZERGFLYERWEAPONSLEVEL3,
-                     UpgradeId.CHITINOUSPLATING,
-                     UpgradeId.LURKERRANGE,
-                     UpgradeId.CENTRIFICALHOOKS, 
-                     UpgradeId.EVOLVEGROOVEDSPINES,
-                     UpgradeId.EVOLVEMUSCULARAUGMENTS, 
-                     UpgradeId.NEURALPARASITE]
+                     UpgradeId.EVOLVEMUSCULARAUGMENTS] 
     __did_step0 = False
     want_supply = True
     expansions = [] # of (pos,height,hasmin,hasgas,mybase,herbase,myblock,herblock,myarmy,herarmy)
     expansion_tried = {} # per expansionpos: the frame of the last hatchery create try
-    size_of = {} # per typ: size on the map, e.g. 5 for a hatchery.
     importance = {} # When multiple claims, use importance
     subimportance = {} # per armytype: between 0 and 20
     ordids_stepcache = {} # speedup
@@ -58,7 +57,8 @@ class Making(Map_if, Resources, Strategy):
     walkers = set() # expanding with a drone prewalking
     expiration_of_builder = {} # it is a temporal job
     experience = [] # walktime for walkers
-    example = UnitTypeId.SPAWNINGPOOL
+    example = UnitTypeId.SCV # for debugging, e.g. EXTRACTOR. To silence: SCV
+    do_calc_groupclaim = False
     #
 
     def __step0(self):
@@ -94,15 +94,7 @@ class Making(Map_if, Resources, Strategy):
         self.subimportance[UnitTypeId.BROODLORD] = 15
         self.subimportance[UnitTypeId.ULTRALISK] = 16
         #
-        for typ in self.all_structuretypes:
-            self.size_of[typ] = 3
-        for typ in self.all_tumortypes:
-            self.size_of[typ] = 1
-        for typ in self.all_sporetypes:
-            self.size_of[typ] = 2
-        for typ in self.all_halltypes:
-            self.size_of[typ] = 5
-        #
+        # creation
         for bartype in sc2.dicts.unit_research_abilities.RESEARCH_INFO:
             for martype in sc2.dicts.unit_research_abilities.RESEARCH_INFO[bartype]:
                 abi = sc2.dicts.unit_research_abilities.RESEARCH_INFO[bartype][martype]['ability']
@@ -180,7 +172,19 @@ class Making(Map_if, Resources, Strategy):
         if self.frame % 17 == 16:
             self.vespene_hist = self.vespene
             self.minerals_hist = self.minerals
+        #
+        await self.calc_groupclaim()
 
+    async def calc_groupclaim(self):
+        if self.do_calc_groupclaim:
+            self.do_calc_groupclaim = False
+            self.zero_groupclaim()
+            for thing in self.make_plan:
+                if self.make_plan[thing] > 0:
+                    tomake = self.make_plan[thing] - self.atleast_started(thing)
+                    if tomake > 0:
+                        self.add_groupclaim(thing, tomake)
+                        logger.info('I must still make ' + str(tomake) + ' ' + thing.name)
 
     def started(self, thing) -> int:
         sol = 0
@@ -265,6 +269,10 @@ class Making(Map_if, Resources, Strategy):
 
     def builder(self, pos):
         dist = 99999
+        # give a default to not crash when few drones
+        for unt in self.units(UnitTypeId.DRONE):
+            him = unt
+        #
         for unt in self.units(UnitTypeId.DRONE):
             tag = unt.tag
             job = self.job_of_unit[tag]
@@ -273,8 +281,11 @@ class Making(Map_if, Resources, Strategy):
                 if itsdist < dist:
                     dist = itsdist
                     him = unt
-        self.job_of_unit[him.tag] = self.Job.APPRENTICE
-        self.expiration_of_builder[him.tag] = self.frame + 80 * self.seconds
+        if dist == 99999:
+            self.resign = True
+        else:
+            self.job_of_unit[him.tag] = self.Job.APPRENTICE
+            self.expiration_of_builder[him.tag] = self.frame + 80 * self.seconds
         return him
 
     async def sporespine(self):
@@ -303,46 +314,51 @@ class Making(Map_if, Resources, Strategy):
                                         flyingattackers += 1
                                     else:
                                         groundattackers += 1
-                        attackers = flyingattackers + groundattackers
                         # spore or spine
-                        if attackers > 0:
+                        if (flyingattackers >= 1) or (groundattackers >= 2):
                             if 3 * flyingattackers > groundattackers:
                                 typ = UnitTypeId.SPORECRAWLER
+                                if self.atleast_started(typ) < groundattackers:
+                                    await self.build_structure('emergency', typ)
                             else:
                                 typ = UnitTypeId.SPINECRAWLER
-                            if self.atleast_started(typ) < attackers:
-                                await self.build_structure('emergency', typ)
+                                if self.atleast_started(typ) < flyingattackers:
+                                    await self.build_structure('emergency', typ)
 
     async def expand(self):
+        if self.next_expansion == self.nowhere:
+            if self.frame % 17 == 16:
+                self.choose_next_expansion()
         typ = UnitTypeId.HATCHERY
-        if self.atleast_started(typ) < self.make_plan[typ]:
-            if self.next_expansion == self.nowhere:
-                if self.frame % 17 == 16:
-                    self.choose_next_expansion()
-            else:
-                await self.build_structure('hatc',typ)
+        await self.build_structure('hatc',typ)
 
     async def make_overlords(self):
-        need_spare = -1 + 3 * self.nbases
+        queens = len(self.units(UnitTypeId.QUEEN))
+        need_spare = 2 + 3 * (self.nbases - 1) + 2 * queens
         soon_supply = 0 # may be too high (for some seconds)
         soon_supply += 6 * self.started(UnitTypeId.OVERLORD)
         for stru in self.structures(UnitTypeId.HATCHERY):
             if stru not in self.structures(UnitTypeId.HATCHERY).ready:
                 if (stru.build_progress > 0.75): # about 18 seconds
                     soon_supply += 6
-        if (self.supply_left + soon_supply < need_spare) and (self.supply_cap + soon_supply < 200):
+        if (self.supply_left + soon_supply < need_spare) and (self.supply_cap + soon_supply < 220):
             importance = self.importance['overlord']
+            importance += 1000 # overlords are implicit in make_plan
             typ = UnitTypeId.OVERLORD
             self.claim_resources(typ,importance)
             if self.check_resources(typ,importance):
                 self.unclaim_resources(typ)
                 self.larva.random.train(typ)
+                self.do_calc_groupclaim = True
 
     async def make_army_unit(self,typ):
         if self.function_listens('make_' + typ.name, self.seconds):
+            if typ == UnitTypeId.ROACH:
+                if self.frame >= 4 * self.minutes:
+                    breakthis = True
             if not self.structures.of_type(UnitTypeId.SPAWNINGPOOL).ready.exists:
                 return
-            if typ in {UnitTypeId.BROODLING, UnitTypeId.LOCUSTMP}: # made automatic
+            if typ in {UnitTypeId.BROODLING, UnitTypeId.LOCUSTMP, UnitTypeId.LARVA}: # made automatic
                 return
             if typ in self.all_changelings: # made automatic
                 if typ != UnitTypeId.CHANGELING:
@@ -352,9 +368,17 @@ class Making(Map_if, Resources, Strategy):
                     importance = self.importance['queen']
                 else:
                     importance = self.importance['army'] + self.subimportance[typ]
+                # increase importance if in make_plan
+                started = self.atleast_started(typ)
+                if typ in self.morpher:
+                    rava = self.morpher[typ]
+                    started += self.atleast_started(rava)
+                if (started < self.make_plan[typ]):
+                    importance += 1000                    
                 self.claim_resources(typ,importance)
                 if self.check_resources(typ,importance):
                     self.unclaim_resources(typ)
+                    self.do_calc_groupclaim = True
                     # make
                     crea = self.creator[typ]
                     if crea in {UnitTypeId.LARVA}:
@@ -386,11 +410,10 @@ class Making(Map_if, Resources, Strategy):
 
     async def build_extractors(self):
         it = UnitTypeId.EXTRACTOR
-        if self.atleast_started(it) < self.make_plan[it]:
-            if len(self.freegeysers) > 0:
-                if (len(self.freeexpos) <= 1) or (self.atleast_started(it) < self.nbases) \
-                or (self.minerals > 1200):
-                    await self.build_structure('extr',it)
+        if len(self.freegeysers) > 0:
+            if (len(self.freeexpos) <= 1) or (self.atleast_started(it) < self.nbases) \
+            or (self.minerals > 1200) or (self.make_plan[it] > self.nbases):
+                await self.build_structure('extr',it)
 
     async def build_evolutionchambers(self):
         it = UnitTypeId.EVOLUTIONCHAMBER
@@ -406,6 +429,7 @@ class Making(Map_if, Resources, Strategy):
             if self.check_wannado_structure(typ):
                 if name == 'emergency':
                     importance = self.importance['emergency']
+                    importance += 1000 # think those into make_plan
                 elif typ == UnitTypeId.HATCHERY:
                     importance = self.importance['hatchery']
                 elif typ == UnitTypeId.EXTRACTOR:
@@ -414,9 +438,11 @@ class Making(Map_if, Resources, Strategy):
                     importance = self.importance['sporespine']
                 else:
                     importance = self.importance['lone_building']
+                if (self.atleast_started(typ) < self.make_plan[typ]):
+                    importance += 1000                    
                 self.claim_resources(typ,importance)
                 if typ not in self.buildplan:
-                    size = self.size_of[typ]
+                    size = self.size_of_structure[typ]
                     if typ == UnitTypeId.EXTRACTOR:
                         gey = random.choice(self.freegeysers)
                         pos = gey.position
@@ -476,9 +502,10 @@ class Making(Map_if, Resources, Strategy):
                     if typ in self.buildplan:
                         # build
                         self.unclaim_resources(typ)
+                        self.do_calc_groupclaim = True
                         (histag, buildpos, expiration) = self.buildplan[typ]
                         del self.buildplan[typ]
-                        size = self.size_of[typ]
+                        size = self.size_of_structure[typ]
                         if histag in self.living:
                             self.job_of_unit[histag] = self.Job.BUILDER
                             self.expiration_of_builder[histag] = self.frame + 8 * self.seconds # shortens it
@@ -597,28 +624,28 @@ class Making(Map_if, Resources, Strategy):
         if not self.tech_check(unty):
             return False
         #
-        max_count = 1
+        max_count = 200
         if unty == UnitTypeId.DRONE:
-            max_count = 90
-        if unty == UnitTypeId.QUEEN:
-            max_count = min(5, self.nbases)
-        if unty in self.make_plan:
-            max_count = self.make_plan[unty]
-        if not (self.units.of_type(unty).amount + self.started(unty) < max_count):
-            return False
+            max_count = self.supplycap_drones
+        if unty == {UnitTypeId.QUEEN, UnitTypeId.OVERSEERSIEGEMODE}:
+            max_count = self.supplycap_queens / 2
+        if unty == UnitTypeId.OVERLORD:
+            max_count = 35
+        if unty in {UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT}:
+            max_count = 20
         return True
 
     def check_wannado_structure(self, unty) -> bool:
         # tech demand
-        if self.tech_requirement_progress(unty) < 0.8:
+        if self.tech_requirement_progress(unty) < 0.5:
             if unty == self.example:
-                print('example ' + self.example.name + ' waits for tech')
+                logger.info('example ' + self.example.name + ' waits for tech')
             return False
         # the chosen amount of needed hatcheries
         if len(self.structures(UnitTypeId.HATCHERY)) < self.needhatches[unty]: # just-started hatcheries
             if unty == self.example:
-                print('example ' + self.example.name + ' waits for hatches')
-                print(str(len(self.structures(UnitTypeId.HATCHERY))), ' ' , str(self.needhatches[unty]))
+                logger.info('example ' + self.example.name + ' waits for hatches')
+                logger.info(str(len(self.structures(UnitTypeId.HATCHERY))), ' ' , str(self.needhatches[unty]))
             return False
         # the chosen structype order
         if unty in self.structype_order:
@@ -628,60 +655,80 @@ class Making(Map_if, Resources, Strategy):
                 seen = seen or (thing == unty)
                 if not seen: # before
                     if not self.atleast_some_started(thing):
-                        if self.tech_requirement_progress(thing) >= 0.8:
-                            if thing in self.make_plan:
-                                if self.make_plan[thing] > 0:
-                                    canstart = False
+                        if self.make_plan[thing] > 0:
+                            canstart = False
             if (not canstart):
                 if unty == self.example:
-                    print('example ' + self.example.name + ' waits for structype_order')
+                    logger.info('example ' + self.example.name + ' waits for structype_order')
                 return False
         # the chosen maximum amount
         max_count = 1
+        if unty in {UnitTypeId.HATCHERY, UnitTypeId.EXTRACTOR}:
+            max_count = 99
         if unty in {UnitTypeId.EVOLUTIONCHAMBER, UnitTypeId.SPAWNINGPOOL}:
             if len(self.structures(UnitTypeId.HATCHERY)) >= 4:
                 max_count = 2
         if unty in self.all_sporetypes:
             max_count = 70
-        if unty in self.make_plan:
-            max_count = self.make_plan[unty]
-        if not (self.structures.of_type(unty).amount + self.started(unty) < max_count):
+        if not (self.atleast_started(unty) < max_count):
             if unty == self.example:
-                print('example ' + self.example.name + ' is at maxcount.')
+                logger.info('example ' + self.example.name + ' is at maxcount.')
             return False
         return True
 
     async def upgrade(self, typ):
         if self.function_listens('upgrade_' + typ.name, 2 * self.seconds):
-            if self.nbases >= 3: # do not upgrade when small
-                importance = self.importance['upgrade']
-                goon = True
-                creator = self.creator[typ]
-                resource = self.resource_of_buildingtype[creator]
-                if not self.have_free_resource(resource, importance):
-                    goon = False
-                if goon:
-                    if self.check_wannado_upgrade(typ):
-                        self.claim_resources(typ, importance)
-                        if self.check_resources(typ, importance):
-                            self.unclaim_resources(typ)
-                            #print('starting upgrade ' + typ.name + ' on a ' + creator.name)
-                            evo = random.choice(self.structures(creator).ready.idle)
-                            evo(self.creation[typ])
+            importance = self.importance['upgrade']
+            if self.atleast_some_started(typ):
+                started = 1
+            else:
+                started = 0
+            if (started < self.make_plan[typ]):
+                importance += 1000                    
+            goon = True
+            creator = self.creator[typ]
+            resource = self.resource_of_buildingtype[creator]
+            if not self.have_free_resource(resource, importance):
+                goon = False
+            if goon:
+                if self.check_wannado_upgrade(typ):
+                    self.claim_resources(typ, importance)
+                    if self.check_resources(typ, importance):
+                        self.unclaim_resources(typ)
+                        self.do_calc_groupclaim = True
+                        #logger.info('starting upgrade ' + typ.name + ' on a ' + creator.name)
+                        evo = random.choice(self.structures(creator).ready.idle)
+                        evo(self.creation[typ])
 
     async def make_drones(self):
         if self.function_listens('make_drones', self.seconds):
             typ = UnitTypeId.DRONE
             if self.check_wannado_unit(typ):
-                opening_max = 17 * self.nbases + 3 * len(self.structures(UnitTypeId.EXTRACTOR))
                 lategame_max = 3 * len(self.extractors) + 2 * len(self.mineral_field) + 3
-                worker_max = min(opening_max, lategame_max)
-                if self.units.of_type(typ).amount + self.started(typ) < worker_max:
-                    importance = self.importance['drone']
-                    self.claim_resources(typ,importance)
-                    if self.check_resources(typ, importance):
-                        self.unclaim_resources(typ)
-                        self.larva.random.train(typ)
+                if self.atleast_started(typ) < lategame_max:
+                    # opening can delay making drones
+                    delay = False
+                    if self.bigattack_count == 0:
+                        if len(self.opening) > 0:
+                            todel = False
+                            (kind, kind_am, thing, thing_am) = self.opening[0]
+                            if kind == 'supply':
+                                if self.supply_used >= kind_am:
+                                    if self.atleast_started(thing) >= thing_am:
+                                        todel = True
+                                    else:
+                                        delay = True
+                            if todel:
+                                del self.opening[0]
+                    if not delay:
+                        importance = self.importance['drone']
+                        if (self.atleast_started(typ) < self.make_plan[typ]):
+                            importance += 1000             
+                        self.claim_resources(typ,importance)
+                        if self.check_resources(typ, importance):
+                            self.unclaim_resources(typ)
+                            self.do_calc_groupclaim = True
+                            self.larva.random.train(typ)
 
     def init_expansions(self):
         self.expansions = []
@@ -743,7 +790,7 @@ class Making(Map_if, Resources, Strategy):
                             bestevalu = evalu
                             bestpos = pos
         self.next_expansion = bestpos
-        print('next expansion '+str(bestpos.x)+','+str(bestpos.y))
+        logger.info('next expansion '+str(bestpos.x)+','+str(bestpos.y))
 
     async def builder_admin(self):
         if self.function_listens('builder_admin',17):
