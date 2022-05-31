@@ -4,6 +4,12 @@ import random
 from enum import Enum, auto
 from loguru import logger
 
+from ender.game_plan import GamePlan
+from ender.game_plan import Step
+from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
+from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
+from ender.game_plan.requirement.any import Any
+from ender.game_plan.requirement.enemy_unit import EnemyUnit
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -28,9 +34,16 @@ class Strategy(Tech):
     followup = Gameplan.ENDGAME
     last_bigattack_count = 0
     make_plan = {}
-    #
+    new_plan = None
 
     def __step0(self):
+        if not self.new_plan:
+            self.new_plan = GamePlan(Step(Any([EnemyUnit(UnitTypeId.BANSHEE),
+                                               EnemyUnit(UnitTypeId.ORACLE),
+                                               EnemyUnit(UnitTypeId.MUTALISK)]),
+                                          PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())))
+            self.new_plan.setup(self)
+
         #
         self.standard_structype_order()
         #
@@ -57,6 +70,7 @@ class Strategy(Tech):
                 if self.minerals > 3000:
                     plan = self.Gameplan.LINGWAVE
             self.set_gameplan(plan)
+        self.new_plan.execute()
 
     def add_morphers(self):
         # if 7 ravagers are in make_plan, 7 roaches are added
