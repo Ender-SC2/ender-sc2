@@ -76,7 +76,7 @@ def main():
     # opponentspecies = Race.Terran
     # Easy/Medium/Hard/VeryHard
     run_game(sc2.maps.get(map), [
-        Bot(Race.Zerg, Ender(True)),
+        Bot(Race.Zerg, Ender()),
         Computer(opponentspecies, Difficulty.VeryHard)
     ], realtime=False)
 

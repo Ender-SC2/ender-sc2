@@ -2,6 +2,8 @@
 
 import random
 
+from loguru import logger
+
 from sc2.constants import TARGET_AIR, TARGET_GROUND
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
@@ -9,6 +11,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from ender.tech import Tech
+from sc2.unit import Unit
 
 
 class Attack(Tech):
@@ -95,7 +98,7 @@ class Attack(Tech):
             self.__did_step0 = True
         #
         await self.big_attack()
-        await self.attack_unclutter() # can be commented to speed up
+        await self.attack_micro() # can be commented to speed up
         await self.defend()
         await self.berserk()
         await self.corrupt()
@@ -338,27 +341,36 @@ class Attack(Tech):
             danger = somehitground
         return danger
 
-    async def attack_unclutter(self):
+    async def attack_micro(self):
+        enemy_health = {}
+        for enemy in self.enemy_units:
+            enemy_health[enemy.tag] = enemy.shield + enemy.health
         for unt in self.units:
             tag = unt.tag
             typ = unt.type_id
             if self.job_of_unit[tag] in {self.Job.DEFENDATTACK, self.Job.BIGATTACK, self.Job.BERSERKER}:
                 if typ not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT}:
                     if self.frame >= self.listenframe_of_unit[tag]:
-                        if unt.weapon_cooldown > self.game_step:
-                            goal = self.attackgoal[tag]
-                            goaldist = self.distance(unt.position,goal)
-                            if goaldist >= 5:
-                                # unt may frustrate others to advance, so move it forward.
-                                cooldist = unt.weapon_cooldown * unt.real_speed / self.seconds
-                                point = unt.position.towards(goal,cooldist / 2) # halved for melee units
-                                if typ in self.kite_back:
-                                    if self.indanger(unt):
-                                        point = unt.position.towards(self.defendgoal,cooldist / 2)
-                                unt.move(point)
-                                unt.attack(goal,queue=True)
-                                self.listenframe_of_unit[tag] = self.frame + unt.weapon_cooldown + 5             
-
+                        if unt.weapon_cooldown == -1:
+                            enemies_in_range = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, unt.movement_speed)
+                                                                       and enemy_health[enemy.tag] > 0)
+                            if not enemies_in_range.empty:
+                                best_target = enemies_in_range.sorted(lambda u: u.shield_health_percentage).first
+                                logger.debug(f"Attacking lowest attack {best_target}")
+                                unt.attack(best_target)
+                                enemy_health[best_target.tag] -= unt.calculate_damage_vs_target(best_target)
+                            else:
+                                logger.debug(f"Going towards our goal")
+                                goal = self.attackgoal[tag]
+                                unt.attack(goal)
+                        elif unt.weapon_cooldown > self.game_step:
+                            enemies_in_range = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, enemy.movement_speed + unt.movement_speed))
+                            if not enemies_in_range.empty:
+                                closest_enemy = enemies_in_range.closest_to(unt)
+                                if 0 < self.range_vs(closest_enemy, unt) < self.range_vs(unt, closest_enemy):
+                                    goal = self.attackgoal[tag]
+                                    position = closest_enemy.position.towards(unt, self.range_vs(unt, closest_enemy))
+                                    unt.move(position)
 
     async def corrupt(self):
         if self.function_listens('corrupt',10):
@@ -946,7 +958,7 @@ class Attack(Tech):
                             wish_defenders = attackers
                         if len(defenders) < wish_defenders:
                             # Defenders should have the highest health
-                            for unt in self.units(UnitTypeId.DRONE).sorted(lambda worker: 1 - worker.shield_health_percentage):
+                            for unt in self.units(UnitTypeId.DRONE).sorted(lambda worker: worker.shield_health_percentage, reverse=True):
                                 if len(defenders) >= wish_defenders:
                                     break
                                 tag = unt.tag
@@ -1062,13 +1074,3 @@ class Attack(Tech):
                             else: 
                                 # rooting is in making.py
                                 self.to_root.add(tag)
-
-
-
-        
-
-
-            
-                    
-
-            
