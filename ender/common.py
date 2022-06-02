@@ -7,11 +7,12 @@ from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
+from sc2.unit import Unit
 
 
 class Common(BotAI):
 
-    version = 'v31052022'
+    version = 'v02062022'
     bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
@@ -61,9 +62,9 @@ class Common(BotAI):
                        UnitTypeId.INFESTORBURROWED, UnitTypeId.QUEENBURROWED, UnitTypeId.RAVAGERBURROWED,
                        UnitTypeId.SWARMHOSTBURROWEDMP}
     all_upgrades = {UpgradeId.ZERGMISSILEWEAPONSLEVEL1, UpgradeId.ZERGMELEEWEAPONSLEVEL1,
-                    UpgradeId.ZERGGROUNDARMORSLEVEL1, UpgradeId.OVERLORDSPEED, 
+                    UpgradeId.ZERGGROUNDARMORSLEVEL1, UpgradeId.OVERLORDSPEED,
                     UpgradeId.ZERGMISSILEWEAPONSLEVEL2, UpgradeId.ZERGMELEEWEAPONSLEVEL2,
-                    UpgradeId.ZERGGROUNDARMORSLEVEL2, UpgradeId.BURROW, UpgradeId.ZERGLINGMOVEMENTSPEED, 
+                    UpgradeId.ZERGGROUNDARMORSLEVEL2, UpgradeId.BURROW, UpgradeId.ZERGLINGMOVEMENTSPEED,
                     UpgradeId.ZERGMISSILEWEAPONSLEVEL3, UpgradeId.ZERGMELEEWEAPONSLEVEL3,
                     UpgradeId.ZERGGROUNDARMORSLEVEL3, UpgradeId.ZERGLINGATTACKSPEED,
                     UpgradeId.ZERGFLYERARMORSLEVEL1, UpgradeId.ZERGFLYERARMORSLEVEL2,
@@ -74,7 +75,7 @@ class Common(BotAI):
                     UpgradeId.EVOLVEMUSCULARAUGMENTS, UpgradeId.NEURALPARASITE,
                     UpgradeId.GLIALRECONSTITUTION}
                     # all means: known to this bot
-    all_eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON, 
+    all_eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,
                     UnitTypeId.TRANSPORTOVERLORDCOCOON, UnitTypeId.OVERLORDCOCOON, UnitTypeId.LURKERMPEGG}
     all_unittypes = all_armytypes | all_burrowtypes | all_eggtypes | {UnitTypeId.DRONE, UnitTypeId.LARVA,
                      UnitTypeId.OVERLORD}
@@ -88,7 +89,7 @@ class Common(BotAI):
     all_structuretypes = all_tumortypes | all_sporetypes | all_normalstructuretypes
     all_types = all_upgrades | all_structuretypes | all_unittypes
     # constants for this map:
-    map_center = nowhere   
+    map_center = nowhere
     map_left = 0
     map_top = 0
     map_right = 0
@@ -161,7 +162,7 @@ class Common(BotAI):
         if not self.did_common_onstep:
             self.did_common_onstep = True
             # frame
-            self.game_step = self._client.game_step 
+            self.game_step = self._client.game_step
             self.frame = self.iteration * self.game_step
             # nbases
             self.nbases = 0
@@ -289,13 +290,20 @@ class Common(BotAI):
             # supply_used civilian/army (omitting eggs)
             self.civiliansupply_used = len(self.units(UnitTypeId.DRONE)) + 2 * len(self.units(UnitTypeId.QUEEN))
             self.armysupply_used = self.supply_used - self.civiliansupply_used
-            
-        
-                        
+
     def distance(self, p, q) -> float:
         sd = (p.x-q.x)*(p.x-q.x) + (p.y-q.y)*(p.y-q.y)
         return sqrt(sd)
-        
+
+    def range_vs(self, unit: Unit, target: Unit) -> float:
+        ground_range = 0
+        air_range = 0
+        if unit.can_attack_ground and not target.is_flying:
+            ground_range = unit.ground_range
+        elif unit.can_attack_air and (target.is_flying or target.type_id == UnitTypeId.COLOSSUS):
+            air_range = unit.air_range
+        return max(ground_range, air_range)
+
     def function_listens(self, name,delay) -> bool:
         # forces 'delay' frames between function calls.
         if name not in self.listenframe_of_function:
@@ -304,7 +312,7 @@ class Common(BotAI):
             self.listenframe_of_function[name] = self.frame + delay
             return True
         return False
-    
+
     def jobcount(self, job) -> int:
         # do not call often
         count = 0

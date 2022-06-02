@@ -12,3 +12,7 @@ class TestBase:
     @abstractmethod
     async def on_step(self):
         pass
+
+    @abstractmethod
+    def check(self) -> bool:
+        pass
