@@ -12,7 +12,7 @@ from sc2.unit import Unit
 
 class Common(BotAI):
 
-    version = 'v31052022'
+    version = 'v02062022'
     bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
