@@ -351,23 +351,23 @@ class Attack(Tech):
             if self.job_of_unit[tag] in {self.Job.DEFENDATTACK, self.Job.BIGATTACK, self.Job.BERSERKER}:
                 if typ not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT}:
                     if self.frame >= self.listenframe_of_unit[tag]:
-                        if unt.weapon_cooldown == -1:
+                        if unt.weapon_cooldown == 0:
                             enemies_in_range = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, unt.movement_speed)
                                                                        and enemy_health[enemy.tag] > 0)
+                            goal = self.attackgoal[tag]
                             if not enemies_in_range.empty:
                                 best_target = enemies_in_range.sorted(lambda u: u.shield_health_percentage).first
                                 logger.debug(f"Attacking lowest attack {best_target}")
                                 unt.attack(best_target)
-                                enemy_health[best_target.tag] -= unt.calculate_damage_vs_target(best_target)
-                            else:
+                                enemy_health[best_target.tag] = enemy_health[best_target.tag] - unt.calculate_damage_vs_target(best_target)[0]
+                            elif unt.distance_to(goal) > unt.real_speed:
                                 logger.debug(f"Going towards our goal")
-                                goal = self.attackgoal[tag]
                                 unt.attack(goal)
                         elif unt.weapon_cooldown > self.game_step:
                             enemies_in_range = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, enemy.movement_speed + unt.movement_speed))
                             if not enemies_in_range.empty:
                                 closest_enemy = enemies_in_range.closest_to(unt)
-                                if 0 < self.range_vs(closest_enemy, unt) < self.range_vs(unt, closest_enemy):
+                                if closest_enemy.can_attack and self.range_vs(closest_enemy, unt) < self.range_vs(unt, closest_enemy):
                                     goal = self.attackgoal[tag]
                                     position = closest_enemy.position.towards(unt, self.range_vs(unt, closest_enemy))
                                     unt.move(position)
