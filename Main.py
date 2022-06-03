@@ -10,7 +10,7 @@ from ender.endstep import Endstep
 from ender.making import Making
 from ender.parts import Parts
 from ender.queens import Queens
-from ender.workers import Workers
+from ender.mining import Mining
 from sc2.data import Race, Difficulty
 from sc2.main import run_game
 from sc2.player import Bot, Computer
@@ -24,7 +24,7 @@ from test.defensive_spore_test import DefensiveSporeTest
 #                                       \
 #                                        Tech
 #                        /  |          /   \       \       \     \      \
-#                  Attack Map_if Resources Strategy Queens Workers Parts Endstep
+#                  Attack Map_if Resources Strategy Queens Mining Parts Endstep
 #                           |   \    |    /
 #                         Creep   Making
 #
@@ -34,7 +34,7 @@ from test.defensive_spore_test import DefensiveSporeTest
 #
 
 
-class Ender(Attack, Creep, Making, Queens, Workers, Parts, Endstep):
+class Ender(Attack, Creep, Making, Queens, Mining, Parts, Endstep):
     tests: Optional[List[TestBase]]
 
     def __init__(self, testing: bool = False):
@@ -51,7 +51,7 @@ class Ender(Attack, Creep, Making, Queens, Workers, Parts, Endstep):
         await Creep.on_step(self)
         await Making.on_step(self)
         await Queens.on_step(self)
-        await Workers.on_step(self)
+        await Mining.on_step(self)
         await Parts.on_step(self)
         await Endstep.on_step(self)
         if self.testing:

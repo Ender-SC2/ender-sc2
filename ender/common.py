@@ -12,7 +12,7 @@ from sc2.unit import Unit
 
 class Common(BotAI):
 
-    version = 'v02062022'
+    version = 'v03062022'
     bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
@@ -151,7 +151,7 @@ class Common(BotAI):
         self.map_top = self.game_info.playable_area.height+self.game_info.playable_area.y
         #
         for unt in self.units(UnitTypeId.DRONE):
-            self.job_of_unit[unt.tag] = self.Job.MIMMINER
+            self.job_of_unit[unt.tag] = self.Job.UNCLEAR
         self.hospital = self.ourmain.towards(self.map_center,-7)
 
     async def on_step(self):

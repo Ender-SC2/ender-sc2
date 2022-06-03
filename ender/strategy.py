@@ -69,6 +69,8 @@ class Strategy(Tech):
             if plan == self.Gameplan.ENDGAME:
                 if self.minerals > 3000:
                     plan = self.Gameplan.LINGWAVE
+            logger.info('Transitioning to ' + plan.name)
+            await self._client.chat_send('Transitioning to ' + plan.name, team_only=False)
             self.set_gameplan(plan)
         self.new_plan.execute()
 
