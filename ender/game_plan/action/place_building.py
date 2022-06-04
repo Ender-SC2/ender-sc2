@@ -1,3 +1,5 @@
+from typing import Optional
+
 from loguru import logger
 
 from ender.common import Common
@@ -31,20 +33,29 @@ class PlaceBuilding(Action):
             logger.info("Can't afford")
             return
         position = self.get_position()
-        workers = self.common.units.of_type(UnitTypeId.DRONE).filter(lambda worker: self.common.job_of_unit[worker.tag] in [self.common.Job.MIMMINER, self.common.Job.MIMMINER])\
-
-        logger.info(f"Placing {self.unit_type} at {position}")
-        if not workers.empty:
-            worker = workers.closest_to(position)
-            self.common.job_of_unit[worker.tag] = self.common.Job.BUILDER
-            self.common.expiration_of_builder[worker.tag] = self.common.frame + 8 * self.common.seconds  # shortens it
-            worker.build(self.unit_type, position)
+        if position:
+            workers = self.common.units.of_type(UnitTypeId.DRONE).filter(
+                lambda worker: self.common.job_of_unit[worker.tag] in [self.common.Job.MIMMINER,
+                                                                       self.common.Job.MIMMINER]
+                and not worker.is_carrying_resource
+            )
+            logger.info(f"Placing {self.unit_type} at {position}")
+            if not workers.empty:
+                worker = workers.closest_to(position)
+                self.common.job_of_unit[worker.tag] = self.common.Job.BUILDER
+                self.common.expiration_of_builder[
+                    worker.tag] = self.common.frame + 8 * self.common.seconds  # shortens it
+                worker.build(self.unit_type, position)
+            else:
+                logger.info("Fail to find a worker")
+        else:
+            logger.info("Fail to find a good building position")
 
     def has_building(self):
         if not self.on_base:
             return self.common.all_units.of_type(self.unit_type).amount >= self.amount
         return self.common.all_units.of_type(self.unit_type).closer_than(11, self.on_base).amount >= self.amount
 
-    def get_position(self) -> Point2:
+    def get_position(self) -> Optional[Point2]:
         logger.info(f"Getting position close to {self.on_base}")
         return self.building_positioning.position(self.on_base)

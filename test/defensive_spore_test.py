@@ -33,7 +33,7 @@ class DefensiveSporeTest(TestBase):
         closest_unit = self.common.enemy_units.first
         if not closest_unit:
             return
-        if self.common.all_units.of_type(UnitTypeId.SPAWNINGPOOL).empty:
+        if self.common.all_units.of_type(UnitTypeId.SPAWNINGPOOL).ready.empty:
             return
         self.created = True
         possible_units = {Race.Terran: UnitTypeId.BANSHEE, Race.Zerg: UnitTypeId.MUTALISK,

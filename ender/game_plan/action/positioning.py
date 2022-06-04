@@ -12,5 +12,5 @@ class Positioning:
         self.common = common
 
     @abstractmethod
-    def position(self, close_to: Optional[Point2]) -> Point2:
+    def position(self, close_to: Optional[Point2]) -> Optional[Point2]:
         pass
