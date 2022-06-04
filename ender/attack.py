@@ -11,7 +11,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from ender.tech import Tech
-from sc2.unit import Unit
 
 
 class Attack(Tech):
@@ -115,7 +114,7 @@ class Attack(Tech):
         await self.do_dried()
 
     def find_bigattackgoal(self):
-        if self.function_listens('find_bigattackgoal',40):
+        if self.function_listens('find_bigattackgoal',10):
             goals = [] # of (dumbness,dist_to_enemymain,pos)
             goals.append((2,0,self.enemymain))
             for (typ,pos) in self.enemy_struc_mem:
@@ -351,26 +350,26 @@ class Attack(Tech):
             if self.job_of_unit[tag] in {self.Job.DEFENDATTACK, self.Job.BIGATTACK, self.Job.BERSERKER}:
                 if typ not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT}:
                     if self.frame >= self.listenframe_of_unit[tag]:
-                        if unt.weapon_cooldown == 0:
-                            enemies_in_range = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, unt.movement_speed)
-                                                                       and enemy_health[enemy.tag] > 0)
+                        if unt.weapon_cooldown > self.game_step:
+                            enemies_around = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, unt.movement_speed))
+                            if not enemies_around.empty:
+                                logger.info("KITE")
+                                closest_enemy = enemies_around.closest_to(unt)
+                                if closest_enemy.can_attack and self.range_vs(closest_enemy, unt) <= self.range_vs(unt, closest_enemy):
+                                    position = unt.position.towards(enemies_around.center, -unt.movement_speed)
+                                    unt.move(position)
+                        else:
+                            enemies_around = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, 0)
+                                                                                   and enemy_health[enemy.tag] > 0)
                             goal = self.attackgoal[tag]
-                            if not enemies_in_range.empty:
-                                best_target = enemies_in_range.sorted(lambda u: u.shield_health_percentage).first
-                                logger.debug(f"Attacking lowest attack {best_target}")
+                            if not enemies_around.empty:
+                                best_target = enemies_around.sorted(lambda u: u.shield_health_percentage).first
+                                logger.info(f"Attacking lowest attack {best_target}")
                                 unt.attack(best_target)
                                 enemy_health[best_target.tag] = enemy_health[best_target.tag] - unt.calculate_damage_vs_target(best_target)[0]
                             elif unt.distance_to(goal) > unt.real_speed:
-                                logger.debug(f"Going towards our goal")
+                                logger.info("Going towards our goal")
                                 unt.attack(goal)
-                        elif unt.weapon_cooldown > self.game_step:
-                            enemies_in_range = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, enemy.movement_speed + unt.movement_speed))
-                            if not enemies_in_range.empty:
-                                closest_enemy = enemies_in_range.closest_to(unt)
-                                if closest_enemy.can_attack and self.range_vs(closest_enemy, unt) < self.range_vs(unt, closest_enemy):
-                                    goal = self.attackgoal[tag]
-                                    position = closest_enemy.position.towards(unt, self.range_vs(unt, closest_enemy))
-                                    unt.move(position)
 
     async def corrupt(self):
         if self.function_listens('corrupt',10):
