@@ -2,7 +2,7 @@ name: Zip and release
 on:
   push:
     tags:
-      - '*'
+      - '**'
 jobs:
   versioning:
     runs-on: ubuntu-latest
