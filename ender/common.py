@@ -152,6 +152,10 @@ class Common(BotAI):
             self.job_of_unit[unt.tag] = self.Job.UNCLEAR
         self.hospital = self.ourmain.towards(self.map_center,-7)
 
+    async def on_start(self):
+        self._client.game_step = self.game_step
+        # if running realtime speed, this will be overwritten with 8
+
     async def on_step(self):
         # game init
         if not self.__did_step0:
