@@ -1,5 +1,8 @@
 name: Tag version
-on: [push]
+on:
+  push:
+    branches:
+      - 'main'
 jobs:
   versioning:
     runs-on: ubuntu-latest
