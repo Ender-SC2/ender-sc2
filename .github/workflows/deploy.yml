@@ -1,4 +1,4 @@
-name: Deploy tag
+name: Zip and release
 on:
   release:
     types: [created]

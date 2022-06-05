@@ -1,4 +1,4 @@
-name: Zip file
+name: Tag version
 on: [push]
 jobs:
   versioning:
