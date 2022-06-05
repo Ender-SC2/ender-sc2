@@ -138,8 +138,9 @@ class Parts(Common):
                         #logger.info(line) # debug
                         words = line.split()
                         if len(words) > 0:
-                            if (words[0] == mapname) and (words[1] == startx) and (words[2] == starty):
-                                self.overlords.add((float(words[3]), float(words[4]), float(words[5]), float(words[6])))
+                            if words[0] != '#':
+                                if (words[0] == mapname) and (words[1] == startx) and (words[2] == starty):
+                                    self.overlords.add((float(words[3]), float(words[4]), float(words[5]), float(words[6])))
                     if len(self.overlords) == 0:
                         self.overlords.add((0, 0, self.enemymain.x, self.enemymain.y))
                         logger.info('append to data/overlords.txt:')

@@ -28,6 +28,7 @@ class Strategy(Tech):
         THREEBASE = auto()
         MUTAS = auto()
         LINGBANEMUTA = auto()
+        FIVEBASE = auto()
         ENDGAME = auto()
         LINGWAVE = auto()
     gameplan = Gameplan.ENDGAME
@@ -35,6 +36,7 @@ class Strategy(Tech):
     last_bigattack_count = 0
     make_plan = {}
     new_plan = None
+    structures_at_hatches = 0
 
     def __step0(self):
         if not self.new_plan:
@@ -48,9 +50,10 @@ class Strategy(Tech):
         self.standard_structype_order()
         #
         choice = random.choice(list(self.Gameplan))
-        while choice not in {self.Gameplan.TWELVEPOOL, self.Gameplan.ONEBASE_NOGAS, self.Gameplan.ONEBASE, self.Gameplan.TWOBASE_NOGAS, self.Gameplan.TWOBASE}:
+        while choice not in {self.Gameplan.TWELVEPOOL, self.Gameplan.ONEBASE_NOGAS, self.Gameplan.ONEBASE, self.Gameplan.TWOBASE_NOGAS, 
+                            self.Gameplan.TWOBASE, self.Gameplan.THREEBASE_NOGAS, self.Gameplan.THREEBASE}:
             choice = random.choice(list(self.Gameplan))
-        # choice = self.Gameplan.TWELVEPOOL # debug
+        # choice = self.Gameplan.ONEBASE # debug
         self.set_gameplan(choice)
         #
 
@@ -107,6 +110,7 @@ class Strategy(Tech):
         self.standard_needhatches()
         self.opening = []
         if gameplan == self.Gameplan.TWELVEPOOL:
+            self.structures_at_hatches = 1
             self.make_plan[UnitTypeId.HATCHERY] = 1
             self.make_plan[UnitTypeId.ZERGLING] = 12
             self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
@@ -114,20 +118,24 @@ class Strategy(Tech):
             self.opening.append(('supply',12, UnitTypeId.SPAWNINGPOOL, 1))
             self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE_NOGAS:
+            self.structures_at_hatches = 1
             self.make_plan[UnitTypeId.HATCHERY] = 1
             self.make_plan[UnitTypeId.ZERGLING] = 12
             self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
             self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE:
-            self.make_plan[UnitTypeId.HATCHERY] = 1
+            self.structures_at_hatches = 1
+            self.make_plan[UnitTypeId.HATCHERY] = 2 # one base but at the end the second hatchery
             self.make_plan[UnitTypeId.EXTRACTOR] = 2
             self.make_plan[UnitTypeId.ZERGLING] = 2
             self.make_plan[UnitTypeId.ROACH] = 10
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
-            self.followup = self.Gameplan.TWOBASE
+            self.make_plan[UnitTypeId.DRONE] = 16 * 1 + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
+            self.make_plan[UnitTypeId.QUEEN] = 1
+            self.opening.append(('supply',22, UnitTypeId.HATCHERY, 2))
+            self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE_NOGAS:
+            self.structures_at_hatches = 2
             self.make_plan[UnitTypeId.HATCHERY] = 2
             self.make_plan[UnitTypeId.EXTRACTOR] = 0
             self.make_plan[UnitTypeId.ZERGLING] = 36
@@ -135,6 +143,7 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE:
+            self.structures_at_hatches = 2
             self.make_plan[UnitTypeId.HATCHERY] = 2
             self.make_plan[UnitTypeId.EXTRACTOR] = 2
             self.make_plan[UnitTypeId.ZERGLING] = 12
@@ -143,6 +152,7 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.THREEBASE_NOGAS:
+            self.structures_at_hatches = 3
             self.make_plan[UnitTypeId.HATCHERY] = 3
             self.make_plan[UnitTypeId.EXTRACTOR] = 0
             self.make_plan[UnitTypeId.ZERGLING] = 60
@@ -150,6 +160,7 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.LINGBANEMUTA
         elif gameplan == self.Gameplan.THREEBASE:
+            self.structures_at_hatches = 3
             self.make_plan[UnitTypeId.HATCHERY] = 3
             self.make_plan[UnitTypeId.EXTRACTOR] = 3
             self.make_plan[UnitTypeId.ZERGLING] = 12
@@ -157,8 +168,9 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.ROACH] = 16
             self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
             self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
-            self.followup = self.Gameplan.ENDGAME
+            self.followup = self.Gameplan.FIVEBASE
         elif gameplan == self.Gameplan.MUTAS:
+            self.structures_at_hatches = 4
             self.make_plan[UnitTypeId.HATCHERY] = 4
             self.make_plan[UnitTypeId.EXTRACTOR] = 5
             self.make_plan[UnitTypeId.ZERGLING] = 20
@@ -167,6 +179,7 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.LINGBANEMUTA:
+            self.structures_at_hatches = 4
             self.make_plan[UnitTypeId.HATCHERY] = 4
             self.make_plan[UnitTypeId.EXTRACTOR] = 5
             self.make_plan[UnitTypeId.ZERGLING] = 20
@@ -175,7 +188,19 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
             self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
             self.followup = self.Gameplan.ENDGAME
+        elif gameplan == self.Gameplan.FIVEBASE:
+            self.structures_at_hatches = 5
+            self.make_plan[UnitTypeId.HATCHERY] = 5
+            self.make_plan[UnitTypeId.EXTRACTOR] = 7
+            self.make_plan[UnitTypeId.ZERGLING] = 20
+            self.make_plan[UnitTypeId.BANELING] = 10
+            self.make_plan[UnitTypeId.ROACH] = 5
+            self.make_plan[UnitTypeId.HYDRALISK] = 30
+            self.make_plan[UnitTypeId.DRONE] = 16 * self.make_plan[UnitTypeId.HATCHERY] + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
+            self.make_plan[UnitTypeId.QUEEN] = self.make_plan[UnitTypeId.HATCHERY]
+            self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.ENDGAME:
+            self.structures_at_hatches = 99
             self.make_plan[UnitTypeId.HATCHERY] = 99
             self.make_plan[UnitTypeId.EXTRACTOR] = 99
             self.make_plan[UnitTypeId.ULTRALISK] = 1
@@ -189,6 +214,7 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.DRONE] = 90
             self.make_plan[UnitTypeId.QUEEN] = 10
         elif gameplan == self.Gameplan.LINGWAVE:
+            self.structures_at_hatches = 99
             self.make_plan[UnitTypeId.HATCHERY] = 99
             self.make_plan[UnitTypeId.EXTRACTOR] = 99
             self.make_plan[UnitTypeId.ZERGLING] = 180
@@ -204,7 +230,7 @@ class Strategy(Tech):
             if self.make_plan[rava] > 0:
                 logger.info('make_plan: ' + rava.name + ' ' + str(self.make_plan[rava]))
         #
-        self.needhatches_restrict(self.make_plan[UnitTypeId.HATCHERY])
+        self.needhatches_restrict(self.structures_at_hatches)
 
     def needhatches_restrict(self, hatches):
         for struc in self.needhatches:

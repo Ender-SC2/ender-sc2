@@ -12,7 +12,7 @@ from sc2.unit import Unit
 
 class Common(BotAI):
 
-    version = 'v03062022'
+    version = 'v05062022'
     bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
@@ -153,6 +153,10 @@ class Common(BotAI):
         for unt in self.units(UnitTypeId.DRONE):
             self.job_of_unit[unt.tag] = self.Job.UNCLEAR
         self.hospital = self.ourmain.towards(self.map_center,-7)
+
+    async def on_start(self):
+        self._client.game_step = self.game_step
+        # if running realtime speed, this will be overwritten with 8
 
     async def on_step(self):
         # game init
