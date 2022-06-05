@@ -22,5 +22,6 @@ jobs:
       - name: 'Upload Release'
         uses: ncipollo/release-action@v1
         with:
+          allowUpdates: true
           artifacts: "release.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
