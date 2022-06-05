@@ -1,15 +1,18 @@
 # parts.py, Ender
-from loguru import logger
 import os
 
+from loguru import logger
+
 from ender.common import Common
-import sc2
-from sc2.ids.unit_typeid import UnitTypeId
+from ender.utils.type_utils import get_version
 from sc2.data import Race
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
 
 class Parts(Common):
+
+    bot_name = f'Ender by MerkMore and Ratosh'
 
     __did_step0 = False
     #
@@ -101,8 +104,9 @@ class Parts(Common):
                 await self._client.chat_send('Good luck and have fun, ' + human, team_only=False)
                 logger.info('Tag:' + code)
                 await self._client.chat_send('Tag:' + code, team_only=False)
-                logger.info('Tag:' + self.version)
-                await self._client.chat_send('Tag:' + self.version, team_only=False)
+                version = get_version()
+                logger.info('Tag:' + version)
+                await self._client.chat_send('Tag:' + version, team_only=False)
 
     def family(self, mapname):
         mapfamily = ''
@@ -164,6 +168,5 @@ class Parts(Common):
                                     ovi.move(pos)
                                     used.add(moveplan)
                 self.overlords -= used
-
 
 

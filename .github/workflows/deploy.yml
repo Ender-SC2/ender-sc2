@@ -1,0 +1,26 @@
+name: Zip and release
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: 'Get version from tag'
+        run: |
+          git describe --tags --abbrev=0 > version.txt
+      - name: 'Archive Release'
+        uses: thedoctor0/zip-release@main
+        with:
+          type: 'zip'
+          filename: 'release.zip'
+          exclusions: '*.git* .editorconfig tools/* test/*'
+      - name: 'Upload Release'
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "release.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
