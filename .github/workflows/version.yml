@@ -1,7 +1,5 @@
-name: LadderZip
-on:
-  release:
-    types: [created]
+name: Zip file
+on: [push]
 jobs:
   versioning:
     runs-on: ubuntu-latest
@@ -9,11 +7,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Semantic versioning
         id: versioning
-        uses: PaulHatch/semantic-version@v4.0.2
+        uses: paulhatch/semantic-version@v4.0.2
         with:
           branch: main
+          change_path: "ender"
           tag_prefix: "v"
           major_pattern: "BREAKING CHANGE:"
           minor_pattern: "feat:"

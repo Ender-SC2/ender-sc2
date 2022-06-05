@@ -12,8 +12,6 @@ from sc2.unit import Unit
 
 class Common(BotAI):
 
-    version = 'v03062022'
-    bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
     notag = -1

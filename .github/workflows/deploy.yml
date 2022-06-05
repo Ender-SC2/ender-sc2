@@ -1,8 +1,7 @@
-name: LadderZip
+name: Deploy tag
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [created]
 jobs:
   versioning:
     runs-on: ubuntu-latest
@@ -18,7 +17,7 @@ jobs:
         with:
           type: 'zip'
           filename: 'release.zip'
-          exclusions: '*.git* .editorconfig '
+          exclusions: '*.git* .editorconfig tools test'
       - name: 'Upload Release'
         uses: ncipollo/release-action@v1
         with:
