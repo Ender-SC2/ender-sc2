@@ -1,5 +1,4 @@
-# creep.py, Merkbot, Zerg sandbox bot
-# 20 may 2022
+# creep.py, Ender
 
 import random
 
@@ -26,6 +25,10 @@ class Creep(Map_if):
     directionx_of_tumor = {} # for activecreep, a directionindex
     tries = {} # for activecreep, how often did it try to make a tumor
     next_directionx = 0
+    creeplords = set() # overlords to spread creep for tumor steps
+    creeplord_state = {} # free/moving/dropping
+    creeplord_goal = {} # place where this overlord will creep
+    creeplord_free = {} # the frame the overlord can be reused
     #
 
     def __step0(self):
@@ -46,6 +49,7 @@ class Creep(Map_if):
         await self.creep_spread()
         await self.re_direction()
         await self.queencreep()
+        await self.do_creeplord()
 
     def init_creepstyle(self):
         self.creepdirection = []
@@ -107,7 +111,20 @@ class Creep(Map_if):
 
     def creepable(self, point) -> bool:
         # for a point on the halfgrid, with halves.
-        ok = self.has_creep(point) and self.map_can_plan_creep(point,1)
+        ok = False
+        if self.map_can_plan_creep(point,1):
+            if self.has_creep(point):
+                ok = True
+        return ok
+
+    def creepable_ask_lord(self, point) -> bool:
+        # for a point on the halfgrid, with halves.
+        ok = False
+        if self.map_can_plan_creep(point,1):
+            if self.has_creep(point):
+                ok = True
+            else:
+                self.ask_lord(point)
         return ok
 
     def random_direction(self, pos,tag):
@@ -233,7 +250,7 @@ class Creep(Map_if):
                     rawpos = strupos.towards(dirpoint,10)
                     center = Point2((round(rawpos.x - 0.5) + 0.5,round(rawpos.y - 0.5) + 0.5))
                     altpoint = center
-                    ok = self.creepable(altpoint)
+                    ok = self.creepable_ask_lord(altpoint)
                     if (not ok):
                         rawpos = strupos.towards(dirpoint,8)
                         center = Point2((round(rawpos.x - 0.5) + 0.5,round(rawpos.y - 0.5) + 0.5))
@@ -252,4 +269,101 @@ class Creep(Map_if):
                                 if self.tries[tag] > 10:
                                     self.random_direction(strupos,tag)
                                     self.tries[tag] = 0
+
+    async def do_creeplord(self):
+        if len(self.structures(UnitTypeId.LAIR)) > 0:
+            # creeplords alive and job
+            todel = set()
+            for tag in self.creeplords:
+                seen = False
+                for typ in {UnitTypeId.OVERLORD}:
+                    for lord in self.units(typ):
+                        if tag == lord.tag:
+                            if self.job_of_unit[tag] == self.Job.CREEPLORD:
+                                seen = True
+                if not seen:
+                    todel.add(tag)
+            self.creeplords -= todel
+            # get new ones
+            if len(self.creeplords) < 3:
+                bestdist = 99999
+                for typ in {UnitTypeId.OVERLORD}:
+                    for lord in self.units(typ).idle:
+                        tag = lord.tag
+                        if tag not in self.creeplords:
+                            if self.job_of_unit[tag] == self.Job.UNCLEAR:
+                                dist = self.distance(lord.position, self.ourmain)
+                                if dist < bestdist:
+                                    bestdist = dist
+                                    besttag = tag
+                if bestdist < 99999:
+                    tag = besttag
+                    self.job_of_unit[tag] = self.Job.CREEPLORD
+                    self.creeplords.add(tag)
+                    self.creeplord_state[tag] = 'free'
+            # moving is done by self.ask_lord(point)
+            # reevaluate moving
+            if self.function_listens('reevaluate_creeplord',20):
+                for tag in self.creeplords:
+                    if self.creeplord_state[tag] == 'moving':
+                        itspoint = self.creeplord_goal[tag]
+                        if self.has_creep(itspoint):
+                            self.creeplord_state[tag] = 'free'
+            # on point
+            for typ in {UnitTypeId.OVERLORD}:
+                for lord in self.units(typ).idle: # stopped or reached
+                    tag = lord.tag
+                    lordpos = lord.position
+                    if tag in self.creeplords:
+                        if self.creeplord_state[tag] == 'moving':
+                            itspoint = self.creeplord_goal[tag]
+                            dist = self.distance(lordpos, itspoint)
+                            if dist < 1:
+                                if self.has_creep(itspoint):
+                                    self.creeplord_state[tag] = 'free'
+                                else: # no creep yet
+                                    self.creeplord_state[tag] = 'dropping'
+                                    lord(AbilityId.BEHAVIOR_GENERATECREEPON)
+                                    self.creeplord_free[tag] = self.frame + 7 * self.seconds
+                            else: # stopped; retry
+                                lord(AbilityId.MOVE, itspoint)
+            # dropping
+            for typ in {UnitTypeId.OVERLORD}:
+                for lord in self.units(typ):
+                    tag = lord.tag
+                    if tag in self.creeplords:
+                        if self.creeplord_state[tag] == 'dropping':
+                            if self.frame >= self.creeplord_free[tag]:
+                                self.creeplord_state[tag] = 'free'
+                                # it can continue to creep until it is reused
+
+    def ask_lord(self, point: Point2):
+        if len(self.structures(UnitTypeId.LAIR)) > 0:
+            # point not near an active goal
+            goodpoint = True
+            for tag in self.creeplords:
+                if self.creeplord_state[tag] in {'moving', 'dropping'}:
+                    goal = self.creeplord_goal[tag]
+                    if self.distance(goal, point) < 10:
+                        goodpoint = False
+            if goodpoint:
+                # send one close to point
+                bestdist = 99999
+                for typ in {UnitTypeId.OVERLORD}:
+                    for lord in self.units(typ):
+                        tag = lord.tag
+                        if tag in self.creeplords:
+                            if self.creeplord_state[tag] == 'free':
+                                lordpos = lord.position
+                                dist = self.distance(lordpos, point)
+                                if dist < bestdist:
+                                    bestdist = dist
+                                    bestlord = lord
+                if bestdist < 99999:
+                    lord = bestlord
+                    tag = lord.tag
+                    self.creeplord_state[tag] = 'moving'
+                    self.creeplord_goal[tag] = point
+                    lord(AbilityId.MOVE, point)
+
 

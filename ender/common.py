@@ -12,7 +12,7 @@ from sc2.unit import Unit
 
 class Common(BotAI):
 
-    version = 'v05062022'
+    version = 'v06062022'
     bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
@@ -43,6 +43,7 @@ class Common(BotAI):
         TRANSPORTER = auto()
         VOLUNTEER = auto()
         TIRED = auto()
+        CREEPLORD = auto()
     seconds = 22.4
     minutes = seconds * 60
     all_halltypes = {UnitTypeId.COMMANDCENTER,UnitTypeId.ORBITALCOMMAND,UnitTypeId.PLANETARYFORTRESS,
