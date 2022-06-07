@@ -28,7 +28,7 @@ jobs:
         with:
           type: 'zip'
           filename: 'data'
-          include: 'data/*'
+          path: './data/'
       - name: Create a GitHub release
         uses: ncipollo/release-action@v1
         with:
