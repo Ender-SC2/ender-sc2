@@ -17,6 +17,9 @@ jobs:
         uses: mathieudutour/github-tag-action@v6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: 'Get version into text'
+        run: |
+          echo ${{ steps.tag_version.outputs.new_tag }} > version.txt
       - name: 'Zip scripts'
         uses: thedoctor0/zip-release@main
         with:
