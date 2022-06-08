@@ -1,7 +1,6 @@
 # Main.py, Ender
 
 import random
-from typing import List, Optional
 
 import sc2
 from ender.attack import Attack
@@ -14,8 +13,6 @@ from ender.mining import Mining
 from sc2.data import Race, Difficulty
 from sc2.main import run_game
 from sc2.player import Bot, Computer
-from test.test_base import TestBase
-from test.defensive_spore_test import DefensiveSporeTest
 
 
 #                          BotAI
@@ -35,12 +32,9 @@ from test.defensive_spore_test import DefensiveSporeTest
 
 
 class Ender(Attack, Creep, Making, Queens, Mining, Parts, Endstep):
-    tests: Optional[List[TestBase]]
 
-    def __init__(self, testing: bool = False):
+    def __init__(self):
         super().__init__()
-        self.testing = testing
-        self.tests = None
 
     async def on_step(self, iteration: int):
         self.did_common_onstep = False
@@ -54,13 +48,6 @@ class Ender(Attack, Creep, Making, Queens, Mining, Parts, Endstep):
         await Mining.on_step(self)
         await Parts.on_step(self)
         await Endstep.on_step(self)
-        if self.testing:
-            if not self.tests:
-                self.tests = [DefensiveSporeTest()]
-                for test in self.tests:
-                    test.setup(self)
-            for test in self.tests:
-                await test.on_step()
 
 
 # *********************************************************************************************************************
