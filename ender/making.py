@@ -683,7 +683,7 @@ class Making(Map_if, Resources, Strategy):
                 started = 1
             else:
                 started = 0
-            if (started < self.make_plan[typ]):
+            if (started < self.make_plan[typ]) or self.auto_upgrade:
                 importance += 1000                    
             goon = True
             creator = self.creator[typ]

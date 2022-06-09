@@ -37,3 +37,16 @@ berlingrad 120.5 24.5 2 0 60.5 112.5
 berlingrad 31.5 131.5 2 0 91.5 43.5
 blackburn 36.5 31.5 2 0 116.5 54.5
 blackburn 147.5 31.5 2 0 67.5 54.5
+# fourth overlord to our third
+curiousminds 125.5 24.5 3 0 101.5 48.5
+curiousminds 26.5 115.5 3 0 50.5 91.5
+glitteringashes 167.5 149.5 3 0 150.5 125.5
+glitteringashes 48.5 54.5 3 0 65.5 78.5
+atmospheres 57.5 60.5 3 0 77.5 80.5
+atmospheres 166.5 143.5 3 0 146.5 123.5
+hardwire 58.5 58.5 3 0 75.5 81.5
+hardwire 157.5 157.5 3 0 140.5 134.5
+berlingrad 120.5 24.5 3 0 91.5 43.5
+berlingrad 31.5 131.5 3 0 60.5 112.5
+blackburn 36.5 31.5 3 0 67.5 54.5
+blackburn 147.5 31.5 3 0 116.5 54.5

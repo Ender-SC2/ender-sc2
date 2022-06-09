@@ -2,17 +2,19 @@
 
 from enum import Enum, auto
 from math import sqrt
+from loguru import logger
 
 from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.ids.ability_id import AbilityId
 from sc2.position import Point2
 from sc2.unit import Unit
 
 
 class Common(BotAI):
 
-    version = 'v06062022'
+    version = 'v09062022'
     bot_name = f'Ender by MerkMore and Ratosh'
     # constants after step0:
     nowhere = Point2((1,1))
@@ -62,19 +64,27 @@ class Common(BotAI):
                        UnitTypeId.ULTRALISKBURROWED, UnitTypeId.DRONEBURROWED, UnitTypeId.HYDRALISKBURROWED,
                        UnitTypeId.INFESTORBURROWED, UnitTypeId.QUEENBURROWED, UnitTypeId.RAVAGERBURROWED,
                        UnitTypeId.SWARMHOSTBURROWEDMP}
-    all_upgrades = {UpgradeId.ZERGMISSILEWEAPONSLEVEL1, UpgradeId.ZERGMELEEWEAPONSLEVEL1,
-                    UpgradeId.ZERGGROUNDARMORSLEVEL1, UpgradeId.OVERLORDSPEED,
-                    UpgradeId.ZERGMISSILEWEAPONSLEVEL2, UpgradeId.ZERGMELEEWEAPONSLEVEL2,
-                    UpgradeId.ZERGGROUNDARMORSLEVEL2, UpgradeId.BURROW, UpgradeId.ZERGLINGMOVEMENTSPEED,
-                    UpgradeId.ZERGMISSILEWEAPONSLEVEL3, UpgradeId.ZERGMELEEWEAPONSLEVEL3,
-                    UpgradeId.ZERGGROUNDARMORSLEVEL3, UpgradeId.ZERGLINGATTACKSPEED,
-                    UpgradeId.ZERGFLYERARMORSLEVEL1, UpgradeId.ZERGFLYERARMORSLEVEL2,
-                    UpgradeId.ZERGFLYERARMORSLEVEL3, UpgradeId.ZERGFLYERWEAPONSLEVEL1,
-                    UpgradeId.ZERGFLYERWEAPONSLEVEL2, UpgradeId.ZERGFLYERWEAPONSLEVEL3,
-                    UpgradeId.CHITINOUSPLATING, UpgradeId.LURKERRANGE,
-                    UpgradeId.CENTRIFICALHOOKS, UpgradeId.EVOLVEGROOVEDSPINES,
-                    UpgradeId.EVOLVEMUSCULARAUGMENTS, UpgradeId.NEURALPARASITE,
-                    UpgradeId.GLIALRECONSTITUTION}
+    all_num_upgrades = {UpgradeId.ZERGMISSILEWEAPONSLEVEL1, UpgradeId.ZERGMELEEWEAPONSLEVEL1,
+                        UpgradeId.ZERGGROUNDARMORSLEVEL1, 
+                        UpgradeId.ZERGMISSILEWEAPONSLEVEL2, UpgradeId.ZERGMELEEWEAPONSLEVEL2,
+                        UpgradeId.ZERGGROUNDARMORSLEVEL2, 
+                        UpgradeId.ZERGMISSILEWEAPONSLEVEL3, UpgradeId.ZERGMELEEWEAPONSLEVEL3,
+                        UpgradeId.ZERGGROUNDARMORSLEVEL3, 
+                        UpgradeId.ZERGFLYERARMORSLEVEL1, UpgradeId.ZERGFLYERARMORSLEVEL2,
+                        UpgradeId.ZERGFLYERARMORSLEVEL3, UpgradeId.ZERGFLYERWEAPONSLEVEL1,
+                        UpgradeId.ZERGFLYERWEAPONSLEVEL2, UpgradeId.ZERGFLYERWEAPONSLEVEL3}
+    all_ind_upgrades = {UpgradeId.OVERLORDSPEED,
+                        UpgradeId.BURROW,
+                        UpgradeId.ZERGLINGMOVEMENTSPEED,
+                        UpgradeId.ZERGLINGATTACKSPEED,
+                        UpgradeId.CHITINOUSPLATING,
+                        UpgradeId.LURKERRANGE,
+                        UpgradeId.CENTRIFICALHOOKS,
+                        UpgradeId.EVOLVEGROOVEDSPINES,
+                        UpgradeId.EVOLVEMUSCULARAUGMENTS,
+                        UpgradeId.NEURALPARASITE,
+                        UpgradeId.GLIALRECONSTITUTION}
+    all_upgrades = all_num_upgrades | all_ind_upgrades
                     # all means: known to this bot
     all_eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,
                     UnitTypeId.TRANSPORTOVERLORDCOCOON, UnitTypeId.OVERLORDCOCOON, UnitTypeId.LURKERMPEGG}
@@ -118,8 +128,9 @@ class Common(BotAI):
     last_health = {}
     hospital = None
     extractors = [] # extractors not empty
-    civiliansupply_used = 12
-    armysupply_used = 0
+    drones_supply_used = 12
+    queens_supply_used = 0
+    army_supply_used = 0
     supplycap_drones = 90
     supplycap_queens = 20
     supplycap_army = 90
@@ -169,6 +180,7 @@ class Common(BotAI):
             # frame
             self.game_step = self._client.game_step
             self.frame = self.iteration * self.game_step
+            logger.info('---------------- ' + str(self.frame) + ' -------------------' )
             # nbases
             self.nbases = 0
             for typ in self.all_halltypes:
@@ -292,9 +304,26 @@ class Common(BotAI):
                 geysers_nonemp_pos = [gey.position for gey in geysers_nonemp]
                 self.extractors = self.structures(UnitTypeId.EXTRACTOR).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
                 self.extractors |= self.structures(UnitTypeId.EXTRACTORRICH).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
-            # supply_used civilian/army (omitting eggs)
-            self.civiliansupply_used = len(self.units(UnitTypeId.DRONE)) + 2 * len(self.units(UnitTypeId.QUEEN))
-            self.armysupply_used = self.supply_used - self.civiliansupply_used
+            # drones_supply_used
+            self.drones_upply_used = len(self.units(UnitTypeId.DRONE))
+            for tag in self.limbo:
+                if tag in self.job_of_unit:
+                    if self.job_of_unit[tag] == self.Job.GASMINER:
+                        self.drones_supply_used += 1
+            for egg in self.units(UnitTypeId.EGG):
+                for order in egg.orders:
+                    if order.ability.exact_id == AbilityId.LARVATRAIN_DRONE:
+                        self.drones_supply_used += 1
+            # todo passengers
+            # queens_supply_used
+            self.queens_supply_used = 2 * len(self.units(UnitTypeId.QUEEN))
+            for hatchtype in self.all_halltypes:
+                for hatch in self.structures(hatchtype):
+                    for order in hatch.orders:
+                        if order.ability.exact_id == AbilityId.TRAINQUEEN_QUEEN:
+                            self.queens_supply_used += 2
+            # army_supply_used
+            self.army_supply_used = self.supply_used - (self.drones_supply_used + self.queens_supply_used)
 
     def distance(self, p, q) -> float:
         sd = (p.x-q.x)*(p.x-q.x) + (p.y-q.y)*(p.y-q.y)

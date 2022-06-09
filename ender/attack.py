@@ -15,7 +15,6 @@ from ender.tech import Tech
 
 class Attack(Tech):
 
-    speed = {} # in griddist/sec
     minam = {} # minimum to keep when bigattacking.
     __did_step0 = False
     protected = set() # of tags. Some units left behind during a bigattack
@@ -48,35 +47,6 @@ class Attack(Tech):
 
     def __step0(self):
         #
-        # speed values copied from Liquipedia, dist per second
-        self.speed[UnitTypeId.LARVA] = 0.79
-        self.speed[UnitTypeId.OVERLORD] = 0.902
-        self.speed[UnitTypeId.OVERLORDTRANSPORT] = 0.902
-        self.speed[UnitTypeId.QUEEN] = 1.31
-        self.speed[UnitTypeId.SPINECRAWLER] = 1.4
-        self.speed[UnitTypeId.SPORECRAWLER] = 1.4
-        self.speed[UnitTypeId.BROODLORD] = 1.97
-        self.speed[UnitTypeId.LOCUSTMP] = 2.62
-        self.speed[UnitTypeId.LOCUSTMPFLYING] = 2.62
-        self.speed[UnitTypeId.OVERSEER] = 2.62
-        self.speed[UnitTypeId.ROACH] = 3.15
-        self.speed[UnitTypeId.HYDRALISK] = 3.15
-        self.speed[UnitTypeId.INFESTOR] = 3.15
-        self.speed[UnitTypeId.SWARMHOSTMP] = 3.15
-        for typ in self.all_changelings:
-            self.speed[typ] = 3.15
-        self.speed[UnitTypeId.CHANGELINGZERGLING] = 4.13
-        self.speed[UnitTypeId.CHANGELINGZERGLINGWINGS] = 4.13
-        self.speed[UnitTypeId.BANELING] = 3.5
-        self.speed[UnitTypeId.RAVAGER] = 3.85
-        self.speed[UnitTypeId.DRONE] = 3.94
-        self.speed[UnitTypeId.ZERGLING] = 4.13
-        self.speed[UnitTypeId.LURKERMP] = 4.13
-        self.speed[UnitTypeId.ULTRALISK] = 4.13
-        self.speed[UnitTypeId.VIPER] = 4.13
-        self.speed[UnitTypeId.CORRUPTOR] = 4.725
-        self.speed[UnitTypeId.BROODLING] = 5.37
-        self.speed[UnitTypeId.MUTALISK] = 5.6
         #
         # chosen to not attack:
         self.minam[UnitTypeId.DRONE] = 40
@@ -184,12 +154,11 @@ class Attack(Tech):
                         having += len(self.units(self.morpher[typ]))
                     if 4 * having < 3 * self.make_plan[typ]:
                         now = False
-            if (self.armysupply_used >= 90) or (self.supply_used >= 190):
+            if (self.army_supply_used >= 90) or (self.supply_used >= 190):
                 cocoons = 0
-                for typ in self.all_eggtypes:
-                    if typ != UnitTypeId.EGG:
-                        cocoons += len(self.units(typ))
-                if cocoons < 4:
+                for typ in {UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,UnitTypeId.LURKERMPEGG}:
+                    cocoons += len(self.units(typ))
+                if cocoons < 2:
                     now = True
             if now:
                 # report
@@ -207,7 +176,9 @@ class Attack(Tech):
                 # protect some units
                 for typ in self.minam:
                     for unt in self.units(typ):
-                        self.do_protect(unt,typ)         
+                        self.do_protect(unt,typ)
+                #
+                self.correct_speed()
                 # get approachdura
                 approachdura = 0
                 for typ in self.all_armytypes:
@@ -275,7 +246,7 @@ class Attack(Tech):
         # berserkers are units that will fight to die to free supply
         # get some berserkers
         if self.function_listens('berserk',20):
-            if self.armysupply_used >= 90:
+            if self.army_supply_used >= 90:
                 self.berserkers = self.berserkers and self.living
                 if len(self.berserkers) < 6:
                     tomake = 1
@@ -312,7 +283,6 @@ class Attack(Tech):
                                 self.listenframe_of_unit[tag] = self.frame + 5
 
         
-
     def indanger(self, unt) -> bool:
         # do you see an enemy that can hit air, dist < 10?
         danger = False
@@ -348,7 +318,8 @@ class Attack(Tech):
             tag = unt.tag
             typ = unt.type_id
             if self.job_of_unit[tag] in {self.Job.DEFENDATTACK, self.Job.BIGATTACK, self.Job.BERSERKER}:
-                if typ not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT}:
+                if typ not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT, 
+                                UnitTypeId.BROODLING, UnitTypeId.LOCUSTMP, UnitTypeId.LOCUSTMPFLYING}:
                     if self.frame >= self.listenframe_of_unit[tag]:
                         if unt.weapon_cooldown > self.game_step:
                             enemies_around = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, unt.movement_speed))
@@ -680,7 +651,7 @@ class Attack(Tech):
         if self.function_listens('slaves',61):
             candidates = {UnitTypeId.INFESTOR, UnitTypeId.CORRUPTOR, UnitTypeId.ROACH, UnitTypeId.OVERSEER,
                           UnitTypeId.MUTALISK, UnitTypeId.VIPER, UnitTypeId.HYDRALISK, UnitTypeId.OVERLORDTRANSPORT,
-                          UnitTypeId.ULTRALISK, UnitTypeId.ZERGLING}
+                          UnitTypeId.ULTRALISK} # not the zerglings
             # dead master
             todel = set()
             for slatag in self.master:

@@ -89,9 +89,10 @@ class Parts(Common):
                 for line in lines:
                     #logger.info(line) # debug
                     words = line.split()
-                    code = words[0]
-                    human = words[1]
-                    self.botnames[code] = human
+                    if len(words) == 2:
+                        code = words[0]
+                        human = words[1]
+                        self.botnames[code] = human
                 # chat
                 logger.info(self.bot_name)
                 await self._client.chat_send(self.bot_name, team_only=False)

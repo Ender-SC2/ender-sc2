@@ -15,8 +15,10 @@ class Tech(Common):
     morpher = {} # morphed[UnitTypeId.RAVAGER] = UnitTypeId.ROACH
     morphed = {} # morpher[UnitTypeId.ROACH] = UnitTypeId.RAVAGER
                  # larva morphs are omitted
-    
+    ind_upgrade_use = {} # the unittype that benefits from this upgrade most.
+    speed = {} # in griddist/sec
 
+    
     def __step0(self):
         self.tech_chains.append([UpgradeId.ZERGMISSILEWEAPONSLEVEL1, 
                                 UpgradeId.ZERGMISSILEWEAPONSLEVEL2,
@@ -197,6 +199,63 @@ class Tech(Common):
         self.morphed[UnitTypeId.BROODLORD] = UnitTypeId.CORRUPTOR
         self.morphed[UnitTypeId.BANELING] = UnitTypeId.ZERGLING
         self.morphed[UnitTypeId.LURKERMP] = UnitTypeId.HYDRALISK
+        #
+        self.ind_upgrade_use[UpgradeId.OVERLORDSPEED] = UnitTypeId.OVERSEER
+        self.ind_upgrade_use[UpgradeId.BURROW] = UnitTypeId.ROACH
+        self.ind_upgrade_use[UpgradeId.ZERGLINGMOVEMENTSPEED] = UnitTypeId.ZERGLING
+        self.ind_upgrade_use[UpgradeId.ZERGLINGATTACKSPEED] = UnitTypeId.ZERGLING
+        self.ind_upgrade_use[UpgradeId.CHITINOUSPLATING] = UnitTypeId.ULTRALISK
+        self.ind_upgrade_use[UpgradeId.LURKERRANGE] = UnitTypeId.LURKERMP
+        self.ind_upgrade_use[UpgradeId.CENTRIFICALHOOKS] = UnitTypeId.BANELING
+        self.ind_upgrade_use[UpgradeId.EVOLVEGROOVEDSPINES] = UnitTypeId.LURKERMP
+        self.ind_upgrade_use[UpgradeId.EVOLVEMUSCULARAUGMENTS] = UnitTypeId.HYDRALISK
+        self.ind_upgrade_use[UpgradeId.NEURALPARASITE] = UnitTypeId.INFESTOR
+        self.ind_upgrade_use[UpgradeId.GLIALRECONSTITUTION] = UnitTypeId.ROACH
+        #
+        # speed values copied from Liquipedia, dist per second
+        self.speed[UnitTypeId.LARVA] = 0.79
+        self.speed[UnitTypeId.OVERLORD] = 0.902
+        self.speed[UnitTypeId.OVERLORDTRANSPORT] = 0.902
+        self.speed[UnitTypeId.QUEEN] = 1.31
+        self.speed[UnitTypeId.SPINECRAWLER] = 1.4
+        self.speed[UnitTypeId.SPORECRAWLER] = 1.4
+        self.speed[UnitTypeId.BROODLORD] = 1.97
+        self.speed[UnitTypeId.LOCUSTMP] = 2.62
+        self.speed[UnitTypeId.LOCUSTMPFLYING] = 2.62
+        self.speed[UnitTypeId.OVERSEER] = 2.62
+        self.speed[UnitTypeId.ROACH] = 3.15
+        self.speed[UnitTypeId.HYDRALISK] = 3.15
+        self.speed[UnitTypeId.INFESTOR] = 3.15
+        self.speed[UnitTypeId.SWARMHOSTMP] = 3.15
+        for typ in self.all_changelings:
+            self.speed[typ] = 3.15
+        self.speed[UnitTypeId.CHANGELINGZERGLING] = 4.13
+        self.speed[UnitTypeId.CHANGELINGZERGLINGWINGS] = 4.13
+        self.speed[UnitTypeId.BANELING] = 3.5
+        self.speed[UnitTypeId.RAVAGER] = 3.85
+        self.speed[UnitTypeId.DRONE] = 3.94
+        self.speed[UnitTypeId.ZERGLING] = 4.13
+        self.speed[UnitTypeId.LURKERMP] = 4.13
+        self.speed[UnitTypeId.ULTRALISK] = 4.13
+        self.speed[UnitTypeId.VIPER] = 4.13
+        self.speed[UnitTypeId.CORRUPTOR] = 4.725
+        self.speed[UnitTypeId.BROODLING] = 5.37
+        self.speed[UnitTypeId.MUTALISK] = 5.6
+
+    def correct_speed(self):
+        # speed corrections on upgrades, from Liquipedia
+        if UpgradeId.OVERLORDSPEED in self.state.upgrades:
+            self.speed[UnitTypeId.OVERLORD] = 2.63
+            self.speed[UnitTypeId.OVERLORDTRANSPORT] = 2.63
+            self.speed[UnitTypeId.OVERSEER] = 4.72
+        if UpgradeId.ZERGLINGMOVEMENTSPEED in self.state.upgrades:
+            self.speed[UnitTypeId.ZERGLING] = 6.58
+        if UpgradeId.CENTRIFICALHOOKS in self.state.upgrades:
+            self.speed[UnitTypeId.BANELING] = 4.13
+        if UpgradeId.EVOLVEMUSCULARAUGMENTS in self.state.upgrades:
+            self.speed[UnitTypeId.HYDRALISK] = 3.93
+        if UpgradeId.GLIALRECONSTITUTION in self.state.upgrades:
+            self.speed[UnitTypeId.ROACH] = 4.2
 
 
     def init_structures(self,species,barra,builddura, size):
