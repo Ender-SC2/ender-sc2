@@ -39,15 +39,13 @@ class Parts(Common):
         await self.chatting()
         await self.overlordscout()
         #await self.show()
- 
-                    
-                    
+
     async def show(self):
         logger.info('---------------- ' + str(self.frame) + '--------------------')
         lines = []
         for unt in self.units:
             pos = unt.position
-            job = self.job_of_unit[unt.tag]
+            job = self.get_unit_job(unt)
             ord = ''
             for order in unt.orders:
                 ord += order.ability.exact_id.name + ' '

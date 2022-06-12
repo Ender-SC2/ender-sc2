@@ -1,9 +1,13 @@
 # common.py, Ender
 
-from enum import Enum, auto
 from math import sqrt
+from typing import List, overload
+
 from loguru import logger
 
+from ender.job import Job
+from ender.unit.unit_command import IUnitCommand
+from ender.unit.unit_interface import IUnitInterface
 from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -12,10 +16,12 @@ from sc2.position import Point2
 from sc2.unit import Unit
 
 
-class Common(BotAI):
+class Common(BotAI, IUnitInterface):
 
-    version = 'v09062022'
-    bot_name = f'Ender by MerkMore and Ratosh'
+    # Unit Interface
+    _commands: dict[Unit, IUnitCommand] = {}
+    _unit_job: dict[int, Job] = {}
+
     # constants after step0:
     nowhere = Point2((1,1))
     notag = -1
@@ -23,29 +29,6 @@ class Common(BotAI):
     __did_step0 = False
     enemymain = nowhere
     ourmain = nowhere
-    class Job(Enum):
-        UNCLEAR = auto()
-        BIGATTACK = auto()
-        CREEPING = auto()
-        DEFENDATTACK = auto()
-        APPRENTICE = auto() # DRONE TO BUILD
-        WALKER = auto() # DRONE TO BUILD
-        BUILDER = auto() # DRONE TO BUILD
-        INJECTING = auto()
-        MIMMINER = auto()
-        GASMINER = auto()
-        BLOCKER = auto()
-        BERSERKER = auto()
-        SLAVE = auto()
-        WOUNDED = auto()
-        NURSE = auto()
-        SPRAYER = auto()
-        SCRATCHED = auto()
-        GUARD = auto()
-        TRANSPORTER = auto()
-        VOLUNTEER = auto()
-        TIRED = auto()
-        CREEPLORD = auto()
     seconds = 22.4
     minutes = seconds * 60
     all_halltypes = {UnitTypeId.COMMANDCENTER,UnitTypeId.ORBITALCOMMAND,UnitTypeId.PLANETARYFORTRESS,
@@ -65,11 +48,11 @@ class Common(BotAI):
                        UnitTypeId.INFESTORBURROWED, UnitTypeId.QUEENBURROWED, UnitTypeId.RAVAGERBURROWED,
                        UnitTypeId.SWARMHOSTBURROWEDMP}
     all_num_upgrades = {UpgradeId.ZERGMISSILEWEAPONSLEVEL1, UpgradeId.ZERGMELEEWEAPONSLEVEL1,
-                        UpgradeId.ZERGGROUNDARMORSLEVEL1, 
+                        UpgradeId.ZERGGROUNDARMORSLEVEL1,
                         UpgradeId.ZERGMISSILEWEAPONSLEVEL2, UpgradeId.ZERGMELEEWEAPONSLEVEL2,
-                        UpgradeId.ZERGGROUNDARMORSLEVEL2, 
+                        UpgradeId.ZERGGROUNDARMORSLEVEL2,
                         UpgradeId.ZERGMISSILEWEAPONSLEVEL3, UpgradeId.ZERGMELEEWEAPONSLEVEL3,
-                        UpgradeId.ZERGGROUNDARMORSLEVEL3, 
+                        UpgradeId.ZERGGROUNDARMORSLEVEL3,
                         UpgradeId.ZERGFLYERARMORSLEVEL1, UpgradeId.ZERGFLYERARMORSLEVEL2,
                         UpgradeId.ZERGFLYERARMORSLEVEL3, UpgradeId.ZERGFLYERWEAPONSLEVEL1,
                         UpgradeId.ZERGFLYERWEAPONSLEVEL2, UpgradeId.ZERGFLYERWEAPONSLEVEL3}
@@ -136,7 +119,6 @@ class Common(BotAI):
     supplycap_army = 90
     #
     # variables:
-    job_of_unit = {}
     listenframe_of_unit = {} # frame the command will have arrived
     listenframe_of_structure = {} # frame the command will have arrived
     listenframe_of_function = {} # frame the command will have arrived
@@ -161,9 +143,6 @@ class Common(BotAI):
         self.map_right = self.game_info.playable_area.width+self.game_info.playable_area.x
         self.map_bottom = self.game_info.playable_area.y
         self.map_top = self.game_info.playable_area.height+self.game_info.playable_area.y
-        #
-        for unt in self.units(UnitTypeId.DRONE):
-            self.job_of_unit[unt.tag] = self.Job.UNCLEAR
         self.hospital = self.ourmain.towards(self.map_center,-7)
 
     async def on_start(self):
@@ -189,7 +168,7 @@ class Common(BotAI):
                         self.nbases += 1
             # living
             # for speed do not check all_tumortypes
-            self.living = set()
+            self.living: set[int] = set()
             for unt in self.units:
                 self.living.add(unt.tag)
             for typ in self.all_structuretypes:
@@ -293,11 +272,6 @@ class Common(BotAI):
                     todel.add(tag)
             for tag in todel:
                 del self.limbo[tag]
-            # job
-            for unt in self.units:
-                if unt.tag not in self.job_of_unit:
-                    self.job_of_unit[unt.tag] = self.Job.UNCLEAR
-                # thanks to not cleaning, Job.GASMINER is carried over limbo
             # extractors
             if self.frame % 11 == 10:
                 geysers_nonemp = self.vespene_geyser.filter(lambda gey: gey.has_vespene)
@@ -307,8 +281,8 @@ class Common(BotAI):
             # drones_supply_used
             self.drones_upply_used = len(self.units(UnitTypeId.DRONE))
             for tag in self.limbo:
-                if tag in self.job_of_unit:
-                    if self.job_of_unit[tag] == self.Job.GASMINER:
+                if tag in self._unit_job:
+                    if self.get_unit_job(tag) == Job.GASMINER:
                         self.drones_supply_used += 1
             for egg in self.units(UnitTypeId.EGG):
                 for order in egg.orders:
@@ -347,10 +321,34 @@ class Common(BotAI):
             return True
         return False
 
-    def jobcount(self, job) -> int:
+    def set_command(self, unit: Unit, command: IUnitCommand):
+        self._commands[unit] = command
+
+    async def execute(self):
+        for unit, command in self._commands.items():
+            await command.execute(unit)
+        self._commands.clear()
+
+    @overload
+    def get_unit_job(self, unit: Unit) -> Job:
+        return self.get_unit_job(unit.tag)
+
+    def get_unit_job(self, tag: int) -> Job:
+        if tag in self._unit_job:
+            return self._unit_job[tag]
+        return Job.UNCLEAR
+
+    @overload
+    def set_unit_job(self, unit: Unit, job: Job):
+        self.set_unit_job(unit.tag, job)
+
+    def set_unit_job(self, tag: int, job: Job):
+        self._unit_job[tag] = job
+
+    def job_count(self, job) -> int:
         # do not call often
         count = 0
-        for unt in self.units:
-            if self.job_of_unit[unt.tag] == job:
+        for current_job in self._unit_job:
+            if current_job == job:
                 count += 1
         return count

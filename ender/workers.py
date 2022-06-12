@@ -2,6 +2,7 @@
 # 20 apr 2022
 
 from ender.common import Common
+from ender.job import Job
 from sc2.ids.unit_typeid import UnitTypeId
 
 
@@ -58,8 +59,8 @@ class Workers(Common):
 
     async def distribute_workers_3(self):
         all_expos = self.expansion_locations_list
-        mimminers = self.workers.filter(lambda worker: self.job_of_unit[worker.tag] == self.Job.MIMMINER)
-        visible_gasminers = self.workers.filter(lambda worker: self.job_of_unit[worker.tag] == self.Job.GASMINER)
+        mimminers = self.workers.filter(lambda worker: self.get_unit_job(worker) == Job.MIMMINER)
+        visible_gasminers = self.workers.filter(lambda worker: self.get_unit_job(worker) == Job.GASMINER)
         bases = self.townhalls.ready.filter(lambda hall: hall.health >= 500)
         if len(bases) == 0:
             bases = self.townhalls.ready
@@ -100,7 +101,7 @@ class Workers(Common):
             for wor in mimminers | visible_gasminers:
                 expo = self.herexpo[wor.tag] # should be correct
                 if expo not in self.good_expos:
-                    self.job_of_unit[wor.tag] = self.Job.UNCLEAR
+                    self.set_unit_job(wor, Job.UNCLEAR)
             # fire miners of lost minerals
             spots = {}
             for expo in all_expos:
@@ -113,7 +114,7 @@ class Workers(Common):
                 expo = self.herexpo[wor.tag]
                 spots[expo] -= 1
                 if spots[expo] < 0:
-                    self.job_of_unit[wor.tag] = self.Job.UNCLEAR
+                    self.set_unit_job(wor, Job.UNCLEAR)
             # fire miners of lost gasbuildings
             spots = {}
             for gey in self.vespene_geyser:
@@ -128,11 +129,12 @@ class Workers(Common):
                     team = self.miners_of_gas[pos]
                     if len(team) > 0:
                         for tag in team:
-                            self.job_of_unit[tag] = self.Job.UNCLEAR # may be done while in limbo!
+                            # may be done while in limbo!
+                            self.set_unit_job(tag, Job.UNCLEAR)
                         self.gasminertags -= team
                         self.miners_of_gas[pos] = set()
         # employ
-        unemployed = self.workers.filter(lambda worker: self.job_of_unit[worker.tag] == self.Job.UNCLEAR)
+        unemployed = self.workers.filter(lambda worker: self.get_unit_job(worker) == Job.UNCLEAR)
         work = 0
         for expo in self.good_expos:
             if self.minings[expo] > 0:
@@ -172,7 +174,7 @@ class Workers(Common):
         mims = self.mineral_field.filter(lambda mim: self.itsexpo[mim.position] == expo)
         # find a working spot
         found = False
-        if len(self.gasminertags) * 2 < self.jobcount(self.Job.MIMMINER):
+        if len(self.gasminertags) * 2 < self.job_count(Job.MIMMINER):
             for gab in gabs:
                 if not found:
                     if len(self.miners_of_gas[gab.position]) < 3:
@@ -180,13 +182,13 @@ class Workers(Common):
                         wor.gather(gab)
                         self.miners_of_gas[gab.position].add(wor.tag)
                         self.gasminertags.add(wor.tag)
-                        self.job_of_unit[wor.tag] = self.Job.GASMINER
+                        self.set_unit_job(wor, Job.GASMINER)
         if len(mims) > 0:
             if not found:
                 mim = mims.closest_to(wor.position)
                 found = True
                 wor.gather(mim)
-                self.job_of_unit[wor.tag] = self.Job.MIMMINER
+                self.set_unit_job(wor, Job.MIMMINER)
         
     async def cleanup_workers(self):
         # cleanup miners_of_gas and gasminertags
@@ -196,7 +198,7 @@ class Workers(Common):
             for wor in self.workers:
                 tag = wor.tag
                 if tag in self.gasminertags:
-                    if self.job_of_unit[tag] != self.Job.GASMINER:
+                    if self.get_unit_job(wor) != Job.GASMINER:
                         self.gasminertags.remove(tag)
                         todel.add(tag)
             if len(todel) > 0:
@@ -253,20 +255,19 @@ class Workers(Common):
             unemployed = 0
             volunteers = 0
             for unt in self.units(UnitTypeId.DRONE):
-                tag = unt.tag
-                if self.job_of_unit[tag] == self.Job.UNCLEAR:
+                if self.get_unit_job(unt) == Job.UNCLEAR:
                     unemployed += 1
                     an_unemployed = unt
-                if self.job_of_unit[tag] == self.Job.VOLUNTEER:
+                if self.get_unit_job(unt) == Job.VOLUNTEER:
                     volunteers += 1
                     a_volunteer = unt
             # idling volunteers
             if volunteers > 0:
                 for unt in self.units(UnitTypeId.DRONE).idle:
                     tag = unt.tag
-                    if self.job_of_unit[tag] == self.Job.VOLUNTEER:
+                    if self.get_unit_job(unt) == Job.VOLUNTEER:
                         if self.frame >= self.listenframe_of_unit[tag]:
-                            self.job_of_unit[tag] = self.Job.UNCLEAR
+                            self.set_unit_job(unt, Job.UNCLEAR)
                             volunteers -= 1
             # new volunteer
             if unemployed >= 3:
@@ -274,7 +275,7 @@ class Workers(Common):
                 if len(self.mineral_field) > 0:
                     unt = an_unemployed
                     patch = self.mineral_field.random
-                    self.job_of_unit[unt.tag] = self.Job.VOLUNTEER
+                    self.set_unit_job(unt, Job.VOLUNTEER)
                     unt.gather(patch)
                     self.listenframe_of_unit[unt.tag] = self.frame + self.seconds
                     volunteers += 1
@@ -285,12 +286,11 @@ class Workers(Common):
                         if typ in self.all_halltypes:
                             goal = pos
                     unt.attack(goal)
-                    self.job_of_unit[unt.tag] = self.Job.BERSERKER
+                    self.set_unit_job(unt, Job.BERSERKER)
                     # drone berserkers are separate from army berserkers
             if unemployed < 2:
                 if volunteers > 0:
                     unt = a_volunteer
-                    self.job_of_unit[unt.tag] = self.Job.UNCLEAR
+                    self.set_unit_job(unt, Job.UNCLEAR)
                     volunteers -= 1
                     unemployed += 1
-                

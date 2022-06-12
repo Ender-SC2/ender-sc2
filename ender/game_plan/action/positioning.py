@@ -6,7 +6,7 @@ from sc2.position import Point2
 
 
 class Positioning:
-    common: Common = None
+    common: Common
 
     def setup(self, common: Common):
         self.common = common

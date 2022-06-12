@@ -3,6 +3,7 @@
 import random
 from loguru import logger
 
+from ender.job import Job
 from ender.map_if import Map_if
 from ender.resources import Resources
 from ender.strategy import Strategy
@@ -268,23 +269,19 @@ class Making(Map_if, Resources, Strategy):
         return False
 
     def builder(self, pos):
-        dist = 99999
+        max_dist = 99999
         # give a default to not crash when few drones
+        him = self.units(UnitTypeId.DRONE).first
         for unt in self.units(UnitTypeId.DRONE):
-            him = unt
-        #
-        for unt in self.units(UnitTypeId.DRONE):
-            tag = unt.tag
-            job = self.job_of_unit[tag]
-            if job not in {self.Job.APPRENTICE, self.Job.WALKER, self.Job.BUILDER}:
-                itsdist = self.distance(unt.position,pos)
-                if itsdist < dist:
-                    dist = itsdist
+            if not self.get_unit_job(unt) in [Job.APPRENTICE, Job.WALKER, Job.BUILDER]:
+                dist = self.distance(unt.position, pos)
+                if dist < max_dist:
+                    max_dist = dist
                     him = unt
-        if dist == 99999:
+        if max_dist == 99999:
             self.resign = True
         else:
-            self.job_of_unit[him.tag] = self.Job.APPRENTICE
+            self.set_unit_job(him, Job.APPRENTICE)
             self.expiration_of_builder[him.tag] = self.frame + 80 * self.seconds
         return him
 
@@ -507,7 +504,7 @@ class Making(Map_if, Resources, Strategy):
                         del self.buildplan[typ]
                         size = self.size_of_structure[typ]
                         if histag in self.living:
-                            self.job_of_unit[histag] = self.Job.BUILDER
+                            self.set_unit_job(histag, Job.BUILDER)
                             self.expiration_of_builder[histag] = self.frame + 8 * self.seconds # shortens it
                         if typ == UnitTypeId.EXTRACTOR:
                             for gey in self.freegeysers:
@@ -536,20 +533,20 @@ class Making(Map_if, Resources, Strategy):
                                 if stru.position == buildpos:
                                     stru.train(typ)
                         else:
-                            if self.map_can_build(buildpos,size):
+                            if self.map_can_build(buildpos, size):
                                 for him in self.units(UnitTypeId.DRONE):
                                     if him.tag == histag:
                                         self.map_build(buildpos, size, typ)
                                         him.build(typ, buildpos)
 
     async def go_walk(self):
-        mimminers = self.jobcount(self.Job.MIMMINER)
-        gasminers = self.jobcount(self.Job.GASMINER)
+        mimminers = self.job_count(Job.MIMMINER)
+        gasminers = self.job_count(Job.GASMINER)
         for typ in self.buildplan:
             (histag, buildpos, expir) = self.buildplan[typ]
             for unt in self.units(UnitTypeId.DRONE):
                 if unt.tag == histag:
-                    if self.job_of_unit[unt.tag] == self.Job.APPRENTICE:
+                    if self.get_unit_job(unt) == Job.APPRENTICE:
                         dist = self.distance(unt.position,buildpos)
                         mimgap = self.mineral_gap(typ)
                         gasgap = self.vespene_gap(typ)
@@ -567,7 +564,7 @@ class Making(Map_if, Resources, Strategy):
                             gaswait = 0
                         resourcewait = max(mimwait, gaswait)
                         if resourcewait < dist * 0.5:
-                            self.job_of_unit[unt.tag] = self.Job.WALKER
+                            self.set_unit_job(unt, Job.WALKER)
                             unt.move(buildpos)
                         
     def we_finished_a(self, thing) -> bool:
@@ -801,7 +798,7 @@ class Making(Map_if, Resources, Strategy):
                 seen = False
                 for unt in self.workers:
                     if unt.tag == tag:
-                        if self.job_of_unit[unt.tag] in {self.Job.APPRENTICE, self.Job.WALKER, self.Job.BUILDER}:
+                        if self.get_unit_job(unt) in [Job.APPRENTICE, Job.WALKER, Job.BUILDER]:
                             seen = True
                 if not seen:
                     todel.add(pos) 
@@ -817,19 +814,19 @@ class Making(Map_if, Resources, Strategy):
                 (histag,buildpos,expiration) = self.buildplan[typ]
                 del self.buildplan[typ]
                 if histag in self.living:
-                    if self.job_of_unit[histag] in {self.Job.APPRENTICE, self.Job.WALKER, self.Job.BUILDER}:
-                        self.job_of_unit[histag] = self.Job.UNCLEAR
+                    if self.get_unit_job(histag) in [Job.APPRENTICE, Job.WALKER, Job.BUILDER]:
+                        self.set_unit_job(histag, Job.UNCLEAR)
             # expiration_of_builder
             for unt in self.units(UnitTypeId.DRONE):
-                if self.job_of_unit[unt.tag] in {self.Job.APPRENTICE, self.Job.WALKER, self.Job.BUILDER}:
+                if self.get_unit_job(unt) in [Job.APPRENTICE, Job.WALKER, Job.BUILDER]:
                     if self.frame >= self.expiration_of_builder[unt.tag]:
-                        self.job_of_unit[unt.tag] == self.Job.UNCLEAR
+                        self.set_unit_job(unt, Job.UNCLEAR)
                     
     async def prewalk(self):
         if self.function_listens('prewalk',10):
             hatchclaim = False
             for claim in self.claims:
-                (typ,resources,importance,expiration) = claim
+                (typ, resources, importance, expiration) = claim
                 if typ == UnitTypeId.HATCHERY:
                     hatchclaim = True
             if hatchclaim:
@@ -844,15 +841,15 @@ class Making(Map_if, Resources, Strategy):
                         clodist = 99999
                         bestunt = None
                         for unt in self.units(UnitTypeId.DRONE):
-                            if self.job_of_unit[unt.tag] in {self.Job.UNCLEAR, self.Job.MIMMINER}:
-                                dist = self.distance(unt.position,pos)
+                            if self.get_unit_job(unt) in [Job.UNCLEAR, Job.MIMMINER]:
+                                dist = self.distance(unt.position, pos)
                                 if dist < clodist:
                                     clodist = dist
                                     bestunt = unt
-                        if clodist < 99999:
+                        if bestunt:
                             unt = bestunt
                             self.walkers.add(pos)
-                            self.job_of_unit[unt.tag] = self.Job.WALKER
+                            self.set_unit_job(unt, Job.WALKER)
                             unt.move(pos)
                             self.expiration_of_builder[unt.tag] = self.frame + self.minutes
 

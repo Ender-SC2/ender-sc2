@@ -1,2 +1,2 @@
-from .defensive_spore_test import DefensiveSporeTest
-from .test_base import TestBase
+from .combat import RoachMarineTests, RoachRoachTests, RoachZealotTests
+from .ender_test_bot import EnderTestBot
