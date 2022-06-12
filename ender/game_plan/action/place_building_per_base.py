@@ -1,11 +1,11 @@
 from ender.common import Common
-from ender.game_plan.action.action import Action
+from ender.game_plan.action.action import IAction
 from ender.game_plan.action.place_building import PlaceBuilding
 from ender.game_plan.action.positioning import Positioning
 from sc2.ids.unit_typeid import UnitTypeId
 
 
-class PlaceBuildingPerBase(Action):
+class PlaceBuildingPerBase(IAction):
 
     def __init__(self, unit_type: UnitTypeId, building_positioning: Positioning, amount: int = 1):
         self.common = None

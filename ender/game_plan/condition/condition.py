@@ -1,12 +1,12 @@
 from abc import abstractmethod
 
-from ender.common import Common
+from sc2.bot_ai import BotAI
 
 
-class Requirement:
+class ICondition:
 
     @abstractmethod
-    def setup(self, common: Common):
+    def setup(self, bot_ai: BotAI):
         pass
 
     @abstractmethod

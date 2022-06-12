@@ -1,9 +1,13 @@
 # attack.py, Ender
 
 import random
+from typing import List
 
 from loguru import logger
 
+from ender.behavior import IBehavior
+from ender.behavior.combat import AttackClosestEnemyBehavior, FocusFireCombatBehavior, RepositionBehavior
+from ender.job import Job
 from sc2.constants import TARGET_AIR, TARGET_GROUND
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
@@ -43,8 +47,11 @@ class Attack(Tech):
     sh_goal = None # direction for swarmhosts
     dried = set() # expo with neither minerals nor gas
     fresh = set() # expo with minerals or gas
-    #
+    behaviors: List[IBehavior] = [AttackClosestEnemyBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
+                                  FocusFireCombatBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
+                                  RepositionBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER])]
 
+    #
     def __step0(self):
         #
         #
@@ -59,6 +66,8 @@ class Attack(Tech):
         #
         self.defendgoal = self.ourmain.towards(self.map_center,8)
         self.kite_back = {UnitTypeId.BROODLORD, UnitTypeId.INFESTOR}
+        for behavior in self.behaviors:
+            behavior.setup(self, self)
 
     async def on_step(self):
         await Tech.on_step(self)
@@ -67,7 +76,9 @@ class Attack(Tech):
             self.__did_step0 = True
         #
         await self.big_attack()
-        await self.attack_micro() # can be commented to speed up
+        # await self.attack_micro()
+        for behavior in self.behaviors:
+            await behavior.on_step()
         await self.defend()
         await self.berserk()
         await self.corrupt()
@@ -126,17 +137,17 @@ class Attack(Tech):
         if self.function_listens('defend',20):
             if self.frame >= self.bigattack_end:
                 for typ in self.all_armytypes:
-                    if typ not in {UnitTypeId.QUEEN, UnitTypeId.LURKERMPBURROWED}:
+                    if typ not in [UnitTypeId.QUEEN, UnitTypeId.LURKERMPBURROWED]:
                         for unt in self.units(typ).idle:
                             tag = unt.tag
                             if self.frame >= self.listenframe_of_unit[tag]:
-                                if self.job_of_unit[tag] == self.Job.DEFENDATTACK:
+                                if self.get_unit_job(unt) == Job.DEFENDATTACK:
                                     if self.distance(unt.position, self.defendgoal) > 8:
                                         unt.attack(self.defendgoal)
                                         self.attackgoal[tag] = self.defendgoal
                                         self.listenframe_of_unit[tag] = self.frame + 5
-                                elif self.job_of_unit[tag] == self.Job.UNCLEAR:
-                                    self.job_of_unit[tag] = self.Job.DEFENDATTACK
+                                elif self.get_unit_job(unt) == Job.UNCLEAR:
+                                    self.set_unit_job(unt, Job.DEFENDATTACK)
                                     unt.attack(self.defendgoal)
                                     self.attackgoal[tag] = self.defendgoal
                                     self.listenframe_of_unit[tag] = self.frame + 5
@@ -156,7 +167,8 @@ class Attack(Tech):
                         now = False
             if (self.army_supply_used >= 90) or (self.supply_used >= 190):
                 cocoons = 0
-                for typ in {UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,UnitTypeId.LURKERMPEGG}:
+                for typ in [UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,
+                            UnitTypeId.LURKERMPEGG]:
                     cocoons += len(self.units(typ))
                 if cocoons < 2:
                     now = True
@@ -186,9 +198,9 @@ class Attack(Tech):
                         for unt in self.units(typ):
                             tag = unt.tag
                             if tag not in self.protected:
-                                if self.job_of_unit[tag] not in (self.Job.BIGATTACK, self.Job.BLOCKER, 
-                                        self.Job.WOUNDED, self.Job.SCRATCHED, self.Job.BERSERKER, self.Job.TIRED, 
-                                        self.Job.SLAVE, self.Job.NURSE):
+                                if not self.get_unit_job(unt) in [Job.BIGATTACK, Job.BLOCKER, Job.WOUNDED,
+                                                                  Job.SCRATCHED, Job.BERSERKER, Job.TIRED, Job.SLAVE,
+                                                                  Job.NURSE]:
                                     distance = self.distance(unt.position,self.bigattackgoal)
                                     speed = self.speed[typ] / self.seconds
                                     duration = distance / speed
@@ -206,9 +218,9 @@ class Attack(Tech):
                         tag = unt.tag
                         if tag not in self.protected:
                             if self.frame >= self.listenframe_of_unit[tag]:
-                                if self.job_of_unit[tag] not in (self.Job.BIGATTACK, self.Job.BLOCKER, 
-                                        self.Job.WOUNDED, self.Job.SCRATCHED, self.Job.BERSERKER, self.Job.TIRED, 
-                                        self.Job.SLAVE, self.Job.NURSE):
+                                if not self.get_unit_job(unt) in [Job.BIGATTACK, Job.BLOCKER, Job.WOUNDED,
+                                                                  Job.SCRATCHED, Job.BERSERKER, Job.TIRED, Job.SLAVE,
+                                                                  Job.NURSE]:
                                     distance = self.distance(unt.position,self.bigattackgoal)
                                     speed = self.speed[typ] / self.seconds
                                     duration = distance / speed
@@ -216,7 +228,7 @@ class Attack(Tech):
                                     if attackmoment >= self.bigattack_moment:
                                         if attackmoment < self.bigattack_end:
                                             #print('debug ' + unt.name + ' starts walking ' + str(duration))
-                                            self.job_of_unit[tag] = self.Job.BIGATTACK
+                                            self.set_unit_job(unt, Job.BIGATTACK)
                                             self.attackgoal[tag] = self.bigattackgoal
                                             unt.attack(self.bigattackgoal)
                                             self.listenframe_of_unit[tag] = self.frame + 5
@@ -224,14 +236,14 @@ class Attack(Tech):
         for typ in self.all_armytypes:
             for unt in self.units(typ).idle:
                 tag = unt.tag
-                if self.job_of_unit[tag] == self.Job.BIGATTACK:
+                if self.get_unit_job(unt) == Job.BIGATTACK:
                     if self.frame >= self.listenframe_of_unit[tag]:
                         if self.frame >= self.bigattack_end:
-                            self.job_of_unit[tag] = self.Job.UNCLEAR
+                            self.set_unit_job(unt, Job.UNCLEAR)
                         else:
                             # why does it idle?
                             goal = self.attackgoal[tag]
-                            dist = self.distance(unt.position,goal)
+                            dist = self.distance(unt.position, goal)
                             if dist < 5:
                                 # it reached its goal
                                 unt.attack(self.bigattackgoal)
@@ -253,10 +265,10 @@ class Attack(Tech):
                     for typ in {UnitTypeId.ZERGLING, UnitTypeId.ROACH}:
                         for unt in self.units(typ).idle:
                             tag = unt.tag
-                            if self.job_of_unit[tag] != self.Job.BERSERKER:
+                            if self.get_unit_job(unt) != Job.BERSERKER:
                                 if tomake > 0:
                                     tomake -= 1
-                                    self.job_of_unit[tag] = self.Job.BERSERKER
+                                    self.set_unit_job(tag, Job.BERSERKER)
                                     self.berserkers.add(tag)
                                     self.find_bigattackgoal()
                                     self.attackgoal[tag] = self.bigattackgoal
@@ -266,11 +278,11 @@ class Attack(Tech):
             for typ in self.all_armytypes:
                 for unt in self.units(typ).idle:
                     tag = unt.tag
-                    if self.job_of_unit[tag] == self.Job.BERSERKER:
+                    if self.get_unit_job(unt) == Job.BERSERKER:
                         if self.frame >= self.listenframe_of_unit[tag]:
                             # why does it idle?
                             goal = self.attackgoal[tag]
-                            dist = self.distance(unt.position,goal)
+                            dist = self.distance(unt.position, goal)
                             if dist < 5:
                                 # it reached its goal
                                 self.find_bigattackgoal()
@@ -317,9 +329,9 @@ class Attack(Tech):
         for unt in self.units:
             tag = unt.tag
             typ = unt.type_id
-            if self.job_of_unit[tag] in {self.Job.DEFENDATTACK, self.Job.BIGATTACK, self.Job.BERSERKER}:
-                if typ not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT, 
-                                UnitTypeId.BROODLING, UnitTypeId.LOCUSTMP, UnitTypeId.LOCUSTMPFLYING}:
+            if self.get_unit_job(unt) in [Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]:
+                if typ not in [UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT,
+                                UnitTypeId.BROODLING, UnitTypeId.LOCUSTMP, UnitTypeId.LOCUSTMPFLYING]:
                     if self.frame >= self.listenframe_of_unit[tag]:
                         if unt.weapon_cooldown > self.game_step:
                             enemies_around = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, unt.movement_speed))
@@ -344,7 +356,7 @@ class Attack(Tech):
 
     async def corrupt(self):
         if self.function_listens('corrupt',10):
-            sprayers = self.jobcount(self.Job.SPRAYER)
+            sprayers = self.job_count(Job.SPRAYER)
             for unt in self.units(UnitTypeId.CORRUPTOR):
                 tag = unt.tag
                 if sprayers < 5:
@@ -365,15 +377,15 @@ class Attack(Tech):
                                             target = ene
                             if canspray:
                                 sprayers += 1
-                                unt(abi,target)
+                                unt(abi, target)
                                 self.spray[tag] = self.frame + 32.14 * self.seconds
-                                self.job_of_unit[tag] = self.Job.SPRAYER
+                                self.set_unit_job(unt, Job.SPRAYER)
                                 self.listenframe_of_unit[tag] = self.frame + 5
             # end sprayer
             for unt in self.units(UnitTypeId.CORRUPTOR).idle:
-                if self.job_of_unit[tag] == self.Job.SPRAYER:
+                if self.get_unit_job(unt) == Job.SPRAYER:
                     if self.frame >= self.listenframe_of_unit[tag]:
-                        self.job_of_unit[tag] = self.Job.UNCLEAR
+                        self.set_unit_job(unt, Job.UNCLEAR)
 
     async def infest(self):
         if self.function_listens('infest',10):
@@ -388,11 +400,11 @@ class Attack(Tech):
                         unt(fungal,throw)
                 # back
                 if unt.energy < 75 / 2:
-                    if self.job_of_unit[tag] != self.Job.TIRED:
+                    if self.get_unit_job(unt) != Job.TIRED:
                         unt.move(self.ourmain)
-                        self.job_of_unit[tag] = self.Job.TIRED
-                elif self.job_of_unit[tag] == self.Job.TIRED:
-                    self.job_of_unit[tag] = self.Job.UNCLEAR
+                        self.set_unit_job(unt, Job.TIRED)
+                elif self.get_unit_job(unt) == Job.TIRED:
+                    self.set_unit_job(unt, Job.UNCLEAR)
 
     async def vipers(self):
         if self.function_listens('vipers',5):
@@ -415,13 +427,12 @@ class Attack(Tech):
                         vip(attackair,throw)
                 # back
                 if vip.energy < 100 / 2:
-                    if self.job_of_unit[tag] != self.Job.TIRED:
+                    if self.get_unit_job(vip) != Job.TIRED:
                         vip.move(self.ourmain)
-                        self.job_of_unit[tag] = self.Job.TIRED
-                elif self.job_of_unit[tag] == self.Job.TIRED:
-                    self.job_of_unit[tag] = self.Job.UNCLEAR
-    
-    
+                        self.set_unit_job(vip, Job.TIRED)
+                elif self.get_unit_job(vip) == Job.TIRED:
+                    self.set_unit_job(vip, Job.UNCLEAR)
+
     async def set_sh_goal(self):
         if self.function_listens('set_sh_goal', 9 * self.seconds):
             self.sh_goal = self.enemymain
@@ -455,9 +466,9 @@ class Attack(Tech):
                             self.sh_forward[tag] = True
                             sh.move(goal)
             for sh in self.units(UnitTypeId.SWARMHOSTMP) | self.units(UnitTypeId.SWARMHOSTBURROWEDMP):
-                self.job_of_unit[tag] = self.Job.WALKER
-                spawn = AbilityId.EFFECT_SPAWNLOCUSTS
                 tag = sh.tag
+                self.set_unit_job(sh, Job.WALKER)
+                spawn = AbilityId.EFFECT_SPAWNLOCUSTS
                 if self.frame >= self.listenframe_of_unit[tag]:
                     if tag not in self.may_spawn:
                         self.may_spawn[tag] = 0
@@ -588,8 +599,9 @@ class Attack(Tech):
             for tag in self.pos_of_blocker:
                 pos = self.pos_of_blocker[tag]
                 if tag in self.living:
-                    job = self.job_of_unit[tag]
-                    if job != self.Job.BLOCKER:
+                    # TODO: Do
+                    job = self.get_unit_job(tag)
+                    if job != Job.BLOCKER:
                         todel.add((tag,pos))
                 else:
                     todel.add((tag,pos))
@@ -600,12 +612,12 @@ class Attack(Tech):
             if self.nbases >= 3:
                 for unt in self.units(UnitTypeId.ZERGLING):
                     tag = unt.tag
-                    job = self.job_of_unit[tag]
-                    if job != self.Job.BLOCKER:
+                    job = self.get_unit_job(unt)
+                    if job != Job.BLOCKER:
                         pos = self.nowhere
                         dist = 99999
                         for apos in self.expansion_locations_list:
-                            adist = self.distance(apos,self.enemymain)
+                            adist = self.distance(apos, self.enemymain)
                             if apos not in self.blocker_of_pos:
                                 if adist < dist:
                                     dist = adist
@@ -614,14 +626,14 @@ class Attack(Tech):
                             # connect
                             self.pos_of_blocker[tag] = pos
                             self.blocker_of_pos[pos] = tag
-                            self.job_of_unit[tag] = self.Job.BLOCKER
+                            self.set_unit_job(unt, Job.BLOCKER)
                             unt.move(pos)
             # block
             for unt in self.units(UnitTypeId.ZERGLING):
                 tag = unt.tag
                 if self.frame >= self.listenframe_of_unit[tag]:
-                    job = self.job_of_unit[tag]
-                    if job == self.Job.BLOCKER:
+                    job = self.get_unit_job(unt)
+                    if job == Job.BLOCKER:
                         pos = self.pos_of_blocker[tag]
                         if self.distance(unt.position,pos) > 3:
                             if pos not in self.current_expandings:
@@ -632,9 +644,9 @@ class Attack(Tech):
             if UpgradeId.BURROW in self.state.upgrades:
                 for unt in self.units(UnitTypeId.ZERGLING).idle:
                     tag = unt.tag
-                    if self.job_of_unit[tag] == self.Job.BLOCKER:
+                    if self.get_unit_job(unt) == Job.BLOCKER:
                         pos = self.pos_of_blocker[tag]
-                        if self.distance(unt.position,pos) < 3:
+                        if self.distance(unt.position, pos) < 3:
                             if pos not in self.current_expandings:
                                 unt(bur)
             # unblock
@@ -656,30 +668,30 @@ class Attack(Tech):
             todel = set()
             for slatag in self.master:
                 if slatag in self.living:
-                    if self.job_of_unit[slatag] == self.Job.SLAVE:
+                    if self.get_unit_job(slatag) == Job.SLAVE:
                         mastag = self.master[slatag]
                         if mastag not in self.living:
-                            self.job_of_unit[slatag] = self.Job.UNCLEAR
+                            self.set_unit_job(slatag, Job.UNCLEAR)
                             todel.add(slatag)
             for slatag in todel:
                 del self.master[slatag]
             # master wounded
             for sla in self.units:
-                slatag = sla.tag
-                if self.job_of_unit[slatag] == self.Job.SLAVE:
+                if self.get_unit_job(sla) == Job.SLAVE:
+                    slatag = sla.tag
                     mastag = self.master[slatag]
                     if mastag in self.living:
-                        if self.job_of_unit[mastag] in {self.Job.SCRATCHED, self.Job.WOUNDED}:
-                            self.job_of_unit[slatag] = self.Job.UNCLEAR
+                        if self.get_unit_job(mastag) in [Job.SCRATCHED, Job.WOUNDED]:
+                            self.set_unit_job(sla, Job.UNCLEAR)
                             del self.master[slatag]
             # slave changed typ
             todel = set()
             for sla in self.units:
                 slatag = sla.tag
-                if self.job_of_unit[slatag] == self.Job.SLAVE:
+                if self.get_unit_job(sla) == Job.SLAVE:
                     typ = sla.type_id
                     if typ not in candidates:
-                        self.job_of_unit[slatag] = self.Job.UNCLEAR
+                        self.set_unit_job(sla, Job.UNCLEAR)
                         todel.add(slatag)
             for slatag in todel:
                 del self.master[slatag]
@@ -687,21 +699,21 @@ class Attack(Tech):
             if len(self.units(UnitTypeId.BROODLORD)) < 3:
                 for typ in candidates:
                     for sla in self.units(typ):
-                        if self.job_of_unit[sla.tag] == self.Job.SLAVE:
-                            self.job_of_unit[sla.tag] = self.Job.UNCLEAR
+                        if self.get_unit_job(sla) == Job.SLAVE:
+                            self.set_unit_job(sla,  Job.UNCLEAR)
                             del self.master[sla.tag]
             # make all slaves
             if len(self.units(UnitTypeId.BROODLORD)) >= 3:
                 for typ in candidates:
                     for sla in self.units(typ):
-                        if self.job_of_unit[sla.tag] not in {self.Job.SLAVE, self.Job.SCRATCHED, self.Job.TIRED, 
-                                                             self.Job.WOUNDED, self.Job.BERSERKER, self.Job.BLOCKER}:
-                            self.job_of_unit[sla.tag] = self.Job.SLAVE
+                        if self.get_unit_job(sla) not in [Job.SLAVE, Job.SCRATCHED, Job.TIRED, Job.WOUNDED,
+                                                          Job.BERSERKER, Job.BLOCKER]:
+                            self.set_unit_job(sla, Job.SLAVE)
                             self.master[sla.tag] = self.units(UnitTypeId.BROODLORD).random.tag
             # move slaves
             for typ in candidates:
                 for sla in self.units(typ):
-                    if self.job_of_unit[sla.tag] == self.Job.SLAVE:
+                    if self.get_unit_job(sla) == Job.SLAVE:
                         bestdist = 99999
                         for mas in self.units(UnitTypeId.BROODLORD):
                             if mas.tag == self.master[sla.tag]:
@@ -719,21 +731,21 @@ class Attack(Tech):
             if typ not in {UnitTypeId.BANELING, UnitTypeId.OVERLORDTRANSPORT, UnitTypeId.DRONE}:
                 if unt.tag in self.last_health:
                     if unt.health < 0.7 * self.last_health[unt.tag]:
-                        if self.job_of_unit[unt.tag] not in {self.Job.BERSERKER, self.Job.NURSE, self.Job.WOUNDED,
-                                                            self.Job.SCRATCHED, self.Job.TRANSPORTER}:
+                        if not self.get_unit_job(unt) in [Job.BERSERKER, Job.NURSE, Job.WOUNDED, Job.SCRATCHED,
+                                                          Job.TRANSPORTER]:
                             if unt.health < unt.health_max - 100:
-                                self.job_of_unit[unt.tag] = self.Job.WOUNDED
+                                self.set_unit_job(unt, Job.WOUNDED)
                             else:
-                                self.job_of_unit[unt.tag] = self.Job.SCRATCHED
+                                self.set_unit_job(unt, Job.SCRATCHED)
                             away = unt.position.towards(self.hospital, 7)
                             unt.move(away)
                             unt.attack(self.hospital, queue=True)
         if self.function_listens('wounded', 63):
             for typ in self.all_unittypes:
                 for unt in self.units(typ):
-                    if self.job_of_unit[unt.tag] in {self.Job.WOUNDED, self.Job.SCRATCHED}:
+                    if self.get_unit_job(unt) in [Job.WOUNDED, Job.SCRATCHED]:
                         if 2 * unt.health >= unt.health_max:        
-                            self.job_of_unit[unt.tag] = self.Job.UNCLEAR
+                            self.set_unit_job(unt, Job.UNCLEAR)
 
     async def dodge_biles(self):
         if self.function_listens('admin_biles',25):
@@ -810,8 +822,8 @@ class Attack(Tech):
                                     if tra.tag == tratag:
                                         if self.trip_phase[trip] == 'destined':
                                             self.trip_phase[trip] = 'phoned'
-                                            self.job_of_unit[unt.tag] = self.Job.TRANSPORTER
-                                            self.job_of_unit[tra.tag] = self.Job.TRANSPORTER
+                                            self.set_unit_job(unt, Job.TRANSPORTER)
+                                            self.set_unit_job(tra, Job.TRANSPORTER)
                                             meetingpoint = Point2((0.5 * tra.position.x + 0.5 * unt.position.x,
                                                                    0.5 * tra.position.y + 0.5 * unt.position.y))
                                             tra.move(meetingpoint)
@@ -841,7 +853,7 @@ class Attack(Tech):
                                 if self.distance(tra.position,goal) < 2:
                                     self.trip_phase[trip] = 'falling'
                                     tra(AbilityId.UNLOADALLAT_OVERLORD,goal)
-                                    self.job_of_unit[tra.tag] = self.Job.UNCLEAR
+                                    self.set_unit_job(tra, Job.UNCLEAR)
                                     self.listenframe_of_unit[tra.tag] = self.frame + 3 * self.seconds
                                     self.listenframe_of_unit[lurtag] = self.frame + 3 * self.seconds
                                 elif tra.health < 50:
@@ -862,7 +874,7 @@ class Attack(Tech):
                             if self.trip_phase[trip] == 'falling':
                                 if self.distance(unt.position,goal) < 6:
                                     unt(AbilityId.BURROWDOWN_LURKER)
-                                    self.job_of_unit[unt.tag] = self.Job.UNCLEAR
+                                    self.set_unit_job(unt, Job.UNCLEAR)
                                     del self.trip_goal[trip]
                                     del self.trip_phase[trip]
                                     todel.add(trip)
@@ -881,7 +893,7 @@ class Attack(Tech):
                 for unt in self.units(UnitTypeId.DRONE).sorted(lambda worker: worker.shield_health_percentage):
                     tag = unt.tag
                     pos = unt.position
-                    if self.job_of_unit[tag] == self.Job.GUARD:
+                    if self.get_unit_job(unt) == Job.GUARD:
                         tohome = 99999
                         for hall in self.structures(UnitTypeId.HATCHERY):
                             dist = self.distance(pos, hall.position)
@@ -889,14 +901,14 @@ class Attack(Tech):
                         if not released_guard:
                             released_guard = True
                             unt.gather(defensive_mineral)
-                            self.job_of_unit[tag] = self.Job.UNCLEAR
+                            self.set_unit_job(unt, Job.UNCLEAR)
                         elif unt.weapon_cooldown > 8:
                             unt.gather(defensive_mineral)
                         elif unt.is_carrying_resource:
                             unt.return_resource()
                         elif tohome >= 10:
                             unt.gather(defensive_mineral)
-                            self.job_of_unit[tag] = self.Job.UNCLEAR
+                            self.set_unit_job(unt, Job.UNCLEAR)
                         else:
                             need_target.add(unt.tag)
                 # per hatchery
@@ -915,7 +927,7 @@ class Attack(Tech):
                         defenders = set()
                         for unt in self.units(UnitTypeId.DRONE):
                             tag = unt.tag
-                            if self.job_of_unit[tag] == self.Job.GUARD:
+                            if self.get_unit_job(unt) == Job.GUARD:
                                 if self.distance(unt.position, hatchery.position) < 10:
                                     defenders.add(tag)
                                     if tag in need_target and an_attacker:
@@ -932,9 +944,9 @@ class Attack(Tech):
                                 if len(defenders) >= wish_defenders:
                                     break
                                 tag = unt.tag
-                                if self.job_of_unit[tag] in {self.Job.MIMMINER, self.Job.GASMINER, self.Job.UNCLEAR}:
+                                if self.get_unit_job(unt) in [Job.MIMMINER, Job.GASMINER, Job.UNCLEAR]:
                                     if self.distance(unt.position, hatchery.position) < 10:
-                                        self.job_of_unit[tag] = self.Job.GUARD
+                                        self.set_unit_job(unt, Job.GUARD)
                                         defenders.add(tag)
                                         unt.attack(an_attacker)
                         if len(defenders) > wish_defenders:
@@ -945,7 +957,7 @@ class Attack(Tech):
                                 tag = unt.tag
                                 if tag in defenders:
                                     defenders.remove(tag)
-                                    self.job_of_unit[tag] = self.Job.UNCLEAR
+                                    self.set_unit_job(unt, Job.UNCLEAR)
                                     unt.gather(defensive_mineral)
 
     async def banes(self):

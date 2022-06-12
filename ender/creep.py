@@ -1,13 +1,17 @@
 # creep.py, Ender
 
 import random
+from typing import Optional
+
 from loguru import logger
 
+from ender.job import Job
 from ender.map_if import Map_if
 from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from sc2.unit import Unit
 
 
 class Creep(Map_if):
@@ -149,13 +153,13 @@ class Creep(Map_if):
     async def queencreep(self):
         # get some creep queens
         for unt in self.units(UnitTypeId.QUEEN).idle:
-            if self.job_of_unit[unt.tag] == self.Job.UNCLEAR:
+            if self.get_unit_job(unt) == Job.UNCLEAR:
                 if unt.energy >= 27: # inject pickup is at 23
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
-                        self.job_of_unit[unt.tag] = self.Job.CREEPING
+                        self.set_unit_job(unt, Job.CREEPING)
         # move to its spot
         for unt in self.units(UnitTypeId.QUEEN).idle:
-            if self.job_of_unit[unt.tag] == self.Job.CREEPING:
+            if self.get_unit_job(unt) == Job.CREEPING:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
                     itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
                     itsspot = itshatch.position.towards(self.map_center,9)
@@ -165,7 +169,7 @@ class Creep(Map_if):
                         self.listenframe_of_unit[unt.tag] = self.frame + 5
         # make creeptumor
         for unt in self.units(UnitTypeId.QUEEN).idle:
-            if self.job_of_unit[unt.tag] == self.Job.CREEPING:
+            if self.get_unit_job(unt) == Job.CREEPING:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
                     if unt.energy >= 25:
                         untpos = unt.position
@@ -193,7 +197,7 @@ class Creep(Map_if):
                             pos = altpoint
                             unt(self.creation[it],pos)
                             self.map_plan(pos, 1)
-                        self.job_of_unit[unt.tag] = self.Job.UNCLEAR
+                        self.set_unit_job(unt, Job.UNCLEAR)
                         self.listenframe_of_unit[unt.tag] = self.frame + 100
         
     async def creep_spread(self):
@@ -300,7 +304,7 @@ class Creep(Map_if):
                 for typ in {UnitTypeId.OVERLORD}:
                     for lord in self.units(typ):
                         if tag == lord.tag:
-                            if self.job_of_unit[tag] == self.Job.CREEPLORD:
+                            if self.get_unit_job(lord) == Job.CREEPLORD:
                                 seen = True
                 if not seen:
                     todel.add(tag)
@@ -308,18 +312,19 @@ class Creep(Map_if):
             # get new ones
             if len(self.creeplords) < 3:
                 bestdist = 99999
+                best_unit: Optional[Unit] = None
                 for typ in {UnitTypeId.OVERLORD}:
                     for lord in self.units(typ).idle:
                         tag = lord.tag
                         if tag not in self.creeplords:
-                            if self.job_of_unit[tag] == self.Job.UNCLEAR:
+                            if self.get_unit_job(lord) == Job.UNCLEAR:
                                 dist = self.distance(lord.position, self.ourmain)
                                 if dist < bestdist:
                                     bestdist = dist
-                                    besttag = tag
-                if bestdist < 99999:
-                    tag = besttag
-                    self.job_of_unit[tag] = self.Job.CREEPLORD
+                                    best_unit = lord
+                if best_unit:
+                    tag = best_unit.tag
+                    self.set_unit_job(best_unit, Job.CREEPLORD)
                     self.creeplords.add(tag)
                     self.creeplord_state[tag] = 'free'
             # moving is done by self.ask_lord(point)

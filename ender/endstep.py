@@ -1,5 +1,6 @@
 # endstep.py, Merkbot, Zerg sandbox bot
 # 25 may 2022
+from loguru import logger
 
 from ender.common import Common
 from sc2.ids.unit_typeid import UnitTypeId
@@ -31,8 +32,10 @@ class Endstep(Common):
         await self.may_resign()
         
     async def may_resign(self):
+        resign = False
         if len(self.units(UnitTypeId.DRONE)) < 2:
-            self.resign = True
-        if self.resign:
+            logger.info("Resign, too few workers")
+            resign = True
+        if resign:
             await self._client.quit()
 

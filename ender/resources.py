@@ -4,6 +4,7 @@ from enum import Enum, auto
 from loguru import logger
 
 import sc2
+from ender.job import Job
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -127,7 +128,7 @@ class Resources(Tech):
         # drones may idle but not build
         drones = 0
         for unt in self.units(UnitTypeId.DRONE):
-            if self.job_of_unit[unt.tag] not in {self.Job.APPRENTICE, self.Job.WALKER, self.Job.BUILDER}:
+            if self.get_unit_job(unt) in [Job.APPRENTICE, Job.WALKER, Job.BUILDER]:
                 drones += 1
         self.resource_now[self.Resource.DRONES] = drones
         self.resource_now[self.Resource.SUPPLY] = self.supply_left
@@ -138,7 +139,7 @@ class Resources(Tech):
         self.resource_now[self.Resource.OVERLORDS] = len(self.units(UnitTypeId.OVERLORD).idle)
         lings = 0
         for unt in self.units(UnitTypeId.ZERGLING).idle:
-            if self.job_of_unit[unt.tag] in {self.Job.UNCLEAR, self.Job.DEFENDATTACK}:
+            if self.get_unit_job(unt) in [Job.UNCLEAR, Job.DEFENDATTACK]:
                 lings += 1
         self.resource_now[self.Resource.ZERGLINGS] = lings
         self.resource_now[self.Resource.OVERSEERS] = len(self.units(UnitTypeId.OVERSEER).idle)
