@@ -20,15 +20,15 @@ class IUnitInterface(ABC):
 
     @overload
     @abstractmethod
-    def get_unit_job(self, unit: Unit) -> Job:
+    def job_of_unit(self, unit: Unit) -> Job:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_unit_job(self, tag: int) -> Job:
+    def job_of_unittag(self, tag: int) -> Job:
         raise NotImplementedError()
 
     @abstractmethod
-    def set_unit_job(self, unit: Unit, job: Job):
+    def set_job_of_unit(self, unit: Unit, job: Job):
         raise NotImplementedError()
 
     @abstractmethod
@@ -52,26 +52,27 @@ class UnitInterface(IUnitInterface):
             await command.execute(unit)
         self._commands.clear()
 
-    @overload
-    def get_unit_job(self, unit: Unit) -> Job:
-        return self.get_unit_job(unit.tag)
+    def job_of_unit(self, unit: Unit) -> Job:
+        if unit.tag in self._unit_job:
+            return self._unit_job[unit.tag]
+        return Job.UNCLEAR
 
-    def get_unit_job(self, tag: int) -> Job:
+    def job_of_unittag(self, tag: int) -> Job:
         if tag in self._unit_job:
             return self._unit_job[tag]
         return Job.UNCLEAR
 
-    @overload
-    def set_unit_job(self, unit: Unit, job: Job):
+    def set_job_of_unit(self, unit: Unit, job: Job):
         self._unit_job[unit.tag] = job
 
-    def set_unit_job(self, tag: int, job: Job):
+    def set_job_of_unittag(self, tag: int, job: Job):
         self._unit_job[tag] = job
 
     def job_count(self, job) -> int:
         # do not call often
         count = 0
-        for current_job in self._unit_job:
+        for unt in self.units: # needed to prevent dead unit info
+            current_job = self._unit_job[unt.tag]
             if current_job == job:
                 count += 1
         return count

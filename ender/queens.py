@@ -49,17 +49,17 @@ class Queens(Common):
         if self.function_listens('queeninject', 11):
             # get some inject queens
             for unt in self.units(UnitTypeId.QUEEN).idle:
-                if self.get_unit_job(unt) == Job.UNCLEAR:
+                if self.job_of_unit(unt) == Job.UNCLEAR:
                     if unt.energy >= 23: # creep pickup is at 27, nurse at 19
                         if self.frame >= self.listenframe_of_unit[unt.tag]:
                             if self.choose_inject(unt.position):
                                 pos = unt.position
-                                self.set_unit_job(unt, Job.INJECTING)
+                                self.set_job_of_unit(unt, Job.INJECTING)
                                 itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(pos)
                                 self.nextinject[itshatch.tag] = self.frame + 21 * self.seconds
             # move to its spot
             for unt in self.units(UnitTypeId.QUEEN).idle:
-                if self.get_unit_job(unt) == Job.INJECTING:
+                if self.job_of_unit(unt) == Job.INJECTING:
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
                         itsspot = itshatch.position.towards(self.map_center,4)
@@ -69,12 +69,12 @@ class Queens(Common):
                             self.listenframe_of_unit[unt.tag] = self.frame + 5
             # inject
             for unt in self.units(UnitTypeId.QUEEN).idle:
-                if self.get_unit_job(unt) == Job.INJECTING:
+                if self.job_of_unit(unt) == Job.INJECTING:
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         if unt.energy >= 25:
                             itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
                             unt(AbilityId.EFFECT_INJECTLARVA,itshatch)
-                            self.set_unit_job(unt, Job.UNCLEAR)
+                            self.set_job_of_unit(unt, Job.UNCLEAR)
                             self.listenframe_of_unit[unt.tag] = self.frame + 100
         
     async def transfuse(self):
@@ -83,21 +83,21 @@ class Queens(Common):
             patients = self.job_count(Job.WOUNDED)
             # new nurses
             for unt in self.units(UnitTypeId.QUEEN):
-                if self.get_unit_job(unt) == Job.UNCLEAR:
+                if self.job_of_unit(unt) == Job.UNCLEAR:
                     if unt.energy >= 19:
                         if 2 * nurses < patients:
-                            self.set_unit_job(unt, Job.NURSE)
+                            self.set_job_of_unit(unt, Job.NURSE)
                             nurses += 1
                             unt.attack(self.hospital)
             # dismiss nurses
             for unt in self.units(UnitTypeId.QUEEN):
-                if self.get_unit_job(unt) == Job.NURSE:
+                if self.job_of_unit(unt) == Job.NURSE:
                     if unt.energy == 200:
-                        self.set_unit_job(unt, Job.UNCLEAR)
+                        self.set_job_of_unit(unt, Job.UNCLEAR)
             # heal
             for unt in self.units(UnitTypeId.QUEEN):
                 tag = unt.tag
-                if self.get_unit_job(unt) in [Job.NURSE, Job.UNCLEAR, Job.BIGATTACK]:
+                if self.job_of_unit(unt) in [Job.NURSE, Job.UNCLEAR, Job.BIGATTACK]:
                     if unt.energy >= 50:
                         if self.has_creep(unt.position):
                             for other in self.units:

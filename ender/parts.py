@@ -45,7 +45,7 @@ class Parts(Common):
         lines = []
         for unt in self.units:
             pos = unt.position
-            job = self.get_unit_job(unt)
+            job = self.job_of_unit(unt)
             ord = ''
             for order in unt.orders:
                 ord += order.ability.exact_id.name + ' '

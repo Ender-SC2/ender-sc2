@@ -17,6 +17,6 @@ class MoveCenterBehavior(IBehavior):
     async def on_step(self):
         goal = self.bot_ai.game_info.map_center
         for unit in self.bot_ai.units:
-            if (not self.jobs or self.unit_interface.get_unit_job(unit) in self.jobs) and (
+            if (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
                     not self.unit_types or unit.type_id in self.unit_types):
                 self.unit_interface.set_command(unit, AttackCommand(goal))

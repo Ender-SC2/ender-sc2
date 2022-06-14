@@ -61,6 +61,7 @@ class Mining(Common):
         await self.speed_mining()
         #await self.check_mining()
         await self.volunteers()
+        await self.balancer()
 
     def postag_of_position(self, point: Point2) -> int:
         return round(2 * point.x) * 1000 + round(2 * point.y)
@@ -147,9 +148,14 @@ class Mining(Common):
         self.minebases = set()
         for typ in self.all_halltypes:
             for bas in self.structures(typ).ready:
-                self.minebases.add(bas)
-                self.minables_hash += bas.position.x
-                # Should hash change when hatch becomes hive?
+                if bas.health >= 700:
+                    self.minebases.add(bas)
+                    self.minables_hash += bas.position.x
+        if len(self.minebases) == 0:
+            for typ in self.all_halltypes:
+                for bas in self.structures(typ).ready:
+                    self.minebases.add(bas)
+                    self.minables_hash += bas.position.x
         # gasbuildings
         self.gasbuildings = set()
         for typ in {UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTORRICH}:
@@ -157,7 +163,7 @@ class Mining(Common):
                 if gas.position in self.goodgeysers:
                     self.gasbuildings.add(gas)
                     self.minables_hash += gas.position.x
-            
+
     async def calc_oldminers(self):
         if self.minables_hash != self.minables_hash_last:
             self.minables_hash_last = self.minables_hash
@@ -211,13 +217,13 @@ class Mining(Common):
             # dismiss leftover miners
             for miner in old_assign:
                 if miner not in self.assign:
-                    self.set_unit_job(miner, Job.UNCLEAR)
+                    self.set_job_of_unittag(miner, Job.UNCLEAR)
                     # delete speedmining info
                     if miner in self.info_start_frame:
                         del self.info_start_frame[miner]
 
     def assign_drone_to_closest_gas(self, drone):
-        if self.get_unit_job(drone) == Job.UNCLEAR:
+        if self.job_of_unit(drone) == Job.UNCLEAR:
             miner = drone.tag
             best_dist = 99999
             best_work: Optional[int] = None
@@ -227,15 +233,15 @@ class Mining(Common):
                 if dist < best_dist:
                     best_dist = dist
                     best_work = post
-            if best_work:
+            if best_dist < 99999:
                 self.assign[miner] = best_work
                 del self.gaswork[self.gaswork.index(best_work)]
-                self.set_unit_job(drone, Job.GASMINER)
+                self.set_job_of_unit(drone, Job.GASMINER)
                 gas = self.gas_of_postag(best_work)
                 drone.gather(gas)
 
     def assign_drone_to_closest_patch(self, drone):
-        if self.get_unit_job(drone) == Job.UNCLEAR:
+        if self.job_of_unit(drone) == Job.UNCLEAR:
             miner = drone.tag
             if miner not in self.assign:
                 best_dist = 99999
@@ -246,17 +252,17 @@ class Mining(Common):
                     if dist < best_dist:
                         best_dist = dist
                         best_work = post
-                if best_work:
+                if best_dist < 99999:
                     self.assign[miner] = best_work
                     del self.mimwork[self.mimwork.index(best_work)]
-                    self.set_unit_job(drone, Job.MIMMINER)
+                    self.set_job_of_unit(drone, Job.MIMMINER)
                     patch = self.patch_of_postag(best_work)
                     drone.gather(patch)
 
     async def assign_free_workers(self):
         freeworkers = 0
         for drone in self.units(UnitTypeId.DRONE):
-            if self.get_unit_job(drone) == Job.UNCLEAR:
+            if self.job_of_unit(drone) == Job.UNCLEAR:
                 freeworkers += 1
         freework = len(self.gaswork) + len(self.mimwork)
         if 0 < freeworkers <= freework:
@@ -275,7 +281,7 @@ class Mining(Common):
     async def assign_free_work(self):
         freeworkers = 0
         for drone in self.units(UnitTypeId.DRONE):
-            if self.get_unit_job(drone) == Job.UNCLEAR:
+            if self.job_of_unit(drone) == Job.UNCLEAR:
                 freeworkers += 1
         freework = len(self.gaswork) + len(self.mimwork)
         if 0 < freework <= freeworkers:
@@ -284,15 +290,15 @@ class Mining(Common):
                 bestdist = 99999
                 bestminer: Optional[Unit] = None
                 for drone in self.units(UnitTypeId.DRONE):
-                    if self.get_unit_job(drone) == Job.UNCLEAR:
+                    if self.job_of_unit(drone) == Job.UNCLEAR:
                         dist = self.distance(gaspos, drone.position)
                         if dist < bestdist:
                             bestdist = dist
                             bestminer = drone
-                if bestminer:
+                if bestdist < 99999:
                     tag = bestminer.tag
                     self.assign[tag] = work
-                    self.set_unit_job(bestminer, Job.GASMINER)
+                    self.set_job_of_unittag(bestminer, Job.GASMINER)
                     gas = self.patch_of_postag(work)
                     bestminer.gather(gas)
                     self.listenframe_of_unit[tag] = self.frame + 5
@@ -302,15 +308,15 @@ class Mining(Common):
                 bestdist = 99999
                 bestminer: Optional[Unit] = None
                 for drone in self.units(UnitTypeId.DRONE):
-                    if self.get_unit_job(drone) == Job.UNCLEAR:
+                    if self.job_of_unit(drone) == Job.UNCLEAR:
                         dist = self.distance(gaspos, drone.position)
                         if dist < bestdist:
                             bestdist = dist
                             bestminer = drone
-                if bestminer:
+                if bestdist < 99999:
                     tag = bestminer.tag
                     self.assign[tag] = work
-                    self.set_unit_job(bestminer, Job.MIMMINER)
+                    self.set_job_of_unittag(bestminer, Job.MIMMINER)
                     patch = self.patch_of_postag(work)
                     bestminer.gather(patch)
                     self.listenframe_of_unit[tag] = self.frame + 5
@@ -319,7 +325,7 @@ class Mining(Common):
     async def steer_miners(self):
         for drone in self.units(UnitTypeId.DRONE):
             miner = drone.tag
-            if self.get_unit_job(drone) == Job.MIMMINER:
+            if self.job_of_unit(drone) == Job.MIMMINER:
                 if self.frame >= self.listenframe_of_unit[miner]:
                     post = self.assign[miner]
                     patch = self.patch_of_postag(post)
@@ -358,7 +364,7 @@ class Mining(Common):
                                                 drone(AbilityId.HARVEST_GATHER, patch)
                                                 self.listenframe_of_unit[miner] = self.frame + 5
                                                 logger.info('miner kicked to correct patch')
-            if self.get_unit_job(drone) == Job.GASMINER:
+            if self.job_of_unit(drone) == Job.GASMINER:
                 if self.frame >= self.listenframe_of_unit[miner]:
                     post = self.assign[miner]
                     gas = self.gas_of_postag(post)
@@ -399,7 +405,7 @@ class Mining(Common):
         if self.game_step <= 4:
             # A full-speed drone moves 0.7 in 4 frames
             for drone in self.units(UnitTypeId.DRONE):
-                if self.get_unit_job(drone) == Job.MIMMINER:
+                if self.job_of_unit(drone) == Job.MIMMINER:
                     miner = drone.tag
                     dronepos = drone.position
                     post = self.assign[miner]
@@ -454,7 +460,7 @@ class Mining(Common):
     async def check_mining(self):
         for drone in self.units(UnitTypeId.DRONE):
             miner = drone.tag
-            if self.get_unit_job(miner) == Job.MIMMINER:
+            if self.job_of_unittag(miner) == Job.MIMMINER:
                 post = self.assign[miner]
                 patch = self.patch_of_postag(post)
                 expo = self.expo_of_postag[post]
@@ -519,19 +525,19 @@ class Mining(Common):
             unemployed = 0
             volunteers = 0
             for unt in self.units(UnitTypeId.DRONE):
-                if self.get_unit_job(unt) == Job.UNCLEAR:
+                if self.job_of_unit(unt) == Job.UNCLEAR:
                     unemployed += 1
                     an_unemployed = unt
-                if self.get_unit_job(unt) == Job.VOLUNTEER:
+                if self.job_of_unit(unt) == Job.VOLUNTEER:
                     volunteers += 1
                     a_volunteer = unt
             # idling volunteers
             if volunteers > 0:
                 for unt in self.units(UnitTypeId.DRONE).idle:
                     tag = unt.tag
-                    if self.get_unit_job(unt) == Job.VOLUNTEER:
+                    if self.job_of_unit(unt) == Job.VOLUNTEER:
                         if self.frame >= self.listenframe_of_unit[tag]:
-                            self.set_unit_job(unt, Job.UNCLEAR)
+                            self.set_job_of_unit(unt, Job.UNCLEAR)
                             volunteers -= 1
             # new volunteer
             if unemployed >= 3:
@@ -549,7 +555,7 @@ class Mining(Common):
                             bestpatch = patch
                 if bestdist < 99999:
                     patch = bestpatch
-                    self.set_unit_job(unt, Job.VOLUNTEER)
+                    self.set_job_of_unit(unt, Job.VOLUNTEER)
                     unt.gather(patch)
                     self.listenframe_of_unit[unt.tag] = self.frame + self.seconds
                     volunteers += 1
@@ -562,11 +568,56 @@ class Mining(Common):
                         if typ in self.all_halltypes:
                             goal = pos
                     unt.attack(goal)
-                    self.set_unit_job(unt, Job.BERSERKER)
+                    self.set_job_of_unit(unt, Job.BERSERKER)
                     # drone berserkers are separate from army berserkers
             if unemployed < 2:
                 if volunteers > 0:
                     unt = a_volunteer
-                    self.set_unit_job(unt, Job.UNCLEAR)
+                    self.set_job_of_unit(unt, Job.UNCLEAR)
                     volunteers -= 1
                     unemployed += 1
+
+
+    async def balancer(self):                                      
+        # when minerals and vespene are out of balance, fire a miner.          
+        if self.function_listens('balancer',40): # 2 seconds       
+            firemim = False                                        
+            if self.minerals > 2 * self.vespene + 100:             
+                if self.vespene > 0:                               
+                    firemim = True                                 
+            firegas = False                                        
+            if self.vespene > 2 * self.minerals + 100:             
+                firegas = True                                     
+            if firegas or firemim:                                 
+                mimminers = 0                                      
+                gasminers = 0                                      
+                unclear = 0                                        
+                for drone in self.units(UnitTypeId.DRONE):         
+                    job = self.job_of_unit(drone)              
+                    if job == Job.UNCLEAR:                    
+                        unclear += 1                               
+                    elif job == Job.MIMMINER:                 
+                        mimminers += 1                             
+                    elif job == Job.GASMINER:                 
+                        gasminers += 1                             
+                if unclear == 0:                                   
+                    if firemim:                                    
+                        if mimminers >= 2:                         
+                            first = True                           
+                            for drone in self.units(UnitTypeId.DRONE):         
+                                job = self.job_of_unit(drone)  
+                                if job == Job.MIMMINER:       
+                                    if first:                      
+                                        first = False              
+                                        logger.info('imbalance, so firing a mimminer') 
+                                        self.set_job_of_unit(drone, Job.UNCLEAR) 
+                    if firegas:                                    
+                        first = True                               
+                        for drone in self.units(UnitTypeId.DRONE): 
+                            job = self.job_of_unit(drone)      
+                            if job == Job.GASMINER:           
+                                if first:                          
+                                    first = False                  
+                                    logger.info('imbalance, so firing a gasminer')     
+                                    self.set_job_of_unit(drone, Job.UNCLEAR) 
+

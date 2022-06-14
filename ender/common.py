@@ -147,7 +147,7 @@ class Common(BotAI, IUnitInterface):
 
     async def on_start(self):
         self._client.game_step = self.game_step
-        # if running realtime speed, this will be overwritten with 8
+        # if running realtime speed, this will be overwritten?
 
     async def on_step(self):
         # game init
@@ -281,9 +281,8 @@ class Common(BotAI, IUnitInterface):
             # drones_supply_used
             self.drones_upply_used = len(self.units(UnitTypeId.DRONE))
             for tag in self.limbo:
-                if tag in self._unit_job:
-                    if self.get_unit_job(tag) == Job.GASMINER:
-                        self.drones_supply_used += 1
+                if self.job_of_unittag(tag) == Job.GASMINER:
+                    self.drones_supply_used += 1
             for egg in self.units(UnitTypeId.EGG):
                 for order in egg.orders:
                     if order.ability.exact_id == AbilityId.LARVATRAIN_DRONE:
@@ -329,26 +328,27 @@ class Common(BotAI, IUnitInterface):
             await command.execute(unit)
         self._commands.clear()
 
-    @overload
-    def get_unit_job(self, unit: Unit) -> Job:
-        return self.get_unit_job(unit.tag)
+    def job_of_unit(self, unit: Unit) -> Job:
+        if unit.tag in self._unit_job:
+            return self._unit_job[unit.tag]
+        return Job.UNCLEAR
 
-    def get_unit_job(self, tag: int) -> Job:
+    def job_of_unittag(self, tag: int) -> Job:
         if tag in self._unit_job:
             return self._unit_job[tag]
         return Job.UNCLEAR
 
-    @overload
-    def set_unit_job(self, unit: Unit, job: Job):
-        self.set_unit_job(unit.tag, job)
+    def set_job_of_unit(self, unit: Unit, job: Job):
+        self._unit_job[unit.tag] = job
 
-    def set_unit_job(self, tag: int, job: Job):
+    def set_job_of_unittag(self, tag: int, job: Job):
         self._unit_job[tag] = job
 
     def job_count(self, job) -> int:
         # do not call often
         count = 0
-        for current_job in self._unit_job:
+        for unt in self.units: # needed to prevent dead unit info
+            current_job = self.job_of_unit(unt)
             if current_job == job:
                 count += 1
         return count

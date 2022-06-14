@@ -18,7 +18,7 @@ class RepositionBehavior(IBehavior):
     async def on_step(self):
         for unit in self.bot_ai.units:
             if unit.weapon_cooldown > self.bot_ai.client.game_step:
-                if (not self.jobs or self.unit_interface.get_unit_job(unit) in self.jobs) and (
+                if (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
                         not self.unit_types or unit.type_id in self.unit_types):
                     enemies_around = self.bot_ai.enemy_units.filter(
                         lambda enemy: unit.target_in_range(enemy, unit.movement_speed))

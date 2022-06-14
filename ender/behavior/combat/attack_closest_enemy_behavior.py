@@ -17,7 +17,7 @@ class AttackClosestEnemyBehavior(IBehavior):
     async def on_step(self):
         if not self.bot_ai.enemy_units.empty:
             for unit in self.bot_ai.units:
-                if (not self.jobs or self.unit_interface.get_unit_job(unit) in self.jobs) and (
+                if (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
                         not self.unit_types or unit.type_id in self.unit_types):
                     goal = self.bot_ai.enemy_units.closest_to(unit)
                     self.unit_interface.set_command(unit, AttackCommand(goal.position))
