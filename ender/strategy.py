@@ -27,9 +27,11 @@ class Strategy(Tech):
         TWOBASE_NOGAS = auto()
         THREEBASE_NOGAS = auto()
         THREEBASE = auto()
+        TO_LAIR = auto()
         MUTAS = auto()
         LINGBANEMUTA = auto()
         FIVEBASE = auto()
+        TO_HIVE = auto()
         ENDGAME = auto()
         LINGWAVE = auto()
     gameplan = Gameplan.ENDGAME
@@ -39,6 +41,7 @@ class Strategy(Tech):
     new_plan = None
     structures_at_hatches = 0
     auto_upgrade = True
+    auto_queen = True
 
     def __step0(self):
         if not self.new_plan:
@@ -59,8 +62,8 @@ class Strategy(Tech):
         self.set_gameplan(choice)
         #
 
-    async def on_step(self):
-        await Tech.on_step(self)
+    async def on_step(self, iteration: int):
+        await Tech.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             logger.info('Tag:' + self.gameplan.name)
@@ -71,9 +74,21 @@ class Strategy(Tech):
             self.last_bigattack_count = self.bigattack_count
             # change strategy to followup
             plan = self.followup
+            # alternatives
             if plan == self.Gameplan.ENDGAME:
                 if self.minerals > 3000:
-                    plan = self.Gameplan.LINGWAVE
+                    if self.gameplan != self.Gameplan.LINGWAVE:
+                        plan = self.Gameplan.LINGWAVE
+            # skips
+            if plan == self.Gameplan.TO_LAIR:
+                if len(self.structures(UnitTypeId.LAIR)) > 0:
+                    plan = self.Gameplan.FIVEBASE
+            if plan == self.Gameplan.FIVEBASE:
+                if self.nbases >= 4:
+                    plan = self.Gameplan.TO_HIVE
+            if plan == self.Gameplan.TO_HIVE:
+                if len(self.structures(UnitTypeId.HIVE)) > 0:
+                    plan = self.Gameplan.ENDGAME
             logger.info('Transitioning to ' + plan.name)
             await self._client.chat_send('Transitioning to ' + plan.name, team_only=False)
             self.set_gameplan(plan)
@@ -89,16 +104,14 @@ class Strategy(Tech):
             self.structures_at_hatches = 1
             self.make_plan[UnitTypeId.HATCHERY] = 1
             self.make_plan[UnitTypeId.ZERGLING] = 12
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(('supply',12, UnitTypeId.SPAWNINGPOOL, 1))
             self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE_NOGAS:
             self.structures_at_hatches = 1
             self.make_plan[UnitTypeId.HATCHERY] = 2
             self.make_plan[UnitTypeId.ZERGLING] = 12
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 3
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(('supply',16, UnitTypeId.SPAWNINGPOOL, 1))
             self.opening.append(('supply',20, UnitTypeId.HATCHERY, 2))
             self.followup = self.Gameplan.THREEBASE
@@ -109,7 +122,6 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.ZERGLING] = 2
             self.make_plan[UnitTypeId.ROACH] = 10
             self.make_plan[UnitTypeId.DRONE] = 16 * 1 + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = 1
             self.opening.append(('supply',22, UnitTypeId.HATCHERY, 2))
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE_NOGAS:
@@ -117,91 +129,108 @@ class Strategy(Tech):
             self.make_plan[UnitTypeId.HATCHERY] = 3
             self.make_plan[UnitTypeId.EXTRACTOR] = 0
             self.make_plan[UnitTypeId.ZERGLING] = 36
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(('supply',25, UnitTypeId.HATCHERY, 3))
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE:
             self.structures_at_hatches = 2
             self.make_plan[UnitTypeId.HATCHERY] = 3
-            self.make_plan[UnitTypeId.EXTRACTOR] = 2
+            self.make_plan[UnitTypeId.EXTRACTOR] = 3
             self.make_plan[UnitTypeId.ZERGLING] = 12
             self.make_plan[UnitTypeId.ROACH] = 16
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(('supply',25, UnitTypeId.HATCHERY, 3))
-            self.followup = self.Gameplan.MUTAS
+            self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.THREEBASE_NOGAS:
             self.structures_at_hatches = 3
             self.make_plan[UnitTypeId.HATCHERY] = 4
             self.make_plan[UnitTypeId.EXTRACTOR] = 0
             self.make_plan[UnitTypeId.ZERGLING] = 60
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(('supply',35, UnitTypeId.HATCHERY, 4))
-            self.followup = self.Gameplan.LINGBANEMUTA
+            self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.THREEBASE:
             self.structures_at_hatches = 3
             self.make_plan[UnitTypeId.HATCHERY] = 4
-            self.make_plan[UnitTypeId.EXTRACTOR] = 3
+            self.make_plan[UnitTypeId.EXTRACTOR] = 5
             self.make_plan[UnitTypeId.ZERGLING] = 16
             self.make_plan[UnitTypeId.BANELING] = 10
             self.make_plan[UnitTypeId.ROACH] = 16
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(('supply',75, UnitTypeId.HATCHERY, 4))
-            self.followup = self.Gameplan.FIVEBASE
+            self.followup = self.Gameplan.TO_LAIR
+        elif gameplan == self.Gameplan.TO_LAIR:
+            self.structures_at_hatches = 4
+            self.make_plan[UnitTypeId.HATCHERY] = 4
+            self.make_plan[UnitTypeId.LAIR] = 1
+            self.make_plan[UnitTypeId.EXTRACTOR] = 7
+            self.make_plan[UnitTypeId.BANELING] = 10
+            self.make_plan[UnitTypeId.ROACH] = 20
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
+            self.followup = self.Gameplan.MUTAS
+            if random.random() < 0.5:
+                self.followup = self.Gameplan.LINGBANEMUTA
+            if random.random() < 0.33:
+                self.followup = self.Gameplan.FIVEBASE
         elif gameplan == self.Gameplan.MUTAS:
             self.structures_at_hatches = 4
             self.make_plan[UnitTypeId.HATCHERY] = 4
-            self.make_plan[UnitTypeId.EXTRACTOR] = 5
+            self.make_plan[UnitTypeId.EXTRACTOR] = 7
             self.make_plan[UnitTypeId.ZERGLING] = 20
             self.make_plan[UnitTypeId.MUTALISK] = 20
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
-            self.followup = self.Gameplan.ENDGAME
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
+            self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.LINGBANEMUTA:
             self.structures_at_hatches = 4
             self.make_plan[UnitTypeId.HATCHERY] = 4
-            self.make_plan[UnitTypeId.EXTRACTOR] = 5
+            self.make_plan[UnitTypeId.EXTRACTOR] = 7
             self.make_plan[UnitTypeId.ZERGLING] = 20
             self.make_plan[UnitTypeId.BANELING] = 20
             self.make_plan[UnitTypeId.MUTALISK] = 20
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
-            self.followup = self.Gameplan.ENDGAME
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
+            self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.FIVEBASE:
             self.structures_at_hatches = 5
             self.make_plan[UnitTypeId.HATCHERY] = 5
-            self.make_plan[UnitTypeId.EXTRACTOR] = 7
+            self.make_plan[UnitTypeId.EXTRACTOR] = 9
             self.make_plan[UnitTypeId.ZERGLING] = 20
             self.make_plan[UnitTypeId.BANELING] = 10
             self.make_plan[UnitTypeId.ROACH] = 5
             self.make_plan[UnitTypeId.HYDRALISK] = 30
-            self.make_plan[UnitTypeId.DRONE] = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
-            self.make_plan[UnitTypeId.QUEEN] = self.structures_at_hatches
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
+            self.followup = self.Gameplan.TO_HIVE
+        elif gameplan == self.Gameplan.TO_HIVE:
+            self.structures_at_hatches = 6
+            self.make_plan[UnitTypeId.HATCHERY] = 6
+            self.make_plan[UnitTypeId.HIVE] = 1
+            self.make_plan[UnitTypeId.EXTRACTOR] = 7
+            self.make_plan[UnitTypeId.ZERGLING] = 15
+            self.make_plan[UnitTypeId.BANELING] = 15
+            self.make_plan[UnitTypeId.ROACH] = 15
+            self.make_plan[UnitTypeId.HYDRALISK] = 15
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.ENDGAME:
-            self.structures_at_hatches = 99
-            self.make_plan[UnitTypeId.HATCHERY] = 99
-            self.make_plan[UnitTypeId.EXTRACTOR] = 99
+            self.structures_at_hatches = len(self.expansion_locations_list)
+            self.make_plan[UnitTypeId.HATCHERY] = len(self.expansion_locations_list)
+            self.make_plan[UnitTypeId.EXTRACTOR] = len(self.expansion_locations_list) * 2
             self.make_plan[UnitTypeId.ULTRALISK] = 1
             self.make_plan[UnitTypeId.BANELING] = 4
-            self.make_plan[UnitTypeId.MUTALISK] = 4
+            self.make_plan[UnitTypeId.ROACH] = 4
             self.make_plan[UnitTypeId.HYDRALISK] = 6
-            self.make_plan[UnitTypeId.INFESTOR] = 6
-            self.make_plan[UnitTypeId.CORRUPTOR] = 16
+            self.make_plan[UnitTypeId.INFESTOR] = 4
+            self.make_plan[UnitTypeId.CORRUPTOR] = 14
             self.make_plan[UnitTypeId.BROODLORD] = 8
-            self.make_plan[UnitTypeId.VIPER] = 4
-            self.make_plan[UnitTypeId.DRONE] = 90
-            self.make_plan[UnitTypeId.QUEEN] = 10
+            self.make_plan[UnitTypeId.VIPER] = 3
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
+            self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.LINGWAVE:
-            self.structures_at_hatches = 99
-            self.make_plan[UnitTypeId.HATCHERY] = 99
-            self.make_plan[UnitTypeId.EXTRACTOR] = 99
-            self.make_plan[UnitTypeId.ZERGLING] = 180
-            self.make_plan[UnitTypeId.DRONE] = 90
-            self.make_plan[UnitTypeId.QUEEN] = 10
+            self.structures_at_hatches = len(self.expansion_locations_list)
+            self.make_plan[UnitTypeId.HATCHERY] = len(self.expansion_locations_list)
+            self.make_plan[UnitTypeId.EXTRACTOR] = len(self.expansion_locations_list) * 2
+            self.make_plan[UnitTypeId.ZERGLING] = 2 * (self.supplycap_army - self.army_supply_used)
+            self.make_plan[UnitTypeId.DRONE] = self.droneformula()
+            self.followup = self.Gameplan.ENDGAME
         self.add_morphers()
         self.tech_close()
         # debug
@@ -214,13 +243,17 @@ class Strategy(Tech):
         #
         self.needhatches_restrict(self.structures_at_hatches)
 
+    def droneformula(self) -> int:
+        dr = 16 * self.structures_at_hatches + 3 * self.make_plan[UnitTypeId.EXTRACTOR] + 1
+        return min(dr, self.supplycap_drones)
+
     def add_morphers(self):
         # if 7 ravagers are in make_plan, 7 roaches are added
         lookat = set(self.make_plan.keys())
         for rava in lookat:
             if self.make_plan[rava] > 0:
-                if rava in self.morphed:
-                    roach = self.morphed[rava]
+                if rava in self.morph:
+                    roach = self.morph[rava]
                     self.make_plan[roach] += self.make_plan[rava]
 
     def tech_close(self):

@@ -33,7 +33,8 @@ class Creep(Map_if):
     creeplord_state = {} # free/moving/dropping
     creeplord_goal = {} # place where this overlord will creep
     creeplord_free = {} # the frame the overlord can be reused
-    creepdropping = set() # all overlords etc, when having a lair, will have creepdrop on.
+    creepdropping = {} # all overlords etc, when having a lair, will have creepdrop on.
+                        # The creepdropping switch is turned off when morphing.
     #
 
     def __step0(self):
@@ -45,14 +46,14 @@ class Creep(Map_if):
                 self.map_nocreep(pos, 5)
         #
 
-    async def on_step(self):
-        await Map_if.on_step(self)
+    async def on_step(self, iteration: int):
+        await Map_if.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
         #
-        await self.creep_spread()
-        await self.re_direction()
+        await self.creep_spread() # slowing TODO
+        await self.re_direction() # slowing TODO
         await self.queencreep()
         await self.do_creeplord()
         await self.creepdrop()
@@ -284,16 +285,19 @@ class Creep(Map_if):
                     for lord in self.units(typ).idle: # stopped
                         tag = lord.tag
                         if self.frame >= self.listenframe_of_unit[tag]:
+                            if tag in self.creepdropping:
+                                if self.creepdropping[tag] != typ.name:
+                                    del self.creepdropping[tag]
                             if tag not in self.creepdropping:
                                 # debug, slow query:
-                                # abilities = (await self.get_available_abilities([lord]))[0]
-                                # if AbilityId.BEHAVIOR_GENERATECREEPOFF in abilities:
-                                #     logger.info('creepdrop superfluous')
-                                # if AbilityId.BEHAVIOR_GENERATECREEPON in abilities:
-                                #     logger.info('creepdrop correct')
+                                abilities = (await self.get_available_abilities([lord]))[0]
+                                if AbilityId.BEHAVIOR_GENERATECREEPOFF in abilities:
+                                    logger.info('creepdrop superfluous')
+                                if AbilityId.BEHAVIOR_GENERATECREEPON in abilities:
+                                    logger.info('creepdrop correct')
                                 lord(AbilityId.BEHAVIOR_GENERATECREEPON)
                                 self.listenframe_of_unit[tag] = self.frame + 5
-                                self.creepdropping.add(tag)
+                                self.creepdropping[tag] = typ.name
 
     async def do_creeplord(self):
         if len(self.structures(UnitTypeId.LAIR)) > 0:
@@ -317,7 +321,7 @@ class Creep(Map_if):
                     for lord in self.units(typ).idle:
                         tag = lord.tag
                         if tag not in self.creeplords:
-                            if self.job_of_unit(lord) == Job.UNCLEAR:
+                            if self.job_of_unit(lord) in {Job.UNCLEAR, Job.HANGER, Job.ROAMER}:
                                 dist = self.distance(lord.position, self.ourmain)
                                 if dist < bestdist:
                                     bestdist = dist

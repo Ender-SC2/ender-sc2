@@ -10,27 +10,27 @@ from test.setup import CreateUnitsTestSetup
 from test.test_environment import TestEnvironment, battle_maps
 
 
-class RoachZealotTests(unittest.TestCase):
+class RoachZerglingTests(unittest.TestCase):
 
-    def test_roach_vs_zealot_20_supply(self):
+    def test_roach_vs_zergling_20_supply(self):
         winner = EnderTestBot(
             [MoveCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
         loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
-                             CreateUnitsTestSetup(UnitTypeId.ZEALOT, 10, Point2([10, 10])),
+                             CreateUnitsTestSetup(UnitTypeId.ZERGLING, 40, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)
         self.assertTrue(loser.stopped())
 
-    def test_roach_vs_zealot_50_supply(self):
+    def test_roach_vs_zergling_50_supply(self):
         winner = EnderTestBot(
             [MoveCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
         loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
-                             CreateUnitsTestSetup(UnitTypeId.ZEALOT, 25, Point2([10, 10])),
+                             CreateUnitsTestSetup(UnitTypeId.ZERGLING, 100, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)

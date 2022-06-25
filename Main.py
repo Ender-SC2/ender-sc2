@@ -9,6 +9,7 @@ from ender.endstep import Endstep
 from ender.making import Making
 from ender.parts import Parts
 from ender.queens import Queens
+from ender.overlords import Overlords
 from ender.mining import Mining
 from sc2.data import Race, Difficulty
 from sc2.main import run_game
@@ -20,18 +21,18 @@ from sc2.player import Bot, Computer
 #                          Common
 #                                       \
 #                                        Tech
-#                        /  |          /   \       \       \     \      \
-#                  Attack Map_if Resources Strategy Queens Mining Parts Endstep
+#                        /  |          /   \       \       \         \      \     \
+#                  Attack Map_if Resources Strategy Queens Overlords Mining Parts Endstep
 #                           |   \    |    /
 #                         Creep   Making
 #
-#                       \   |       /            /      /      /     /
+#                       \   |       /            /      /      /     /     /
 #
 #                         Ender
 #
 
 
-class Ender(Attack, Creep, Making, Queens, Mining, Parts, Endstep):
+class Ender(Attack, Creep, Making, Queens, Overlords, Mining, Parts, Endstep):
 
     def __init__(self):
         super().__init__()
@@ -41,13 +42,14 @@ class Ender(Attack, Creep, Making, Queens, Mining, Parts, Endstep):
         self.did_map_onstep = False
         self.did_tech_onstep = False
         self.iteration = iteration
-        await Attack.on_step(self)
-        await Creep.on_step(self)
-        await Making.on_step(self)
-        await Queens.on_step(self)
-        await Mining.on_step(self)
-        await Parts.on_step(self)
-        await Endstep.on_step(self)
+        await Attack.on_step(self, iteration)
+        await Creep.on_step(self, iteration)
+        await Making.on_step(self, iteration)
+        await Queens.on_step(self, iteration)
+        await Overlords.on_step(self, iteration)
+        await Mining.on_step(self, iteration)
+        await Parts.on_step(self, iteration)
+        await Endstep.on_step(self, iteration)
 
 
 # *********************************************************************************************************************

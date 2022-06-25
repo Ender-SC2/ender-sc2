@@ -37,7 +37,7 @@ class IUnitInterface(ABC):
 
 
 class UnitInterface(IUnitInterface):
-    _commands: dict[Unit, IUnitCommand]
+    _commands: dict[Unit, list[IUnitCommand]]
     _unit_job: dict[int, Job]
 
     def __init__(self):
@@ -45,11 +45,20 @@ class UnitInterface(IUnitInterface):
         self._unit_job = {}
 
     def set_command(self, unit: Unit, command: IUnitCommand):
-        self._commands[unit] = command
+        self._commands[unit] = [command]
+
+    def set_queue_command(self, unit: Unit, command: IUnitCommand):
+        self._commands[unit].append(command)
 
     async def execute(self):
-        for unit, command in self._commands.items():
-            await command.execute(unit)
+        for unit, commands in self._commands.items():
+            first = True
+            for command in commands:
+                if first:
+                    await command.execute(unit) # really? usually, a unit executes a command ...
+                else:
+                    await command.execute(unit) # ,queue=True
+                first = False
         self._commands.clear()
 
     def job_of_unit(self, unit: Unit) -> Job:

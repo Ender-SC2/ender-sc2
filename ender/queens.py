@@ -18,8 +18,8 @@ class Queens(Common):
     def __step0(self):
         pass
 
-    async def on_step(self):
-        await Common.on_step(self)
+    async def on_step(self, iteration: int):
+        await Common.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True

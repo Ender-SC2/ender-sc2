@@ -22,8 +22,8 @@ class Resources(Tech):
     def __step0(self):
         self.init_resources()
 
-    async def on_step(self):
-        await Tech.on_step(self)
+    async def on_step(self, iteration: int):
+        await Tech.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True

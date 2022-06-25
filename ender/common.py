@@ -82,6 +82,7 @@ class Common(BotAI, IUnitInterface):
          UnitTypeId.BANELINGNEST, UnitTypeId.ULTRALISKCAVERN, UnitTypeId.NYDUSCANAL, UnitTypeId.NYDUSNETWORK}
     all_structuretypes = all_tumortypes | all_sporetypes | all_normalstructuretypes
     all_types = all_upgrades | all_structuretypes | all_unittypes
+    all_workertypes = {UnitTypeId.DRONE, UnitTypeId.SCV, UnitTypeId.PROBE, UnitTypeId.MULE}
     # constants for this map:
     map_center = nowhere
     map_left = 0
@@ -124,6 +125,8 @@ class Common(BotAI, IUnitInterface):
     listenframe_of_function = {} # frame the command will have arrived
     limbo = {} # per tag of a disappeared unit: the frame to forget it
     bigattack_count = 0 # report from attack to strategy
+    bigattacking = False # report from attack
+    supplytricking = False # report from making
     next_expansion = None # report from making to attack (block)
     current_expandings = {} # report from making to attack (block)
     to_root = set() # sporespinecrawlers uprooted to be picked up by 'making'.
@@ -149,7 +152,7 @@ class Common(BotAI, IUnitInterface):
         self._client.game_step = self.game_step
         # if running realtime speed, this will be overwritten?
 
-    async def on_step(self):
+    async def on_step(self, iteration):
         # game init
         if not self.__did_step0:
             await self.__step0()
@@ -175,6 +178,9 @@ class Common(BotAI, IUnitInterface):
                 if typ not in self.all_tumortypes:
                     for stru in self.structures(typ):
                             self.living.add(stru.tag)
+            for ovi in self.units(UnitTypeId.OVERLORDTRANSPORT):
+                for pastag in ovi.passengers_tags:
+                    self.living.add(pastag)
             # listenframe
             todel = []
             for tag in self.listenframe_of_unit:
@@ -279,7 +285,7 @@ class Common(BotAI, IUnitInterface):
                 self.extractors = self.structures(UnitTypeId.EXTRACTOR).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
                 self.extractors |= self.structures(UnitTypeId.EXTRACTORRICH).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
             # drones_supply_used
-            self.drones_upply_used = len(self.units(UnitTypeId.DRONE))
+            self.drones_supply_used = len(self.units(UnitTypeId.DRONE))
             for tag in self.limbo:
                 if self.job_of_unittag(tag) == Job.GASMINER:
                     self.drones_supply_used += 1
@@ -287,7 +293,6 @@ class Common(BotAI, IUnitInterface):
                 for order in egg.orders:
                     if order.ability.exact_id == AbilityId.LARVATRAIN_DRONE:
                         self.drones_supply_used += 1
-            # todo passengers
             # queens_supply_used
             self.queens_supply_used = 2 * len(self.units(UnitTypeId.QUEEN))
             for hatchtype in self.all_halltypes:

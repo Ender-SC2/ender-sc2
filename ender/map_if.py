@@ -49,8 +49,8 @@ class Map_if(Common):
                     self.map[right,up] = self.Mapcolor.OUT
         self._prebuilt()
 
-    async def on_step(self):
-        await Common.on_step(self)
+    async def on_step(self, iteration: int):
+        await Common.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True

@@ -60,15 +60,19 @@ class Making(Map_if, Resources, Strategy):
     experience = [] # walktime for walkers
     example = UnitTypeId.SCV # for debugging, e.g. EXTRACTOR. To silence: SCV
     emergency = set() # A thing in emergency gets 2000 importance.
-    supplytricking = 'no'
+    # supplytricking in common.py
+    supplytrick_phase = 'no'
     supplytrick_end = 0
+    supplytrick_keep = 0
+    rallied = set()
     #
 
     def __step0(self):
         #
         self.importance['overlord'] = 100
-        self.importance['drone'] = 80
-        self.importance['queen'] = 70
+        self.importance['drone'] = 90
+        self.importance['queen'] = 80
+        self.importance['hive_building'] = 70
         self.importance['lone_building'] = 60
         self.importance['upgrade'] = 50
         self.importance['extractor'] = 40
@@ -86,11 +90,11 @@ class Making(Map_if, Resources, Strategy):
         self.subimportance[UnitTypeId.INFESTOR] = 5
         self.subimportance[UnitTypeId.MUTALISK] = 6
         self.subimportance[UnitTypeId.SWARMHOSTMP] = 7
-        self.subimportance[UnitTypeId.OVERSEER] = 8
-        self.subimportance[UnitTypeId.HYDRALISK] = 9
-        self.subimportance[UnitTypeId.LURKERMP] = 10
+        self.subimportance[UnitTypeId.HYDRALISK] = 8
+        self.subimportance[UnitTypeId.LURKERMP] = 9
+        self.subimportance[UnitTypeId.OVERLORDTRANSPORT] = 10
         self.subimportance[UnitTypeId.RAVAGER] = 11
-        self.subimportance[UnitTypeId.OVERLORDTRANSPORT] = 12
+        self.subimportance[UnitTypeId.OVERSEER] = 12
         self.subimportance[UnitTypeId.CORRUPTOR] = 13
         self.subimportance[UnitTypeId.VIPER] = 14
         self.subimportance[UnitTypeId.BROODLORD] = 15
@@ -131,10 +135,10 @@ class Making(Map_if, Resources, Strategy):
         self.next_expansion = self.nowhere
         self.choose_next_expansion()
 
-    async def on_step(self):
-        await Map_if.on_step(self)
-        await Resources.on_step(self)
-        await Strategy.on_step(self)
+    async def on_step(self, iteration: int):
+        await Map_if.on_step(self, iteration)
+        await Resources.on_step(self, iteration)
+        await Strategy.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
@@ -170,8 +174,10 @@ class Making(Map_if, Resources, Strategy):
         await self.builder_admin()
         await self.go_walk()
         await self.downroot()
+        await self.do_freespine()
         await self.destroyed()
         await self.do_supplytrick()
+        await self.rallypoints()
         #
         if self.frame % 17 == 16:
             self.vespene_hist = self.vespene
@@ -236,14 +242,17 @@ class Making(Map_if, Resources, Strategy):
             am += len(self.structures(thing))
             am += len(self.units(thing))
         if (thing == UnitTypeId.HATCHERY):
-            am += len(self.units(UnitTypeId.LAIR))
-            am += len(self.units(UnitTypeId.HIVE))
+            am += len(self.structures(UnitTypeId.LAIR))
+            am += len(self.structures(UnitTypeId.HIVE))
         if (thing == UnitTypeId.LAIR):
-            am += len(self.units(UnitTypeId.HIVE))
+            am += len(self.structures(UnitTypeId.HIVE))
         if (thing == UnitTypeId.SPIRE):
-            am += len(self.units(UnitTypeId.GREATERSPIRE))
+            am += len(self.structures(UnitTypeId.GREATERSPIRE))
         if (thing == UnitTypeId.EXTRACTOR):
-            am += len(self.units(UnitTypeId.EXTRACTORRICH))
+            am += len(self.structures(UnitTypeId.EXTRACTORRICH))
+        for mor in self.morph:
+            if self.morph[mor] == thing:
+                am += len(self.units(mor))
         return am
 
     def atleast_some_started(self, thing) -> bool:
@@ -256,18 +265,18 @@ class Making(Map_if, Resources, Strategy):
             if len(self.units(thing)) > 0:
                 return True
         if (thing == UnitTypeId.HATCHERY):
-            if len(self.units(UnitTypeId.LAIR)) > 0:
+            if len(self.structures(UnitTypeId.LAIR)) > 0:
                 return True
-            if len(self.units(UnitTypeId.HIVE)) > 0:
+            if len(self.structures(UnitTypeId.HIVE)) > 0:
                 return True
         if (thing == UnitTypeId.LAIR):
-            if len(self.units(UnitTypeId.HIVE)) > 0:
+            if len(self.structures(UnitTypeId.HIVE)) > 0:
                 return True
         if (thing == UnitTypeId.SPIRE):
-            if len(self.units(UnitTypeId.GREATERSPIRE)) > 0:
+            if len(self.structures(UnitTypeId.GREATERSPIRE)) > 0:
                 return True
         if (thing == UnitTypeId.EXTRACTOR):
-            if len(self.units(UnitTypeId.EXTRACTORRICH)) > 0:
+            if len(self.structures(UnitTypeId.EXTRACTORRICH)) > 0:
                 return True
         if self.started(thing) > 0:
             return True
@@ -345,8 +354,8 @@ class Making(Map_if, Resources, Strategy):
 
     async def make_army_unit(self,typ):
         if self.function_listens('make_' + typ.name, self.seconds):
-            if typ == UnitTypeId.ROACH:
-                if self.frame >= 4 * self.minutes:
+            if typ == UnitTypeId.QUEEN: # DEBUG
+                if self.frame >= 2 * self.minutes:
                     breakthis = True
             if not self.structures.of_type(UnitTypeId.SPAWNINGPOOL).ready.exists:
                 return
@@ -362,10 +371,7 @@ class Making(Map_if, Resources, Strategy):
                     importance = self.importance['army'] + self.subimportance[typ]
                 # increase importance if in make_plan
                 started = self.atleast_started(typ)
-                if typ in self.morpher:
-                    rava = self.morpher[typ]
-                    started += self.atleast_started(rava)
-                if (started < self.make_plan[typ]):
+                if (started < self.make_plan[typ]) or ((typ == UnitTypeId.QUEEN) and self.auto_queen):
                     importance += 1000
                 if typ in self.emergency:
                     importance = 2000
@@ -418,7 +424,10 @@ class Making(Map_if, Resources, Strategy):
             await self.build_structure('evo1',it)
         
     async def build_structure(self,name,typ):
-        if self.function_listens('build_structure_' + name, 2 * self.seconds):
+        patience = 2 * self.seconds
+        if self.supplytricking:
+            patience = 5
+        if self.function_listens('build_structure_' + name, patience):
             if self.check_wannado_structure(typ):
                 if typ == UnitTypeId.HATCHERY:
                     importance = self.importance['hatchery']
@@ -426,6 +435,9 @@ class Making(Map_if, Resources, Strategy):
                     importance = self.importance['extractor']
                 elif typ in self.all_sporetypes:
                     importance = self.importance['sporespine']
+                elif typ in {UnitTypeId.LAIR, UnitTypeId.HIVE, UnitTypeId.INFESTATIONPIT, \
+                    UnitTypeId.SPIRE, UnitTypeId.GREATERSPIRE}:
+                    importance = self.importance['hive_building']
                 else:
                     importance = self.importance['lone_building']
                 if (self.atleast_started(typ) < self.make_plan[typ]):
@@ -477,6 +489,13 @@ class Making(Map_if, Resources, Strategy):
                         if self.distance(abasepos, self.ourmain) < self.distance(abasepos, self.enemymain):
                             abasepos = self.structures(UnitTypeId.HATCHERY).random.position
                         pos = abasepos.towards(self.map_center,3)
+                        # for supplytrick, place spores under a miner
+                        if self.supplytricking:
+                            for drone in self.units(UnitTypeId.DRONE):
+                                if self.job_of_unit(drone) == Job.MIMMINER:
+                                    gooddrone = drone
+                            pos = gooddrone.position
+                            self.set_job_of_unit(gooddrone,Job.UNCLEAR)
                         pos = self.map_around(pos,size)
                         self.map_plan(pos, size)
                         him = self.builder(pos)
@@ -615,6 +634,20 @@ class Making(Map_if, Resources, Strategy):
         if not self.tech_check(unty):
             return False
         #
+        if unty == UnitTypeId.QUEEN:
+            if self.auto_queen:
+                now = False
+                for typ in self.all_halltypes:
+                    for base in self.structures(typ).ready.idle:
+                        hasqueen = False
+                        for que in self.units(UnitTypeId.QUEEN):
+                            if self.distance(que.position, base.position) < 10:
+                                hasqueen = True
+                        if not hasqueen:
+                            now = True
+                if not now:
+                    return False
+        #
         max_count = 200
         if unty == UnitTypeId.DRONE:
             max_count = self.supplycap_drones
@@ -625,7 +658,9 @@ class Making(Map_if, Resources, Strategy):
         if unty == UnitTypeId.OVERLORD:
             max_count = 35
         if unty in {UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT}:
-            max_count = 20
+            max_count = 15
+        if not (self.atleast_started(unty) < max_count):
+            return False
         return True
 
     def check_wannado_structure(self, unty) -> bool:
@@ -874,6 +909,21 @@ class Making(Map_if, Resources, Strategy):
                                 stru(down, pos)
                                 self.listenframe_of_structure[stru.tag] = self.frame + self.seconds * 10
 
+    async def do_freespine(self):
+        if self.function_listens('do_freespine',11):
+            for unt in self.units(UnitTypeId.DRONE):
+                if self.job_of_unit(unt) == Job.FREESPINE:
+                    if self.listenframe_of_unit[unt.tag] < self.frame:
+                        if self.minerals >= 100:
+                            pos = unt.position
+                            size = 2
+                            pos = self.map_around(pos, size)
+                            if self.map_can_plan(pos, size):
+                                self.map_plan(pos, size)
+                                self.map_build_nodel(pos, size)
+                                unt.build(UnitTypeId.SPINECRAWLER, pos)
+                                self.listenframe_of_unit[unt.tag] = self.frame + 4 * self.seconds
+ 
     async def destroyed(self):
         for stru in self.structures:
             if stru.tag in self.last_health:
@@ -882,34 +932,44 @@ class Making(Map_if, Resources, Strategy):
 
     async def do_supplytrick(self):                                               
         if self.function_listens('do_supplytrick',10):                            
-            logger.info(self.supplytricking)                                   
-            if self.supplytricking == 'no':                                    
+            logger.info(self.supplytrick_phase)                                   
+            if self.supplytrick_phase == 'no':                                    
                 if 195 <= self.supply_used <= 200:                             
                     # A zerglingpair temporarily costs 125; 2500 = 125 * 20; 20 zerglingpairs
                     if self.minerals >= 3500:                                  
-                        if len(self.units(UnitTypeId.DRONE)) >= 25:            
-                            self.supplytricking = 'sporing'                    
-                            self.make_plan[UnitTypeId.SPORECRAWLER] += 20      
-                            self.supplycap_army += 20                          
-                            self.make_plan[UnitTypeId.ZERGLING] += 40          
-                            self.supplytrick_end = self.frame + 20 * self.seconds
-            if self.supplytricking == 'sporing':                               
-                if self.started(UnitTypeId.SPORECRAWLER) >= 20:                
-                    self.supplytricking = 'army'                               
+                        if len(self.units(UnitTypeId.DRONE)) >= 25:
+                            if not self.bigattacking:
+                                self.supplytricking = True
+                                self.supplytrick_keep =  self.make_plan[UnitTypeId.ZERGLING]           
+                                self.supplytrick_phase = 'sporing'                    
+                                self.make_plan[UnitTypeId.SPORECRAWLER] += 20      
+                                self.supplycap_army += 20
+                                self.supplycap_drones -= 20                          
+                                self.make_plan[UnitTypeId.ZERGLING] += 40          
+                                self.supplytrick_end = self.frame + 20 * self.seconds
+            if self.supplytrick_phase == 'sporing':                               
                 if self.frame >= self.supplytrick_end:                         
-                    self.supplytricking = 'army'                               
-            if self.supplytricking == 'army':                                  
-                if self.frame >= self.supplytrick_end:                         
-                    self.supplytricking = 'canceling'                          
+                    self.supplytrick_phase = 'canceling'                          
                     for crawlegg in self.structures(UnitTypeId.SPORECRAWLER):  
                         if not crawlegg.is_ready:                              
                             crawlegg(AbilityId.CANCEL)                         
                     self.supplytrick_end = self.frame + self.seconds           
-            if self.supplytricking == 'canceling':                             
-                if self.frame >= self.supplytrick_end:                         
-                    self.supplytricking = 'no'                                 
+            if self.supplytrick_phase == 'canceling':                             
+                if self.frame >= self.supplytrick_end:     
+                    self.supplytricking = False                    
+                    self.supplytrick_phase = 'no'                                 
+                    self.make_plan[UnitTypeId.SPORECRAWLER] = 0
+                    self.make_plan[UnitTypeId.ZERGLING] = self.supplytrick_keep
+                    self.supplycap_army -= 20
+                    self.supplycap_drones += 20                          
 
-
+    async def rallypoints(self):
+        if self.function_listens('rallypoints', 6 * self.seconds):
+            for hat in self.structures(UnitTypeId.HATCHERY):
+                if hat.tag not in self.rallied:
+                    self.rallied.add(hat.tag)
+                    point = hat.position.towards(self.map_center,4)
+                    hat(AbilityId.RALLY_BUILDING, point)
                 
                 
                 

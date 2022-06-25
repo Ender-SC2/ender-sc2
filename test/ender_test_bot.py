@@ -21,6 +21,9 @@ class EnderTestBot(BotAI):
         self.unit_interface = UnitInterface()
         self.stop_triggered = False
 
+    async def on_start(self):
+        self._client.game_step = 4 # 4
+
     async def on_step(self, iteration: int):
         if not self.setup:
             self.setup = True
@@ -36,7 +39,7 @@ class EnderTestBot(BotAI):
             await self.client.debug_leave()
 
         for behavior in self.behaviors:
-            await behavior.on_step()
+            await behavior.on_step(iteration)
         await self.unit_interface.execute()
 
     def stopped(self):

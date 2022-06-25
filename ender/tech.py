@@ -12,9 +12,10 @@ class Tech(Common):
     tech_chains = [] # We can make a thing only if the things before it are finished.
                      # Direct creator self.tech_chains are omitted.
     creator = {} # per unittype the unit making it.
-    morpher = {} # morphed[UnitTypeId.RAVAGER] = UnitTypeId.ROACH
-    morphed = {} # morpher[UnitTypeId.ROACH] = UnitTypeId.RAVAGER
-                 # larva morphs are omitted
+    morph = {} # morph[UnitTypeId.RAVAGER] = UnitTypeId.ROACH
+                # morph[UnitTypeId.OVERSEER] = UnitTypeId.OVERLORD
+                # morph[UnitTypeId.OVERLORDTRANSPORT] = UnitTypeId.OVERLORD
+                # larva morphs are omitted
     ind_upgrade_use = {} # the unittype that benefits from this upgrade most.
     speed = {} # in griddist/sec
 
@@ -190,15 +191,22 @@ class Tech(Common):
         self.init_structures('Z',UnitTypeId.CREEPTUMORBURROWED, 11, 1)
         self.init_structures('Z',UnitTypeId.CREEPTUMORQUEEN, 11, 1)
         #
-        self.morpher[UnitTypeId.ROACH] = UnitTypeId.RAVAGER
-        self.morpher[UnitTypeId.CORRUPTOR] = UnitTypeId.BROODLORD
-        self.morpher[UnitTypeId.ZERGLING] = UnitTypeId.BANELING
-        self.morpher[UnitTypeId.HYDRALISK] = UnitTypeId.LURKERMP
-        #
-        self.morphed[UnitTypeId.RAVAGER] = UnitTypeId.ROACH
-        self.morphed[UnitTypeId.BROODLORD] = UnitTypeId.CORRUPTOR
-        self.morphed[UnitTypeId.BANELING] = UnitTypeId.ZERGLING
-        self.morphed[UnitTypeId.LURKERMP] = UnitTypeId.HYDRALISK
+        # morph is used for counting zerglings
+        # morph is also used for disappearing creators
+        # both sides are units (not larvae, eggs or cocoons).
+        # cannot administrate here that a burrowed lurker counts as a lurker
+        self.morph[UnitTypeId.RAVAGER] = UnitTypeId.ROACH
+        self.morph[UnitTypeId.BROODLORD] = UnitTypeId.CORRUPTOR
+        self.morph[UnitTypeId.BANELING] = UnitTypeId.ZERGLING
+        self.morph[UnitTypeId.LURKERMP] = UnitTypeId.HYDRALISK
+        self.morph[UnitTypeId.OVERSEER] = UnitTypeId.OVERLORD
+        self.morph[UnitTypeId.OVERLORDTRANSPORT] = UnitTypeId.OVERLORD
+        self.morph[UnitTypeId.OBSERVERSIEGEMODE] = UnitTypeId.OVERLORD
+        for unt in self.all_burrowtypes: # e.g. banelingburrowed
+            crea = self.creator[unt] # e.g. baneling
+            if crea in self.morph:
+                crea = self.morph[crea] # e.g. zergling
+            self.morph[unt] = crea
         #
         self.ind_upgrade_use[UpgradeId.OVERLORDSPEED] = UnitTypeId.OVERSEER
         self.ind_upgrade_use[UpgradeId.BURROW] = UnitTypeId.ROACH
@@ -263,8 +271,8 @@ class Tech(Common):
         self.size_of_structure[barra] = size
         self.species_of_structure[barra] = species
 
-    async def on_step(self):
-        await Common.on_step(self)
+    async def on_step(self, iteration: int):
+        await Common.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True

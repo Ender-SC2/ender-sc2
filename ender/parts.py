@@ -1,6 +1,6 @@
 # parts.py, Ender
-import os
 
+import os
 from loguru import logger
 
 from ender.common import Common
@@ -21,23 +21,18 @@ class Parts(Common):
     opponent = 'unknown'
     botnames = {}
     #
-    startoverlord = False
-    readoverlord = False
-    lords = {} # numbering the overlords
-    overlords = set()
 
 
     def __step0(self):
         pass
 
-    async def on_step(self):
-        await Common.on_step(self)
+    async def on_step(self, iteration: int):
+        await Common.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
         #
         await self.chatting()
-        await self.overlordscout()
         #await self.show()
 
     async def show(self):
@@ -113,59 +108,5 @@ class Parts(Common):
             if ('a' <= ch <= 'z') or ('A' <= ch <= 'Z'):
                 mapfamily += ch.lower()
         return mapfamily
-
-    async def overlordscout(self):
-        if self.function_listens('overlordscout',10):
-            # initial start
-            if not self.startoverlord:
-                self.startoverlord = True
-                for ovi in self.units(UnitTypeId.OVERLORD):
-                    ovi.move(self.map_center)
-            # mapdependant points
-            if self.frame > 5 * self.seconds:
-                if not self.readoverlord:
-                    self.readoverlord = True
-                    #
-                    mapname = self.family(self.game_info.map_name)
-                    startx = str(self.ourmain.x)
-                    starty = str(self.ourmain.y)
-                    #
-                    # overlords.txt: has lines e.g.:   atmospheres 186.5 174.5 0 3.5 20.6 20.3
-                    # So on map 2000Atmospheres.AIE starting (186.5,174.5), move lord 0 at 3.5 seconds to (20.6,20.3)
-                    self.overlords = set()
-                    logger.info('reading data/overlords.txt')
-                    pl = open(os.path.join('data','overlords.txt'),'r')
-                    lines = pl.read().splitlines()
-                    pl.close()
-                    for line in lines:
-                        #logger.info(line) # debug
-                        words = line.split()
-                        if len(words) > 0:
-                            if words[0] != '#':
-                                if (words[0] == mapname) and (words[1] == startx) and (words[2] == starty):
-                                    self.overlords.add((float(words[3]), float(words[4]), float(words[5]), float(words[6])))
-                    if len(self.overlords) == 0:
-                        self.overlords.add((0, 0, self.enemymain.x, self.enemymain.y))
-                        logger.info('append to data/overlords.txt:')
-                        logger.info(mapname + ' ' + startx + ' ' + starty + ' 0 0 '+str(self.enemymain.x) + ' ' + str(self.enemymain.y))
-                # id the lords
-                if len(self.units(UnitTypeId.OVERLORD)) > len(self.lords):
-                    for ovi in self.units(UnitTypeId.OVERLORD):
-                        if ovi.tag not in self.lords.values():
-                            nr = len(self.lords)
-                            self.lords[nr] = ovi.tag
-                # move the lords
-                used = set()
-                for moveplan in self.overlords:
-                    (o_id, o_sec, o_x, o_y) = moveplan
-                    pos = Point2((o_x,o_y))
-                    if self.frame >= o_sec * self.seconds:
-                        if o_id in self.lords:
-                            tag = self.lords[o_id]
-                            for ovi in self.units(UnitTypeId.OVERLORD):
-                                if ovi.tag == tag:
-                                    ovi.move(pos)
-                                    used.add(moveplan)
-                self.overlords -= used
 
 

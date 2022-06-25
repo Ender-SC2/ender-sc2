@@ -35,6 +35,10 @@ class Mining(Common):
     gasbuildings = set()
     gaswork = [] # multiset
     mimwork = [] # multiset
+    miner_hash = -1 
+    miner_hash_last = -2
+    gasfreework = [] # multiset
+    mimfreework = [] # multiset
     assign = {} # Per dronetag: the postag of the mineralpatch or geyser. For drones with a mining job. 
     info_start_frame = {} # for speedmining
     info_end_frame = {} # for speedmining
@@ -47,14 +51,15 @@ class Mining(Common):
     def __step0(self):
         self.calc_expo_of_postag()
 
-    async def on_step(self):
-        await Common.on_step(self)
+    async def on_step(self, iteration: int):
+        await Common.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
         #
         await self.calc_minables()
-        await self.calc_oldminers()
+        await self.calc_work()
+        await self.calc_miner_hash()
         await self.assign_free_work()
         await self.assign_free_workers()
         await self.steer_miners()
@@ -164,7 +169,7 @@ class Mining(Common):
                     self.gasbuildings.add(gas)
                     self.minables_hash += gas.position.x
 
-    async def calc_oldminers(self):
+    async def calc_work(self):
         if self.minables_hash != self.minables_hash_last:
             self.minables_hash_last = self.minables_hash
             # per expo: the closest own base
@@ -201,23 +206,59 @@ class Mining(Common):
                 if dist < 10:
                     self.mimwork.append(post)
                     self.mimwork.append(post)
-            # assign miners and work
-            old_assign = self.assign.copy()
-            self.assign = {}
-            for miner in old_assign:
-                hadpost = old_assign[miner]
-                if hadpost in self.mimwork:
+            self.calc_workers()
+
+    async def calc_miner_hash(self):
+        self.miner_hash_last = self.miner_hash
+        self.miner_hash = 0
+        for drone in self.units(UnitTypeId.DRONE):
+            tag = drone.tag
+            if self.job_of_unittag(tag) in {Job.MIMMINER, Job.GASMINER}:
+                self.miner_hash += tag
+        for tag in self.limbo:
+            if self.job_of_unittag(tag) in {Job.MIMMINER, Job.GASMINER}:
+                self.miner_hash += tag
+        # as a consequence:
+        if self.miner_hash_last != self.miner_hash:
+            self.calc_workers()
+
+
+    def calc_workers(self):
+        # minertags
+        self.minertags = set()
+        for drone in self.units(UnitTypeId.DRONE):
+            tag = drone.tag
+            if self.job_of_unittag(tag) in {Job.MIMMINER, Job.GASMINER}:
+                self.minertags.add(tag)
+        for tag in self.limbo:
+            if self.job_of_unittag(tag) in {Job.MIMMINER, Job.GASMINER}:
+                self.minertags.add(tag)
+        # freework
+        self.mimfreework = self.mimwork.copy()
+        self.gasfreework = self.gaswork.copy()
+        # assign miners and freework
+        old_assign = self.assign.copy()
+        self.assign = {}
+        for miner in old_assign:
+            hadpost = old_assign[miner]
+            if hadpost in self.mimfreework:
+                if miner in self.minertags:
                     self.assign[miner] = hadpost
-                    del self.mimwork[self.mimwork.index(hadpost)]
-            for miner in old_assign:
-                hadpost = old_assign[miner]
-                if hadpost in self.gaswork:
+                    del self.mimfreework[self.mimfreework.index(hadpost)]
+                    self.minertags.remove(miner)
+        for miner in old_assign:
+            hadpost = old_assign[miner]
+            if hadpost in self.gasfreework:
+                if miner in self.minertags:
                     self.assign[miner] = hadpost
-                    del self.gaswork[self.gaswork.index(hadpost)]
-            # dismiss leftover miners
-            for miner in old_assign:
-                if miner not in self.assign:
+                    del self.gasfreework[self.gasfreework.index(hadpost)]
+                    self.minertags.remove(miner)
+        # dismiss leftover miners
+        for miner in old_assign:
+            if miner not in self.assign:
+                if miner in self.minertags:
                     self.set_job_of_unittag(miner, Job.UNCLEAR)
+                    self.minertags.remove(miner)
                     # delete speedmining info
                     if miner in self.info_start_frame:
                         del self.info_start_frame[miner]
@@ -227,7 +268,7 @@ class Mining(Common):
             miner = drone.tag
             best_dist = 99999
             best_work: Optional[int] = None
-            for post in self.gaswork:
+            for post in self.gasfreework:
                 gaspos = self.position_of_postag(post)
                 dist = self.distance(gaspos, drone.position)
                 if dist < best_dist:
@@ -235,7 +276,7 @@ class Mining(Common):
                     best_work = post
             if best_dist < 99999:
                 self.assign[miner] = best_work
-                del self.gaswork[self.gaswork.index(best_work)]
+                del self.gasfreework[self.gasfreework.index(best_work)]
                 self.set_job_of_unit(drone, Job.GASMINER)
                 gas = self.gas_of_postag(best_work)
                 drone.gather(gas)
@@ -246,7 +287,7 @@ class Mining(Common):
             if miner not in self.assign:
                 best_dist = 99999
                 best_work: Optional[int] = None
-                for post in self.mimwork:
+                for post in self.mimfreework:
                     mimpos = self.position_of_postag(post)
                     dist = self.distance(mimpos, drone.position)
                     if dist < best_dist:
@@ -254,7 +295,7 @@ class Mining(Common):
                         best_work = post
                 if best_dist < 99999:
                     self.assign[miner] = best_work
-                    del self.mimwork[self.mimwork.index(best_work)]
+                    del self.mimfreework[self.mimfreework.index(best_work)]
                     self.set_job_of_unit(drone, Job.MIMMINER)
                     patch = self.patch_of_postag(best_work)
                     drone.gather(patch)
@@ -264,28 +305,29 @@ class Mining(Common):
         for drone in self.units(UnitTypeId.DRONE):
             if self.job_of_unit(drone) == Job.UNCLEAR:
                 freeworkers += 1
-        freework = len(self.gaswork) + len(self.mimwork)
+        freework = len(self.gasfreework) + len(self.mimfreework)
         if 0 < freeworkers <= freework:
             if self.frame > 3 * self.minutes: # DEBUG
                 breakthis = True # DEBUG
             # assign leftover workers to leftover work
             # balance on excess gas
             for drone in self.units(UnitTypeId.DRONE):
-                if self.minerals >= self.vespene:
-                    self.assign_drone_to_closest_gas(drone)
-                    self.assign_drone_to_closest_patch(drone)
-                else: # having much gas
-                    self.assign_drone_to_closest_patch(drone)
-                    self.assign_drone_to_closest_gas(drone)
+                if self.job_of_unit(drone) == Job.UNCLEAR:
+                    if self.minerals >= self.vespene:
+                        self.assign_drone_to_closest_gas(drone)
+                        self.assign_drone_to_closest_patch(drone)
+                    else: # having much gas
+                        self.assign_drone_to_closest_patch(drone)
+                        self.assign_drone_to_closest_gas(drone)
                      
     async def assign_free_work(self):
         freeworkers = 0
         for drone in self.units(UnitTypeId.DRONE):
             if self.job_of_unit(drone) == Job.UNCLEAR:
                 freeworkers += 1
-        freework = len(self.gaswork) + len(self.mimwork)
+        freework = len(self.gasfreework) + len(self.mimfreework)
         if 0 < freework <= freeworkers:
-            for work in self.gaswork:
+            for work in self.gasfreework:
                 gaspos = self.position_of_postag(work)
                 bestdist = 99999
                 bestminer: Optional[Unit] = None
@@ -298,29 +340,29 @@ class Mining(Common):
                 if bestdist < 99999:
                     tag = bestminer.tag
                     self.assign[tag] = work
-                    self.set_job_of_unittag(bestminer, Job.GASMINER)
+                    self.set_job_of_unit(bestminer, Job.GASMINER)
                     gas = self.patch_of_postag(work)
                     bestminer.gather(gas)
                     self.listenframe_of_unit[tag] = self.frame + 5
-            self.gaswork.clear()
-            for work in self.mimwork:
-                gaspos = self.position_of_postag(work)
+            self.gasfreework.clear()
+            for work in self.mimfreework:
+                mimpos = self.position_of_postag(work)
                 bestdist = 99999
                 bestminer: Optional[Unit] = None
                 for drone in self.units(UnitTypeId.DRONE):
                     if self.job_of_unit(drone) == Job.UNCLEAR:
-                        dist = self.distance(gaspos, drone.position)
+                        dist = self.distance(mimpos, drone.position)
                         if dist < bestdist:
                             bestdist = dist
                             bestminer = drone
                 if bestdist < 99999:
                     tag = bestminer.tag
                     self.assign[tag] = work
-                    self.set_job_of_unittag(bestminer, Job.MIMMINER)
+                    self.set_job_of_unit(bestminer, Job.MIMMINER)
                     patch = self.patch_of_postag(work)
                     bestminer.gather(patch)
                     self.listenframe_of_unit[tag] = self.frame + 5
-            self.mimwork.clear()
+            self.mimfreework.clear()
 
     async def steer_miners(self):
         for drone in self.units(UnitTypeId.DRONE):
@@ -408,7 +450,7 @@ class Mining(Common):
                 if self.job_of_unit(drone) == Job.MIMMINER:
                     miner = drone.tag
                     dronepos = drone.position
-                    post = self.assign[miner]
+                    post = self.assign[miner] # how could this fail?
                     patchpos = self.position_of_postag(post)
                     patch = self.patch_of_postag(post)
                     expo = self.expo_of_postag[post]

@@ -11,41 +11,41 @@ from test.setup import CreateUnitsTestSetup
 from test.test_environment import TestEnvironment, battle_maps
 
 
-class RoachRoachTests(unittest.TestCase):
+class RoachHydraliskTests(unittest.TestCase):
 
-    def test_roach_vs_roach_2_supply(self):
+    def test_roach_vs_hydralisk_2_supply(self):
         winner = EnderTestBot(
-            [MoveCenterBehavior(), BackBehavior(), RepositionBehavior(), ForwardBehavior(), 
-            SidewardsBehavior(), FocusFireCombatBehavior()],
+            [MoveCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior(), BackBehavior(), 
+            SidewardsBehavior(), ForwardBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 1, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
         loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
-                             CreateUnitsTestSetup(UnitTypeId.ROACH, 1, Point2([10, 10])),
+                             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 1, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)
         self.assertTrue(loser.stopped())
 
-    def test_roach_vs_roach_20_supply(self):
+    def test_roach_vs_hydralisk_20_supply(self):
         winner = EnderTestBot(
-            [MoveCenterBehavior(), BackBehavior(), RepositionBehavior(), ForwardBehavior(), 
-            SidewardsBehavior(), FocusFireCombatBehavior()],
+            [MoveCenterBehavior(),  FocusFireCombatBehavior(), RepositionBehavior(), BackBehavior(), 
+            SidewardsBehavior(), ForwardBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
         loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
-                             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([10, 10])),
+                             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 10, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)
         self.assertTrue(loser.stopped())
 
-    def test_roach_vs_roach_50_supply(self):
-        winner = EnderTestBot([MoveCenterBehavior(), BackBehavior(), RepositionBehavior(), ForwardBehavior(), 
-                            SidewardsBehavior(), FocusFireCombatBehavior()],
+    def test_roach_vs_hydralisk_50_supply(self):
+        winner = EnderTestBot([MoveCenterBehavior(),  FocusFireCombatBehavior(), RepositionBehavior(), BackBehavior(), 
+                            SidewardsBehavior(), ForwardBehavior()],
                               CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([-10, -10])),
                               Any([No(HaveUnit()), AfterTime(180)]))
         loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
-                             CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([10, 10])),
+                             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 25, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)

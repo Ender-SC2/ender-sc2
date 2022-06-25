@@ -1,3 +1,6 @@
 from .roach_roach_test import RoachRoachTests
 from .roach_marine_test import RoachMarineTests
 from .roach_zealot_test import RoachZealotTests
+from .roach_zergling_test import RoachZerglingTests
+from .roach_hydralisk_test import RoachHydraliskTests
+from .roach_building_test import RoachBuildingTests
