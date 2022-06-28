@@ -7,7 +7,7 @@ from loguru import logger
 
 from ender.job import Job
 from ender.unit.unit_command import IUnitCommand
-from ender.unit.unit_interface import IUnitInterface
+from ender.unit.unit_interface import IUnitInterface, UnitInterface
 from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -19,8 +19,7 @@ from sc2.unit import Unit
 class Common(BotAI, IUnitInterface):
 
     # Unit Interface
-    _commands: dict[Unit, IUnitCommand] = {}
-    _unit_job: dict[int, Job] = {}
+    _unit_interface: IUnitInterface = UnitInterface()
 
     # constants after step0:
     nowhere = Point2((1,1))
@@ -326,34 +325,25 @@ class Common(BotAI, IUnitInterface):
         return False
 
     def set_command(self, unit: Unit, command: IUnitCommand):
-        self._commands[unit] = command
+        self._unit_interface.set_command(unit, command)
+
+    def queue_command(self, unit: Unit, command: IUnitCommand):
+        self._unit_interface.queue_command(unit, command)
 
     async def execute(self):
-        for unit, command in self._commands.items():
-            await command.execute(unit)
-        self._commands.clear()
+        self._unit_interface.execute()
 
     def job_of_unit(self, unit: Unit) -> Job:
-        if unit.tag in self._unit_job:
-            return self._unit_job[unit.tag]
-        return Job.UNCLEAR
+        return self._unit_interface.job_of_unit(unit)
 
     def job_of_unittag(self, tag: int) -> Job:
-        if tag in self._unit_job:
-            return self._unit_job[tag]
-        return Job.UNCLEAR
+        return self._unit_interface.job_of_unittag(tag)
 
     def set_job_of_unit(self, unit: Unit, job: Job):
-        self._unit_job[unit.tag] = job
+        self._unit_interface.set_job_of_unit(unit, job)
 
     def set_job_of_unittag(self, tag: int, job: Job):
-        self._unit_job[tag] = job
+        self._unit_interface.set_job_of_unittag(tag, job)
 
     def job_count(self, job) -> int:
-        # do not call often
-        count = 0
-        for unt in self.units: # needed to prevent dead unit info
-            current_job = self.job_of_unit(unt)
-            if current_job == job:
-                count += 1
-        return count
+        return self._unit_interface.job_count()
