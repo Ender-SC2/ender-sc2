@@ -14,5 +14,3 @@ class AttackCommand(IUnitCommand):
 
     async def execute(self, unit: Unit, queue: bool = False):
         unit.attack(self.target, queue)
-
-    def __str__(self):
