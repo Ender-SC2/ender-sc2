@@ -1,14 +1,13 @@
 # command_utils.py
 
-from typing import List, Optional
-from ender.behavior.behavior import IBehavior
 from math import sqrt
 
 from loguru import logger
 
+from ender.behavior.behavior import IBehavior
 from ender.unit import AttackCommand, MoveCommand
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+
 
 class CommandUtils(IBehavior):
 
@@ -16,7 +15,7 @@ class CommandUtils(IBehavior):
     last_position = {}
 
     def txt_of_pos(self, pos: Point2) -> str:
-        return '(' + str(round(pos.x * 100) / 100) + ',' +  str(round(pos.y * 100) / 100) + ')'
+        return '(' + str(round(pos.x * 100) / 100) + ',' + str(round(pos.y * 100) / 100) + ')'
     
     def nospam_pos(self, daddy, unit, action, goal):
         if unit not in self.hash:
@@ -45,7 +44,7 @@ class CommandUtils(IBehavior):
                 logger.info(daddy + ' ' + unit.name + str(unit.tag) + ' moving ' + str(enemy.name) + str(enemy.tag) + ' at ' + str(self.frame))
 
     def distance(self, p, q) -> float:
-        sd = (p.x-q.x)*(p.x-q.x) + (p.y-q.y)*(p.y-q.y)
+        sd = (p.x - q.x) * (p.x-q.x) + (p.y - q.y) * (p.y-q.y)
         return sqrt(sd)
 
     def next_position(self, unt) -> Point2:
