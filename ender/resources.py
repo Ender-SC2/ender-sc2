@@ -42,12 +42,12 @@ class Resources(Tech):
         HYDRALISKS = auto()
         OVERLORDS = auto()
         ZERGLINGS = auto()
-        OVERSEERS = auto()
         SWARMHOSTS = auto()
         ROACHES = auto()
         GEYSERS = auto()
         BANELINGNESTS = auto()
         HATCHERIES = auto()
+        QUEENHATCHERIES = auto()
         EVOLUTIONCHAMBERS = auto()
         HYDRALISKDENS = auto()
         INFESTATIONPITS = auto()
@@ -57,6 +57,7 @@ class Resources(Tech):
         SPAWNINGPOOLS = auto()
         SPIRES = auto()
         ULTRALISKCAVERNS = auto()
+        OVERSEER50S = auto()
     zero_resources  = dict((res,0) for res in Resource) # always .copy()
     claimed = [] # of (typ, resources, importance, expiration)
     resource_cost = {} # per typ: resource
@@ -78,6 +79,8 @@ class Resources(Tech):
                         resources[self.Resource.VESPENE] = cost.vespene
                 if creator == UnitTypeId.HATCHERY:
                     resources[self.Resource.HATCHERIES] = 1
+                if typ == UnitTypeId.QUEEN:
+                    resources[self.Resource.QUEENHATCHERIES] = 1
                 if typ in {UnitTypeId.OVERLORD, UnitTypeId.DRONE}:
                     resources[self.Resource.LARVAE] = 1
                 if typ in self.all_armytypes:
@@ -107,14 +110,14 @@ class Resources(Tech):
                     resources[self.Resource.OVERLORDS] = 1
                 if creator == UnitTypeId.ZERGLING:
                     resources[self.Resource.ZERGLINGS] = 1
-                if creator == UnitTypeId.OVERSEER:
-                    resources[self.Resource.OVERSEERS] = 1
                 if creator == UnitTypeId.SWARMHOSTMP:
                     resources[self.Resource.SWARMHOSTS] = 1
                 if creator == UnitTypeId.NYDUSNETWORK:
                     resources[self.Resource.NYDUSNETWORKS] = 1
                 if creator == UnitTypeId.ROACH:
                     resources[self.Resource.ROACHES] = 1
+                if creator == UnitTypeId.OVERSEER:
+                    resources[self.Resource.OVERSEER50S] = 1
                 #
                 self.resource_cost[typ] = resources
         # logger.info(self.resource_cost[UnitTypeId.GREATERSPIRE])
@@ -134,20 +137,39 @@ class Resources(Tech):
         self.resource_now[self.Resource.SUPPLY] = self.supply_left
         self.resource_now[self.Resource.EXPOS] = len(self.freeexpos)
         self.resource_now[self.Resource.GEYSERS] = len(self.freegeysers)
-        self.resource_now[self.Resource.CORRUPTORS] = len(self.units(UnitTypeId.CORRUPTOR).idle)
-        self.resource_now[self.Resource.HYDRALISKS] = len(self.units(UnitTypeId.HYDRALISK).idle)
+        unts = 0
+        for unt in self.units(UnitTypeId.CORRUPTOR).idle:
+            if self.job_of_unit(unt) == Job.DEFENDATTACK:
+                if self.frame >= self.listenframe_of_unit[unt.tag]:
+                    unts += 1 
+        self.resource_now[self.Resource.CORRUPTORS] = unts
+        unts = 0
+        for unt in self.units(UnitTypeId.HYDRALISK).idle:
+            if self.job_of_unit(unt) == Job.DEFENDATTACK:
+                if self.frame >= self.listenframe_of_unit[unt.tag]:
+                    unts += 1 
+        self.resource_now[self.Resource.HYDRALISKS] = unts
         self.resource_now[self.Resource.OVERLORDS] = len(self.units(UnitTypeId.OVERLORD).idle)
-        lings = 0
+        unts = 0
         for unt in self.units(UnitTypeId.ZERGLING).idle:
-            if self.job_of_unit(unt) in [Job.UNCLEAR, Job.DEFENDATTACK]:
-                lings += 1
-        self.resource_now[self.Resource.ZERGLINGS] = lings
-        self.resource_now[self.Resource.OVERSEERS] = len(self.units(UnitTypeId.OVERSEER).idle)
+            if self.job_of_unit(unt) == Job.DEFENDATTACK:
+                if self.frame >= self.listenframe_of_unit[unt.tag]:
+                    unts += 1
+        self.resource_now[self.Resource.ZERGLINGS] = unts
         self.resource_now[self.Resource.SWARMHOSTS] = len(self.units(UnitTypeId.SWARMHOSTMP).idle)
         self.resource_now[self.Resource.ROACHES] = len(self.units(UnitTypeId.ROACH).idle)
         for building in self.resource_of_buildingtype:
             resource = self.resource_of_buildingtype[building]
             self.resource_now[resource] = len(self.structures(building).ready.idle)
+        self.resource_now[self.Resource.QUEENHATCHERIES] = 0
+        for halltype in self.all_halltypes:
+            for unt in self.structures(halltype).ready.idle:
+                if unt.tag not in self.queen_of_hall:
+                    self.resource_now[self.Resource.QUEENHATCHERIES] += 1
+        self.resource_now[self.Resource.OVERSEER50S] = 0
+        for ovi in self.units(UnitTypeId.OVERSEER):
+            if ovi.energy >= 50:
+                self.resource_now[self.Resource.OVERSEER50S] += 1
 
     def zero_groupclaim(self):
         self.groupclaim = self.zero_resources.copy()

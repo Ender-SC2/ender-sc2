@@ -286,6 +286,7 @@ class Overlords(Common):
                                     elif unt.type_id == UnitTypeId.DRONE:
                                         self.set_job_of_unittag(lortag,Job.FREESPINE)
                                         self.set_job_of_unittag(unt.tag,Job.FREESPINE)
+                                        self.listenframe_of_unit[unt.tag] = self.frame + 2 * self.seconds
                                         self.freespine_couples.add((lortag, unt.tag))
             self.trips -= todel
 
@@ -325,5 +326,6 @@ class Overlords(Common):
                     if unt.tag == unttag:
                         if self.job_of_unit(unt) == Job.FREESPINE:
                             self.set_job_of_unit(unt, Job.UNCLEAR)
+        # actions are in making.py
 
                 

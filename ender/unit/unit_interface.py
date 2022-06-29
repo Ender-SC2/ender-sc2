@@ -37,7 +37,7 @@ class IUnitInterface(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def job_count(self, job) -> int:
+    def job_count(self, job: Job) -> int:
         raise NotImplementedError()
 
 
@@ -87,7 +87,7 @@ class UnitInterface(IUnitInterface):
     def set_job_of_unittag(self, tag: int, job: Job):
         self._unit_job[tag] = job
 
-    def job_count(self, job) -> int:
+    def job_count(self, job: Job) -> int:
         # do not call often
         count = 0
         for unt in self.units: # needed to prevent dead unit info

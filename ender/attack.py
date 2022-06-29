@@ -22,19 +22,21 @@ from ender.tech import Tech
 
 class Attack(Tech):
 
-    minam = {} # minimum to keep when bigattacking.
     __did_step0 = False
-    protected = set() # of tags. Some units left behind during a bigattack
-    protected_am = {} # amount per type. Some units left behind during a bigattack
     attackgoal = {} # for units pointattacking, where it is going
     defendgoal = None
-    renew_defendgoal = 0
     spray = {}
     casts = set() # of (spellkind, pos, expiration)
     berserkers = set()
     kite_back = set() # of unittype
     master = {} # per slavetag a mastertag
-    biles = set()
+    biles = set() # enemy and own ravager biles
+    bilecool = {} # per ravager, when it is ready to bile
+    biletarget_buildings = {UnitTypeId.PHOTONCANNON, UnitTypeId.MISSILETURRET, UnitTypeId.BUNKER, \
+        UnitTypeId.SPINECRAWLER, UnitTypeId.SPORECRAWLER, UnitTypeId.SPAWNINGPOOL}
+    biletarget_units = {UnitTypeId.SIEGETANKSIEGED, UnitTypeId.RAVAGER, UnitTypeId.CORRUPTOR, UnitTypeId.GHOST, \
+        UnitTypeId.LIBERATORAG}
+    biletarget_no = {UnitTypeId.LARVA, UnitTypeId.EGG, UnitTypeId.AUTOTURRET}
     # bigattacking in common.py
     bigattack_moment = -99999
     bigattack_end = 0 # the end of a bigattack, also allowing a new bigattack
@@ -66,14 +68,6 @@ class Attack(Tech):
     def __step0(self):
         #
         #
-        # chosen to not attack:
-        self.minam[UnitTypeId.DRONE] = 40
-        self.minam[UnitTypeId.QUEEN] = 7
-        self.minam[UnitTypeId.OVERLORD] = 20
-        self.minam[UnitTypeId.MUTALISK] = 1
-        self.minam[UnitTypeId.OVERSEER] = 1
-        self.minam[UnitTypeId.CORRUPTOR] = 1
-        self.minam[UnitTypeId.HYDRALISK] = 1
         #
         self.defendgoal = self.ourmain.towards(self.map_center,8)
         self.kite_back = {UnitTypeId.BROODLORD, UnitTypeId.INFESTOR}
@@ -89,6 +83,9 @@ class Attack(Tech):
                     self.enemynatural = pos
         # bigattack_end
         self.bigattack_end = self.minutes # this sets earliest bigattack at 2 minutes, latest at 6 minutes.
+        #
+        self.biletarget_no |= self.all_changelings
+        #
 
 
     async def on_step(self, iteration: int):
@@ -97,9 +94,11 @@ class Attack(Tech):
             self.__step0()
             self.__did_step0 = True
         #
+        await self.set_big_attack()
         await self.big_attack()
         for behavior in self.behaviors:
             await behavior.on_step(iteration)
+        await self.renew_defendgoal()
         await self.defend()
         await self.berserk()
         await self.corrupt()
@@ -114,6 +113,7 @@ class Attack(Tech):
         await self.banes()
         await self.do_dried()
         await self.dodge_biles()
+        await self.bile()
         await self.circle_blockers()
 
     def find_bigattackgoal(self):
@@ -131,156 +131,142 @@ class Attack(Tech):
             (dumbness,dist_to_enemymain,pos) = goals[0]
             self.bigattackgoal = pos
 
-    def do_protect(self, unt, typ):
-        if unt.tag not in self.protected:
-            if typ in self.protected_am:
-                if self.protected_am[typ] < self.minam[typ]:
-                    self.protected.add(unt.tag)
-                    self.protected_am[typ] += 1
-            else:
-                self.protected.add(unt.tag)
-                self.protected_am[typ] = 1
-
-    async def defend(self):
+    async def renew_defendgoal(self):
         # sometimes renew defendgoal
-        if self.frame >= self.renew_defendgoal:
-            self.renew_defendgoal = self.frame + self.minutes
-            bestval = -99999
+        if self.function_listens('renew_defendgoal', self.minutes):
+            n = -0.51
+            center = n * self.ourmain
+            for hall in self.townhalls:
+                center = center + hall.position
+                n += 1
+            center = center / n
+            bestval = 99999
             for hall in self.townhalls:
                 pos = hall.position
-                val = abs(hall.tag) % 54321
-                #print(str(val))
-                if val > bestval:
+                val = self.distance(pos, center)
+                if val < bestval:
                     bestval = val
                     bestpos = pos
-            if bestval > -99999:
+            if bestval < 99999:
                 self.defendgoal = bestpos.towards(self.map_center,8)                  
-        # 
+
+    async def defend(self):
         if self.function_listens('defend',20):
             if self.frame >= self.bigattack_end:
                 for typ in self.all_armytypes:
-                    if typ not in [UnitTypeId.QUEEN, UnitTypeId.LURKERMPBURROWED]:
+                    if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}: # too slow
                         for unt in self.units(typ).idle:
                             tag = unt.tag
                             if self.frame >= self.listenframe_of_unit[tag]:
+                                # recruit
+                                if self.job_of_unit(unt) == Job.UNCLEAR:
+                                    self.set_job_of_unit(unt, Job.DEFENDATTACK)
+                                # act
                                 if self.job_of_unit(unt) == Job.DEFENDATTACK:
+                                    self.attackgoal[tag] = self.defendgoal
                                     if self.distance(unt.position, self.defendgoal) > 8:
                                         unt.attack(self.defendgoal)
-                                        self.attackgoal[tag] = self.defendgoal
                                         self.listenframe_of_unit[tag] = self.frame + 5
-                                elif self.job_of_unit(unt) == Job.UNCLEAR:
-                                    self.set_job_of_unit(unt, Job.DEFENDATTACK)
-                                    unt.attack(self.defendgoal)
-                                    self.attackgoal[tag] = self.defendgoal
-                                    self.listenframe_of_unit[tag] = self.frame + 5
                         
-    async def big_attack(self):
-        # goal
-        self.find_bigattackgoal()
-        # ended?
-        if self.bigattacking:
-            if self.frame >= self.bigattack_end:
-                self.bigattacking = False
-        # attack now?
-        if self.frame > self.bigattack_end + self.minutes:
-            logger.info('bigattack time!')
-            now = True
-            for typ in self.make_plan:
-                if typ in self.all_armytypes:
-                    having = len(self.units(typ))
-                    for mor in self.morph:
-                        if self.morph[mor] == typ:
-                            having += len(self.units(mor))
-                    if 4 * having < 3 * self.make_plan[typ]:
-                        now = False
-                        logger.info('not enough ' + typ.name)
-            # waiting long
-            if self.frame > self.bigattack_end + 5 * self.minutes:
-                now = True
-                logger.info('five minute rule')
-            # full army
-            logger.info('armysupply ' + str(self.army_supply_used) + ' of ' + str(self.supplycap_army))
-            if (self.army_supply_used >= self.supplycap_army-2) or (self.supply_used >= 190):
-                now = True
-            # wait for cocoons
-            cocoons = 0
-            for typ in [UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,
-                        UnitTypeId.LURKERMPEGG]:
-                cocoons += len(self.units(typ))
-            if cocoons >= 2:
-                if now:
-                    logger.info('wait for cocoons')
-                now = False
-            # wait for supplytrick
-            if self.supplytricking:
-                if now:
-                    logger.info('wait for supplytrick')
-                now = False
-            #
-            if now:
-                # report
-                logger.info('PLANNING BIGATTACK!')
-                self.bigattack_count += 1
-                self.bigattacking = True
-                # protect some units
-                self.protected = set()
-                self.protected_am = {}
-                # protect some queens at different bases
-                typ = UnitTypeId.QUEEN
-                if len(self.units(typ)) > 0:
-                    for hall in self.townhalls:
-                        unt = self.units(typ).closest_to(hall.position)
-                        if self.distance(hall.position,unt.position) < 16:
-                            self.do_protect(unt,typ)
-                # protect some units
-                for typ in self.minam:
-                    for unt in self.units(typ):
-                        self.do_protect(unt,typ)
-                # 
-                self.correct_speed()
-                # get approachdura
-                approachdura = 0
-                for typ in self.all_armytypes:
-                    if typ not in {UnitTypeId.LURKERMP, UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}: # too slow
+    async def set_big_attack(self):
+        if self.function_listens('set_big_attack', 33):
+            # goal
+            self.find_bigattackgoal()
+            # ended?
+            if self.bigattacking:
+                # only ovis then end
+                if self.frame >= self.bigattack_moment + 15 * self.seconds:
+                    ground_damage = False
+                    for typ in self.all_armytypes:
                         for unt in self.units(typ):
                             tag = unt.tag
-                            if tag not in self.protected:
-                                if self.job_of_unit(unt) not in [Job.BIGATTACK, Job.BLOCKER, Job.WOUNDED,
-                                                                  Job.SCRATCHED, Job.BERSERKER, Job.TIRED, Job.SLAVE,
-                                                                  Job.NURSE, Job.TRANSPORTER, Job.FREESPINE]:
+                            if self.job_of_unit(unt) == Job.BIGATTACK:
+                                if (unt.can_attack_ground) or (unt.type_id == UnitTypeId.BROODLORD):
+                                    ground_damage = True
+                    if not ground_damage:
+                        logger.info('ending bigattack by lack of ground damage')
+                        self.bigattack_end = self.frame
+                # time end bigattack
+                if self.frame >= self.bigattack_end:
+                    self.bigattacking = False
+            # attack now?
+            if self.frame > self.bigattack_end + 30 * self.seconds:
+                logger.info('bigattack time')
+                now = True
+                for typ in self.make_plan:
+                    if typ in self.all_armytypes:
+                        having = len(self.units(typ))
+                        for mor in self.morph:
+                            if self.morph[mor] == typ:
+                                having += len(self.units(mor))
+                        if 4 * having < 3 * self.make_plan[typ]:
+                            now = False
+                            logger.info('not enough ' + typ.name)
+                # waiting long
+                if self.frame > self.bigattack_end + 5 * self.minutes:
+                    now = True
+                    logger.info('five minute rule')
+                # full army
+                logger.info('armysupply ' + str(self.army_supply_used) + ' of ' + str(self.supplycap_army))
+                if (self.army_supply_used >= self.supplycap_army-2) or (self.supply_used >= 190):
+                    now = True
+                    logger.info('armysupply ' + str(self.army_supply_used) + ' of ' + str(self.supplycap_army) + ' (or 190)')
+                # wait for cocoons
+                cocoons = 0
+                for typ in [UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,
+                            UnitTypeId.LURKERMPEGG]:
+                    cocoons += len(self.units(typ))
+                if cocoons >= 2:
+                    logger.info('wait for cocoons')
+                    now = False
+                # wait for supplytrick
+                if self.supplytricking:
+                    logger.info('wait for supplytrick')
+                    now = False
+                #
+                if now:
+                    # report
+                    logger.info('PLANNING BIGATTACK!')
+                    self.bigattack_count += 1
+                    self.bigattacking = True
+                    # 
+                    self.correct_speed()
+                    # get approachdura
+                    approachdura = 0
+                    for typ in self.all_armytypes:
+                        if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}: # too slow
+                            for unt in self.units(typ):
+                                tag = unt.tag
+                                if self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
                                     distance = self.distance(unt.position,self.bigattackgoal)
                                     speed = self.speed[typ] / self.seconds
                                     duration = distance / speed
                                     approachdura = max(duration, approachdura)
-                # fix attackmoment
-                logger.info('approachdura ' + str(approachdura))
-                self.bigattack_moment = self.frame + approachdura
-                self.bigattack_end = self.bigattack_moment + 30 * self.seconds
-                # next time, keep more drones
-                self.minam[UnitTypeId.DRONE] = 80
+                    # fix attackmoment
+                    logger.info('approachdura ' + str(approachdura))
+                    self.bigattack_moment = self.frame + approachdura
+                    self.bigattack_end = self.bigattack_moment + 30 * self.seconds
+
+    async def big_attack(self):
         # get some bigattack units
         for typ in self.all_armytypes:
-            if typ not in {UnitTypeId.LURKERMP, UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}: # too slow
-                if typ not in self.all_burrowtypes:
-                    for unt in self.units(typ):
-                        tag = unt.tag
-                        if tag not in self.protected:
-                            if self.frame >= self.listenframe_of_unit[tag]:
-                                if self.job_of_unit(unt) not in [Job.BIGATTACK, Job.BLOCKER, Job.WOUNDED,
-                                                                  Job.SCRATCHED, Job.BERSERKER, Job.TIRED, Job.SLAVE,
-                                                                  Job.NURSE, Job.TRANSPORTER, Job.FREESPINE]:
-                                    distance = self.distance(unt.position,self.bigattackgoal)
-                                    speed = self.speed[typ] / self.seconds
-                                    duration = distance / speed
-                                    attackmoment = self.frame + duration
-                                    if attackmoment >= self.bigattack_moment:
-                                        if attackmoment < self.bigattack_end:
-                                            #print('debug ' + unt.name + ' starts walking ' + str(duration))
-                                            self.set_job_of_unit(unt, Job.BIGATTACK)
-                                            self.attackgoal[tag] = self.bigattackgoal
-                                            unt.attack(self.bigattackgoal)
-                                            self.listenframe_of_unit[tag] = self.frame + 5
-        # whip them
+            if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}: # too slow
+                for unt in self.units(typ):
+                    tag = unt.tag
+                    if self.frame >= self.listenframe_of_unit[tag]:
+                        if self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
+                            distance = self.distance(unt.position,self.bigattackgoal)
+                            speed = self.speed[typ] / self.seconds
+                            duration = distance / speed
+                            attackmoment = self.frame + duration
+                            if attackmoment >= self.bigattack_moment:
+                                if attackmoment < self.bigattack_end:
+                                    #print('debug ' + unt.name + ' starts walking ' + str(duration))
+                                    self.set_job_of_unit(unt, Job.BIGATTACK)
+                                    self.attackgoal[tag] = self.bigattackgoal
+                                    unt.attack(self.bigattackgoal)
+                                    self.listenframe_of_unit[tag] = self.frame + 5
+        # whip them (or release them)
         for typ in self.all_armytypes:
             for unt in self.units(typ).idle:
                 tag = unt.tag
@@ -341,65 +327,6 @@ class Attack(Tech):
                                 # it was distracted
                                 unt.attack(self.bigattackgoal)
                                 self.listenframe_of_unit[tag] = self.frame + 5
-
-    def indanger(self, unt) -> bool:
-        # do you see an enemy that can hit air, dist < 10?
-        danger = False
-        somehitair = False
-        somehitground = False
-        for ene in self.enemy_units:
-            if self.distance(ene.position,unt.position) < 10:
-                for weapon in ene._weapons:
-                    if weapon.type in TARGET_AIR:
-                       somehitair = True
-                    if weapon.type in TARGET_GROUND:
-                       somehitground = True
-        for typ in {UnitTypeId.MISSILETURRET, UnitTypeId.PHOTONCANNON, UnitTypeId.SPORECRAWLER,
-                    UnitTypeId.SPINECRAWLER, UnitTypeId.PLANETARYFORTRESS, UnitTypeId.BUNKER}:
-            for ene in self.enemy_structures(typ): # current visible
-                if self.distance(ene.position,unt.position) < 10:
-                    for weapon in ene._weapons:
-                        if weapon.type in TARGET_AIR:
-                           somehitair = True
-                        if weapon.type in TARGET_GROUND:
-                           somehitground = True
-        if unt.is_flying:
-            danger = somehitair
-        else:
-            danger = somehitground
-        return danger
-
-    async def attack_micro(self):
-        enemy_health = {}
-        for enemy in self.enemy_units:
-            enemy_health[enemy.tag] = enemy.shield + enemy.health
-        for unt in self.units:
-            tag = unt.tag
-            typ = unt.type_id
-            if self.job_of_unit(unt) in [Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]:
-                if typ not in [UnitTypeId.OVERLORD, UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT,
-                                UnitTypeId.BROODLING, UnitTypeId.LOCUSTMP, UnitTypeId.LOCUSTMPFLYING]:
-                    if self.frame >= self.listenframe_of_unit[tag]:
-                        if unt.weapon_cooldown > self.game_step:
-                            enemies_around = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, unt.movement_speed))
-                            if not enemies_around.empty:
-                                logger.info("KITE")
-                                closest_enemy = enemies_around.closest_to(unt)
-                                if closest_enemy.can_attack and self.range_vs(closest_enemy, unt) <= self.range_vs(unt, closest_enemy):
-                                    position = unt.position.towards(enemies_around.center, -unt.movement_speed)
-                                    unt.move(position)
-                        else:
-                            enemies_around = self.enemy_units.filter(lambda enemy: unt.target_in_range(enemy, 0)
-                                                                                   and enemy_health[enemy.tag] > 0)
-                            goal = self.attackgoal[tag]
-                            if not enemies_around.empty:
-                                best_target = enemies_around.sorted(lambda u: u.shield_health_percentage).first
-                                logger.info(f"Attacking lowest attack {best_target}")
-                                unt.attack(best_target)
-                                enemy_health[best_target.tag] = enemy_health[best_target.tag] - unt.calculate_damage_vs_target(best_target)[0]
-                            elif unt.distance_to(goal) > unt.real_speed:
-                                logger.info("Going towards our goal")
-                                unt.attack(goal)
 
     async def corrupt(self):
         if self.function_listens('corrupt',10):
@@ -667,8 +594,7 @@ class Attack(Tech):
     async def circle_blockers(self):
         # high apm
         if len(self.circler_frames) > 0:
-            if self.frame >= self.circler_next_frame:
-                self.circler_next_frame = self.frame + 6
+            if self.frame >= self.circler_next_frame + 6:
                 for circler_type in {UnitTypeId.DRONE, UnitTypeId.ZERGLING}:
                     for blo in self.units(circler_type):
                         tag = blo.tag
@@ -690,8 +616,10 @@ class Attack(Tech):
                 if tag in self.living:
                     job = self.job_of_unittag(tag)
                     if job != Job.BLOCKER:
+                        # logger.info(job) # debug
                         todel.add((tag,pos))
                 else:
+                    # logger.info('dead') # debug
                     todel.add((tag,pos))
             for (tag,pos) in todel:
                 del self.pos_of_blocker[tag]
@@ -744,12 +672,14 @@ class Attack(Tech):
                     tag = unt.tag
                     if self.job_of_unit(unt) == Job.BLOCKER:
                         pos = self.pos_of_blocker[tag]
-                        if self.distance(unt.position, pos) < 3:
-                            if pos not in self.current_expandings:
-                                if tag in self.circler_frames:
-                                    del self.circler_frames[tag]
-                                unt(bur)
-                                self.listenframe_of_unit[tag] = self.frame + 3 * self.seconds
+                        if pos not in self.current_expandings:
+                            if tag in self.circler_frames:
+                                del self.circler_frames[tag]
+                            burpoint = pos.towards(self.ourmain, 2)
+                            unt.move(burpoint)
+                            self.listenframe_of_unit[tag] = self.frame + 4 * self.seconds
+                            if self.distance(unt.position,burpoint) < 4:
+                                unt(bur, queue = True)
             # unblock
             bup = AbilityId.BURROWUP_ZERGLING
             todel = set()
@@ -848,7 +778,12 @@ class Attack(Tech):
                                 self.set_job_of_unit(unt, Job.WOUNDED)
                             else:
                                 self.set_job_of_unit(unt, Job.SCRATCHED)
-                            away = unt.position.towards(self.hospital, 7)
+                            if len(self.enemy_units) > 0:
+                                enepos = self.enemy_units.closest_to(unt.position).position
+                            else:
+                                enepos = self.enemy_main
+                            away = unt.position.towards(enepos, -4)
+                            away = away.towards(self.hospital, 5)
                             unt.move(away)
                             unt.move(self.hospital, queue=True)
         if self.function_listens('wounded', 63):
@@ -866,7 +801,7 @@ class Attack(Tech):
             for unt in self.units(UnitTypeId.ROACHBURROWED):
                 if self.job_of_unit(unt) in [Job.WOUNDED, Job.SCRATCHED]:
                     if self.distance(unt.position, self.hospital) < 15:
-                        if unt.health >= 0.8 * unt.health_max:
+                        if unt.health >= 0.9 * unt.health_max:
                             unt(AbilityId.BURROWUP_ROACH)
                                                                 
     async def dodge_biles(self):
@@ -890,16 +825,65 @@ class Attack(Tech):
                     for unt in self.units(typ):
                         mustflee = False
                         for (bileposition,landframe) in self.biles:
-                            if self.distance(bileposition,unt.position) < 3:
-                                if self.frame < landframe:
+                            if self.distance(bileposition,unt.position) < 1:
+                                if landframe - 2 * self.seconds < self.frame < landframe:
                                     mustflee = True
                                     abile = bileposition
                         if mustflee:
                             if abile == unt.position:
-                                topoint = abile.towards(self.ourmain,3)
+                                topoint = abile.towards(self.ourmain,2)
                             else:
-                                topoint = abile.towards(unt.position,3)
+                                topoint = abile.towards(unt.position,2)
                             unt(AbilityId.MOVE_MOVE,topoint)
+
+    async def bile(self):
+        if self.function_listens('bile',19):
+            for rav in self.units(UnitTypeId.RAVAGER):
+                tag = rav.tag
+                ravpos = rav.position
+                if tag not in self.bilecool:
+                    self.bilecool[tag] = 0
+                if self.frame >= self.bilecool[tag]:
+                    targets = []
+                    for (enetyp, enepos) in self.enemy_struc_mem:
+                        if self.distance(ravpos, enepos) < 9.5 + self.size_of_structure[enetyp] / 2:
+                            if self.distance(ravpos, enepos) > 9:
+                                throwat = ravpos.towards(enepos, 9)
+                            else:
+                                throwat = enepos
+                            targets.append((3,throwat))
+                    for ene in self.enemy_units:
+                        enepos = ene.position
+                        if ene.type_id not in self.biletarget_no:
+                            if self.distance(ravpos, ene.position) < 9.5 + ene.radius:
+                                if self.distance(ravpos, enepos) > 9:
+                                    throwat = ravpos.towards(enepos, 9)
+                                else:
+                                    throwat = enepos
+                                targets.append((2,throwat))
+                    for (enetyp, enepos) in self.enemy_struc_mem:
+                        if self.distance(ravpos, enepos) < 9.5 + self.size_of_structure[enetyp] / 2:
+                            if enetyp in self.biletarget_buildings:
+                                if self.distance(ravpos, enepos) > 9:
+                                    throwat = ravpos.towards(enepos, 9)
+                                else:
+                                    throwat = enepos
+                                targets.append((1,throwat))
+                    for ene in self.enemy_units:
+                        enepos = ene.position
+                        if self.distance(ravpos, ene.position) < 9.5 + ene.radius:
+                            if ene.type_id in self.biletarget_units:
+                                if self.distance(ravpos, enepos) > 9:
+                                    throwat = ravpos.towards(enepos, 9)
+                                else:
+                                    throwat = enepos
+                                targets.append((0,throwat))
+                    if len(targets) > 0:
+                        targets.sort()
+                        target = targets[0][1]
+                        rav(AbilityId.EFFECT_CORROSIVEBILE, target)
+                        self.bilecool[tag] = self.frame + 7.5 * self.seconds
+
 
     async def guards(self):
         if self.frame < 5 * self.minutes:

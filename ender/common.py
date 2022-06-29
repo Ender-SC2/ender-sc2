@@ -36,7 +36,7 @@ class Common(BotAI, IUnitInterface):
     all_changelings = {UnitTypeId.CHANGELING, UnitTypeId.CHANGELINGMARINE, UnitTypeId.CHANGELINGMARINESHIELD,
                        UnitTypeId.CHANGELINGZEALOT, UnitTypeId.CHANGELINGZERGLING,
                        UnitTypeId.CHANGELINGZERGLINGWINGS}
-    all_armytypes = all_changelings | {UnitTypeId.QUEEN,UnitTypeId.ROACH,UnitTypeId.MUTALISK,UnitTypeId.ZERGLING,
+    all_armytypes = all_changelings | {UnitTypeId.QUEEN, UnitTypeId.ROACH, UnitTypeId.MUTALISK, UnitTypeId.ZERGLING,
                      UnitTypeId.OVERSEER, UnitTypeId.CORRUPTOR, UnitTypeId.BROODLORD, UnitTypeId.INFESTOR,
                      UnitTypeId.BROODLING, UnitTypeId.HYDRALISK, UnitTypeId.LURKERMP,
                      UnitTypeId.OVERLORDTRANSPORT, UnitTypeId.VIPER, UnitTypeId.BANELING, UnitTypeId.ULTRALISK,
@@ -130,6 +130,7 @@ class Common(BotAI, IUnitInterface):
     current_expandings = {} # report from making to attack (block)
     to_root = set() # sporespinecrawlers uprooted to be picked up by 'making'.
     resign = False
+    queen_of_hall = {}
     #
     __did_step0 = False
     _last_structures_len = 0 # internal speedup
@@ -317,8 +318,13 @@ class Common(BotAI, IUnitInterface):
 
     def function_listens(self, name,delay) -> bool:
         # forces 'delay' frames between function calls.
+        # init
         if name not in self.listenframe_of_function:
             self.listenframe_of_function[name] = -99999
+        # very rarely, the delay is lowered
+        if self.listenframe_of_function[name] > self.frame + delay:
+            self.listenframe_of_function[name] = self.frame + delay
+        # decide if the function will run
         if self.frame >= self.listenframe_of_function[name]:
             self.listenframe_of_function[name] = self.frame + delay
             return True
@@ -345,5 +351,5 @@ class Common(BotAI, IUnitInterface):
     def set_job_of_unittag(self, tag: int, job: Job):
         self._unit_interface.set_job_of_unittag(tag, job)
 
-    def job_count(self, job) -> int:
-        return self._unit_interface.job_count()
+    def job_count(self, job: Job) -> int:
+        return self._unit_interface.job_count(job)

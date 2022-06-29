@@ -26,6 +26,7 @@ class Queens(Common):
         #
         await self.queeninject()
         await self.transfuse()
+        await self.admin_queen_of_hall()
 
     def choose_inject(self,pos) -> bool:
         # for a queen at pos
@@ -80,7 +81,11 @@ class Queens(Common):
     async def transfuse(self):
         if self.function_listens('transfusion', self.seconds):
             nurses = self.job_count(Job.NURSE)
-            patients = self.job_count(Job.WOUNDED)
+            patients = 0
+            for unt in self.units:
+                if self.job_of_unit(unt) == Job.WOUNDED:
+                    if unt.type_id not in {UnitTypeId.ZERGLING, UnitTypeId.ROACH}:
+                        patients += 1
             # new nurses
             for unt in self.units(UnitTypeId.QUEEN):
                 if self.job_of_unit(unt) == Job.UNCLEAR:
@@ -89,6 +94,12 @@ class Queens(Common):
                             self.set_job_of_unit(unt, Job.NURSE)
                             nurses += 1
                             unt.attack(self.hospital)
+                            # this may cost queen_of_hall
+                            for halltype in self.all_halltypes:
+                                for hall in self.structures(halltype):
+                                    if hall.tag in self.queen_of_hall:
+                                        if self.queen_of_hall[hall.tag] == unt.tag:
+                                            del self.queen_of_hall[hall.tag]
             # dismiss nurses
             for unt in self.units(UnitTypeId.QUEEN):
                 if self.job_of_unit(unt) == Job.NURSE:
@@ -121,3 +132,15 @@ class Queens(Common):
                                                     self.listenframe_of_unit[tag] = self.frame + 5
                                                     self.treating[other.tag] = self.frame + 7 * self.seconds
                         
+    async def admin_queen_of_hall(self):
+        if self.function_listens('admin_queen_of_hall', 1.3 * self.seconds):
+            for halltag in self.queen_of_hall:
+                tag = self.queen_of_hall[halltag]
+                if tag == -1:
+                    for halltype in self.all_halltypes:
+                        for hall in self.structures(halltype):
+                            if hall.tag == halltag:
+                                for que in self.units(UnitTypeId.QUEEN):
+                                    if self.distance(que.position, hall.position) < 10:
+                                        if self.job_of_unit(que) != Job.NURSE:
+                                            self.queen_of_hall[halltag] = que.tag
