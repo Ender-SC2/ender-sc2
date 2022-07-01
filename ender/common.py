@@ -351,5 +351,11 @@ class Common(BotAI, IUnitInterface):
     def set_job_of_unittag(self, tag: int, job: Job):
         self._unit_interface.set_job_of_unittag(tag, job)
 
+    # SHOULD MOVE TO UNIT_INTERFACE. TEMPORARILY HERE TO RUN.
     def job_count(self, job: Job) -> int:
-        return self._unit_interface.job_count(job)
+        # do not call often
+        count = 0
+        for unt in self.units: # needed to prevent dead unit info
+            if self.job_of_unit(unt) == job:
+                count += 1
+        return count

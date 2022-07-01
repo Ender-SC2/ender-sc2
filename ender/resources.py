@@ -131,7 +131,7 @@ class Resources(Tech):
         # drones may idle but not build
         drones = 0
         for unt in self.units(UnitTypeId.DRONE):
-            if self.job_of_unit(unt) in [Job.APPRENTICE, Job.WALKER, Job.BUILDER]:
+            if self.job_of_unit(unt) in [Job.WALKER, Job.BUILDER]:
                 drones += 1
         self.resource_now[self.Resource.DRONES] = drones
         self.resource_now[self.Resource.SUPPLY] = self.supply_left

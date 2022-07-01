@@ -6,7 +6,6 @@ class Job(Enum):
     BIGATTACK = auto()
     CREEPING = auto()
     DEFENDATTACK = auto()
-    APPRENTICE = auto()  # drone to build
     WALKER = auto()  # drone to build
     BUILDER = auto()  # drone to build
     INJECTING = auto() # queen

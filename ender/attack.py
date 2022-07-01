@@ -17,10 +17,11 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.data import Race
+from ender.map_if import Map_if
 from ender.tech import Tech
 
 
-class Attack(Tech):
+class Attack(Map_if, Tech):
 
     __did_step0 = False
     attackgoal = {} # for units pointattacking, where it is going
@@ -41,6 +42,9 @@ class Attack(Tech):
     bigattack_moment = -99999
     bigattack_end = 0 # the end of a bigattack, also allowing a new bigattack
     bigattackgoal = None
+    gathertime = 0 # 6 seconds for grouping up the bigattack army.
+    gatherpoint = None # 2/3 bigattack_goal + 1/3 defendgoal
+    attack_started = {} # separate gather phase from actual attack phase
     last_catch = {} # for burrowed banelings
     burbanes = set() # of positions where a burrowed baneling is or was.
     pos_of_blocker = {}
@@ -89,6 +93,7 @@ class Attack(Tech):
 
 
     async def on_step(self, iteration: int):
+        await Map_if.on_step(self, iteration)
         await Tech.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
@@ -130,6 +135,7 @@ class Attack(Tech):
             goals.sort()
             (dumbness,dist_to_enemymain,pos) = goals[0]
             self.bigattackgoal = pos
+            self.calc_gatherpoint()
 
     async def renew_defendgoal(self):
         # sometimes renew defendgoal
@@ -149,6 +155,13 @@ class Attack(Tech):
                     bestpos = pos
             if bestval < 99999:
                 self.defendgoal = bestpos.towards(self.map_center,8)                  
+                self.calc_gatherpoint()
+
+    def calc_gatherpoint(self):
+        gp = (2 * self.bigattackgoal + self.defendgoal) / 3
+        gp = self.map_around(gp, 4)
+        self.gatherpoint = gp
+        self.gathertime = 6 * self.seconds
 
     async def defend(self):
         if self.function_listens('defend',20):
@@ -244,11 +257,11 @@ class Attack(Tech):
                                     approachdura = max(duration, approachdura)
                     # fix attackmoment
                     logger.info('approachdura ' + str(approachdura))
-                    self.bigattack_moment = self.frame + approachdura
+                    self.bigattack_moment = self.frame + approachdura + self.gathertime
                     self.bigattack_end = self.bigattack_moment + 30 * self.seconds
 
     async def big_attack(self):
-        # get some bigattack units
+        # get some bigattack units, gather them
         for typ in self.all_armytypes:
             if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}: # too slow
                 for unt in self.units(typ):
@@ -258,35 +271,57 @@ class Attack(Tech):
                             distance = self.distance(unt.position,self.bigattackgoal)
                             speed = self.speed[typ] / self.seconds
                             duration = distance / speed
+                            gathermoment = self.frame + duration + self.gathertime
                             attackmoment = self.frame + duration
-                            if attackmoment >= self.bigattack_moment:
-                                if attackmoment < self.bigattack_end:
+                            if attackmoment < self.bigattack_end:
+                                if gathermoment >= self.bigattack_moment:
                                     #print('debug ' + unt.name + ' starts walking ' + str(duration))
                                     self.set_job_of_unit(unt, Job.BIGATTACK)
+                                    self.attackgoal[tag] = self.gatherpoint
+                                    unt.attack(self.gatherpoint)
+                                    self.listenframe_of_unit[tag] = self.frame + 5
+                                    self.attack_started[tag] = False
+        # bigattack
+        for typ in self.all_armytypes:
+            for unt in self.units(typ):
+                tag = unt.tag
+                if self.frame >= self.listenframe_of_unit[tag]:
+                    if self.job_of_unit(unt) == Job.BIGATTACK:
+                        if not self.attack_started[tag]:
+                            distance = self.distance(unt.position,self.bigattackgoal)
+                            speed = self.speed[typ] / self.seconds
+                            duration = distance / speed
+                            attackmoment = self.frame + duration
+                            if attackmoment < self.bigattack_end:
+                                if attackmoment >= self.bigattack_moment:
+                                    #print('debug ' + unt.name + ' starts walking ' + str(duration))
                                     self.attackgoal[tag] = self.bigattackgoal
                                     unt.attack(self.bigattackgoal)
                                     self.listenframe_of_unit[tag] = self.frame + 5
+                                    self.attack_started[tag] = True
         # whip them (or release them)
         for typ in self.all_armytypes:
             for unt in self.units(typ).idle:
                 tag = unt.tag
                 if self.job_of_unit(unt) == Job.BIGATTACK:
-                    if self.frame >= self.listenframe_of_unit[tag]:
-                        if self.frame >= self.bigattack_end:
-                            self.set_job_of_unit(unt, Job.UNCLEAR)
-                        else:
-                            # why does it idle?
-                            goal = self.attackgoal[tag]
-                            dist = self.distance(unt.position, goal)
-                            if dist < 5:
-                                # it reached its goal
-                                unt.attack(self.bigattackgoal)
-                                self.listenframe_of_unit[tag] = self.frame + 5
-                                self.attackgoal[tag] = self.bigattackgoal
+                    if self.attack_started[tag]:
+                        if self.frame >= self.listenframe_of_unit[tag]:
+                            if self.frame >= self.bigattack_end:
+                                self.set_job_of_unit(unt, Job.UNCLEAR)
                             else:
-                                # it was distracted
-                                unt.attack(self.bigattackgoal)
-                                self.listenframe_of_unit[tag] = self.frame + 5
+                                # why does it idle?
+                                goal = self.attackgoal[tag]
+                                dist = self.distance(unt.position, goal)
+                                if dist < 5:
+                                    # it reached its goal
+                                    if self.attackgoal[tag] != self.bigattackgoal:
+                                        self.attackgoal[tag] = self.bigattackgoal
+                                        unt.attack(self.bigattackgoal)
+                                        self.listenframe_of_unit[tag] = self.frame + 5
+                                else:
+                                    # it was distracted
+                                    unt.attack(goal)
+                                    self.listenframe_of_unit[tag] = self.frame + 5
 
     async def berserk(self):
         # berserkers are units that will fight to die to free supply
@@ -781,7 +816,7 @@ class Attack(Tech):
                             if len(self.enemy_units) > 0:
                                 enepos = self.enemy_units.closest_to(unt.position).position
                             else:
-                                enepos = self.enemy_main
+                                enepos = self.enemymain
                             away = unt.position.towards(enepos, -4)
                             away = away.towards(self.hospital, 5)
                             unt.move(away)

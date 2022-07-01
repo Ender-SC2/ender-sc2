@@ -165,6 +165,7 @@ class Mining(Common):
         self.gasbuildings = set()
         for typ in {UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTORRICH}:
             for gas in self.structures(typ).ready:
+
                 if gas.position in self.goodgeysers:
                     self.gasbuildings.add(gas)
                     self.minables_hash += gas.position.x

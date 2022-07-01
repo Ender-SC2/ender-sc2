@@ -231,8 +231,8 @@ class Strategy(Tech):
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.ENDGAME:
             self.structures_at_hatches = 99
-            self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos)
-            self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers)
+            self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
+            self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.iffadd_result(UnitTypeId.ULTRALISKCAVERN, UnitTypeId.ULTRALISK, 1)
             self.iffadd_result(UnitTypeId.BANELINGNEST, UnitTypeId.BANELING, 5)
             self.iffadd_result(UnitTypeId.ROACHWARREN, UnitTypeId.ROACH, 5)
@@ -245,15 +245,15 @@ class Strategy(Tech):
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.LINGWAVE:
             self.structures_at_hatches = 99
-            self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos)
-            self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers)
+            self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
+            self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.result_plan[UnitTypeId.ZERGLING] = 2 * (self.supplycap_army - self.army_supply_used)
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.ULTRAWAVE:
             self.structures_at_hatches = 99
-            self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos)
-            self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers)
+            self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
+            self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.result_plan[UnitTypeId.ULTRALISK] = 10
             self.result_plan[UnitTypeId.MUTALISK] = 15
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()

@@ -290,11 +290,11 @@ class Creep(Map_if):
                                     del self.creepdropping[tag]
                             if tag not in self.creepdropping:
                                 # debug, slow query:
-                                abilities = (await self.get_available_abilities([lord]))[0]
-                                if AbilityId.BEHAVIOR_GENERATECREEPOFF in abilities:
-                                    logger.info('creepdrop superfluous')
-                                if AbilityId.BEHAVIOR_GENERATECREEPON in abilities:
-                                    logger.info('creepdrop correct')
+                                #abilities = (await self.get_available_abilities([lord]))[0]
+                                #if AbilityId.BEHAVIOR_GENERATECREEPOFF in abilities:
+                                #    logger.info('creepdrop superfluous')
+                                #if AbilityId.BEHAVIOR_GENERATECREEPON in abilities:
+                                #    logger.info('creepdrop correct')
                                 lord(AbilityId.BEHAVIOR_GENERATECREEPON)
                                 self.listenframe_of_unit[tag] = self.frame + 5
                                 self.creepdropping[tag] = typ.name

@@ -1,5 +1,5 @@
-# endstep.py, Merkbot, Zerg sandbox bot
-# 25 may 2022
+# endstep.py, Ender
+
 from loguru import logger
 
 from ender.common import Common
@@ -10,6 +10,7 @@ import sc2
 class Endstep(Common):
 
     __did_step0 = False
+    resign_frame = 999999
 
     def __step0(self):
         pass
@@ -32,10 +33,21 @@ class Endstep(Common):
         await self.may_resign()
         
     async def may_resign(self):
-        resign = False
-        if len(self.units(UnitTypeId.DRONE)) < 2:
-            logger.info("Resign, too few workers")
-            resign = True
-        if resign:
-            await self._client.quit()
+        # some criteria
+        if len(self.units(UnitTypeId.DRONE)) < 4:
+            if self.frame > 4 * self.minutes:
+                self.resign = True
+        health = 0
+        for hatch in self.structures(UnitTypeId.HATCHERY):
+            health = max(hatch.health, health)
+        if health < 500: # max / 3
+            self.resign = True
+        # resign handling
+        if self.resign:
+            if self.resign_frame == 999999:
+                await self._client.chat_send('Resigning, gg', team_only=False)
+                logger.info("Resigning, gg")
+                self.resign_frame = self.frame + 6 * self.seconds
+            if self.frame > self.resign_frame:
+                await self._client.quit()
 

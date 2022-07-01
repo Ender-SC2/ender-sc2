@@ -84,7 +84,7 @@ class Queens(Common):
             patients = 0
             for unt in self.units:
                 if self.job_of_unit(unt) == Job.WOUNDED:
-                    if unt.type_id not in {UnitTypeId.ZERGLING, UnitTypeId.ROACH}:
+                    if unt.type_id not in {UnitTypeId.ZERGLING, UnitTypeId.ROACH, UnitTypeId.ROACHBURROWED, UnitTypeId.OVERLORD}:
                         patients += 1
             # new nurses
             for unt in self.units(UnitTypeId.QUEEN):
