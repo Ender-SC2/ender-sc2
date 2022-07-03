@@ -1,6 +1,6 @@
 import unittest
 
-from ender.behavior.combat import FocusFireCombatBehavior, MoveCenterBehavior, RepositionBehavior
+from ender.behavior.combat import FocusFireCombatBehavior, AttackCenterBehavior, RepositionBehavior
 from ender.behavior.combat.attack_closest_enemy_behavior import AttackClosestEnemyBehavior
 from ender.game_plan.condition import Any, No, HaveUnit, AfterTime
 from sc2.ids.unit_typeid import UnitTypeId
@@ -14,10 +14,10 @@ class RoachZerglingTests(unittest.TestCase):
 
     def test_roach_vs_zergling_20_supply(self):
         winner = EnderTestBot(
-            [MoveCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior()],
+            [AttackCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
-        loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
+        loser = EnderTestBot([AttackCenterBehavior(), AttackClosestEnemyBehavior()],
                              CreateUnitsTestSetup(UnitTypeId.ZERGLING, 40, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
@@ -26,10 +26,10 @@ class RoachZerglingTests(unittest.TestCase):
 
     def test_roach_vs_zergling_50_supply(self):
         winner = EnderTestBot(
-            [MoveCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior()],
+            [AttackCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
-        loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
+        loser = EnderTestBot([AttackCenterBehavior(), AttackClosestEnemyBehavior()],
                              CreateUnitsTestSetup(UnitTypeId.ZERGLING, 100, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()

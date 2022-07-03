@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 
-from ender.common import Common
 from ender.unit.unit_interface import IUnitInterface
 from sc2.bot_ai import BotAI
 
@@ -16,5 +15,5 @@ class IBehavior(ABC):
         self.unit_interface = unit_interface
 
     @abstractmethod
-    async def on_step(self):
+    async def on_step(self, iteration: int):
         raise NotImplementedError

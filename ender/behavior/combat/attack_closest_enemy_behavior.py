@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from ender.job import Job
+from ender.unit import AttackCommand
 from sc2.ids.unit_typeid import UnitTypeId
 from ender.utils.command_utils import CommandUtils
 
@@ -23,4 +24,4 @@ class AttackClosestEnemyBehavior(CommandUtils):
         if not self.bot_ai.enemy_units.empty:
             for unit in myunits:
                 goal = self.bot_ai.enemy_units.closest_to(unit)
-                self.nospam_ene('attack_closest', unit, 'A', goal)
+                self.unit_interface.set_command(unit, AttackCommand(goal, 'AttackClosestEnemy'))

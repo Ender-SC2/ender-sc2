@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from math import sqrt
 from ender.job import Job
+from ender.unit import MoveCommand
 from ender.utils.unit_utils import range_vs
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -30,7 +31,7 @@ class RepositionBehavior(CommandUtils):
                         if abs(range_vs(closest_enemy, unit) - range_vs(unit, closest_enemy)) >= 0.5: # unequal range
                             position = unit.position.towards(enemies_around.center, -1)
                             position = self.circling(position)
-                            self.nospam_pos('reposition', unit, 'M', position)
+                            self.unit_interface.set_command(unit, MoveCommand(position, 'reposition'))
 
     def circling(self, point: Point2) -> Point2:
         # for a point, return a point a bit further on the circle around mapcenter

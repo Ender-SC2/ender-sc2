@@ -1,6 +1,6 @@
 import unittest
 
-from ender.behavior.combat import FocusFireCombatBehavior, MoveCenterBehavior, AttackClosestEnemyBehavior, \
+from ender.behavior.combat import FocusFireCombatBehavior, AttackCenterBehavior, AttackClosestEnemyBehavior, \
     RepositionBehavior, ForwardBehavior, SidewardsBehavior
 from ender.game_plan.condition import No, AfterTime
 from ender.game_plan.condition.any import Any
@@ -16,36 +16,36 @@ class RoachMarineTests(unittest.TestCase):
 
     def test_roach_marine_20_supply(self):
         winner = EnderTestBot(
-            [MoveCenterBehavior(), FocusFireCombatBehavior(), ForwardBehavior(),
-            SidewardsBehavior(), RepositionBehavior()],
+            [AttackCenterBehavior(), FocusFireCombatBehavior(), ForwardBehavior(),
+             SidewardsBehavior(), RepositionBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
-        loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()], 
-                            CreateUnitsTestSetup(UnitTypeId.MARINE, 20, Point2([10, 10])),
+        loser = EnderTestBot([AttackCenterBehavior(), AttackClosestEnemyBehavior()],
+                             CreateUnitsTestSetup(UnitTypeId.MARINE, 20, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)
         self.assertTrue(loser.stopped())
 
     def test_roach_marine_50_supply(self):
-        winner = EnderTestBot([MoveCenterBehavior(), FocusFireCombatBehavior(), ForwardBehavior(), 
-                                SidewardsBehavior(), RepositionBehavior()],
+        winner = EnderTestBot([AttackCenterBehavior(), FocusFireCombatBehavior(), ForwardBehavior(),
+                               SidewardsBehavior(), RepositionBehavior()],
                               CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([-10, -10])),
                               Any([No(HaveUnit()), AfterTime(180)]))
-        loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()], 
-                            CreateUnitsTestSetup(UnitTypeId.MARINE, 50, Point2([10, 10])),
+        loser = EnderTestBot([AttackCenterBehavior(), AttackClosestEnemyBehavior()],
+                             CreateUnitsTestSetup(UnitTypeId.MARINE, 50, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)
         self.assertTrue(loser.stopped())
 
     def test_roach_marine_100_supply(self):
-        winner = EnderTestBot([MoveCenterBehavior(), FocusFireCombatBehavior(), ForwardBehavior(), 
-                            SidewardsBehavior(), RepositionBehavior()],
+        winner = EnderTestBot([AttackCenterBehavior(), FocusFireCombatBehavior(), ForwardBehavior(),
+                               SidewardsBehavior(), RepositionBehavior()],
                               CreateUnitsTestSetup(UnitTypeId.ROACH, 50, Point2([-10, -10])),
                               Any([No(HaveUnit()), AfterTime(180)]))
-        loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()], 
-                            CreateUnitsTestSetup(UnitTypeId.MARINE, 100, Point2([10, 10])),
+        loser = EnderTestBot([AttackCenterBehavior(), AttackClosestEnemyBehavior()],
+                             CreateUnitsTestSetup(UnitTypeId.MARINE, 100, Point2([10, 10])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)

@@ -1,4 +1,7 @@
+from typing import Dict
+
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 
@@ -16,3 +19,4 @@ def range_vs(unit: Unit, target: Unit) -> float:
 def calculate_combat_value(bot_ai: BotAI, unit: Unit) -> float:
     unit_value = bot_ai.calculate_unit_value(unit.type_id)
     return unit.shield_health_percentage * (unit_value.minerals + unit_value.vespene)
+
