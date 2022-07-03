@@ -3,6 +3,7 @@
 from typing import List, Optional
 
 from ender.job import Job
+from ender.unit import MoveCommand
 from ender.utils.command_utils import CommandUtils
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -38,5 +39,5 @@ class BackBehavior(CommandUtils):
                 if abs(range_vs(target, unit) - range_vs(unit, target)) < 0.5: # equal range
                     if unit.weapon_cooldown >= self.maxcool[tag] / 2:
                         goal = unit.position.towards(target.position, -1)
-                        self.nospam_pos('back', unit,'M',goal)
+                        self.unit_interface.set_command(unit, MoveCommand(goal, 'back'))
 

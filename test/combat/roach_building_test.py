@@ -1,7 +1,7 @@
 import unittest
 
-from ender.behavior.combat import FocusFireCombatBehavior, MoveCenterBehavior, RepositionBehavior, \
-                                  SidewardsBehavior, ForwardBehavior, BackBehavior
+from ender.behavior.combat import FocusFireCombatBehavior, AttackCenterBehavior, RepositionBehavior, \
+    SidewardsBehavior, ForwardBehavior, BackBehavior
 from ender.behavior.combat.attack_closest_enemy_behavior import AttackClosestEnemyBehavior
 from ender.game_plan.condition import Any, No, HaveUnit, AfterTime
 from sc2.ids.unit_typeid import UnitTypeId
@@ -15,12 +15,12 @@ class RoachBuildingTests(unittest.TestCase):
 
     def test_roach_vs_building_30_supply(self):
         winner = EnderTestBot(
-            [MoveCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior(), ForwardBehavior(),
+            [AttackCenterBehavior(), FocusFireCombatBehavior(), RepositionBehavior(), ForwardBehavior(),
              SidewardsBehavior(), BackBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 15, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]))
-        loser = EnderTestBot([MoveCenterBehavior(), AttackClosestEnemyBehavior()],
-                             CreateUnitsTestSetup(UnitTypeId.SPAWNINGPOOL, 1, Point2([0,0])),
+        loser = EnderTestBot([AttackCenterBehavior(), AttackClosestEnemyBehavior()],
+                             CreateUnitsTestSetup(UnitTypeId.HATCHERY, 1, Point2([0, 0])),
                              No(HaveUnit()))
         environment = TestEnvironment()
         environment.test(battle_maps[0], winner, loser)

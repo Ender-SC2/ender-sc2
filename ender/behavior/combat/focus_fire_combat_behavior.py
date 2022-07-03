@@ -2,15 +2,15 @@
 
 from typing import List, Optional
 
-from ender.utils.command_utils import CommandUtils
-from math import sqrt
 from ender.job import Job
 from ender.unit import AttackCommand
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2
+from ender.utils.command_utils import CommandUtils
 from ender.utils.unit_utils import range_vs
+from sc2.ids.unit_typeid import UnitTypeId
 
 
+# TODO: Consider enemies with high DPS or AoE
+# TODO: Consider enemies that take more damage from unit
 class FocusFireCombatBehavior(CommandUtils):
     unit_types: Optional[List[UnitTypeId]]
     jobs: Optional[List[Job]]
@@ -47,7 +47,7 @@ class FocusFireCombatBehavior(CommandUtils):
                         and (self.enemy_health[enemy.tag] > -5))
                     if not enemies_around.empty:
                         target = enemies_around.sorted(lambda u: self.enemy_health[u.tag]).first
-                        self.nospam_ene('focusfire', unit, 'A', target)
+                        self.unit_interface.set_command(unit, AttackCommand(target, 'FocusFire'))
                         self.shot[target.tag] = self.frame
                         self.shot[tag] = self.frame
                         self.enemy_health[target.tag] = self.enemy_health[target.tag] - \

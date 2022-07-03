@@ -2,6 +2,7 @@ import unittest
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock
 
+from ender.job import Job
 from ender.unit import UnitInterface, AttackCommand, MoveCommand
 from sc2.position import Point2
 
@@ -80,6 +81,20 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         await sut.execute()
         unit1.attack.assert_called_once_with(unittest.mock.ANY, False)
         unit1.move.assert_called_once_with(unittest.mock.ANY, True)
+
+    async def test_job_counter_no_job_assigned(self):
+        sut = UnitInterface()
+        assert sut.job_count(Job.DEFENDATTACK) == 0
+
+    async def test_job_counter_single_job_assigned(self):
+        sut = UnitInterface()
+        sut.set_job_of_unittag(1, Job.DEFENDATTACK)
+        assert sut.job_count(Job.DEFENDATTACK) == 1
+
+    async def test_job_counter_different_job_assigned(self):
+        sut = UnitInterface()
+        sut.set_job_of_unittag(1, Job.DEFENDATTACK)
+        assert sut.job_count(Job.BIGATTACK) == 0
 
 
 if __name__ == '__main__':

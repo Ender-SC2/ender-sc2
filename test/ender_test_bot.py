@@ -2,7 +2,6 @@ import inspect
 from typing import List
 
 from ender.behavior import IBehavior
-from ender.common import Common
 from ender.game_plan.condition.condition import ICondition
 from ender.unit import UnitInterface
 from sc2.bot_ai import BotAI
@@ -22,7 +21,7 @@ class EnderTestBot(BotAI):
         self.stop_triggered = False
 
     async def on_start(self):
-        self._client.game_step = 4 # 4
+        self._client.game_step = 4
 
     async def on_step(self, iteration: int):
         if not self.setup:

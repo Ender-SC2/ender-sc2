@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from ender.unit import MoveCommand
 from ender.utils.command_utils import CommandUtils
 from ender.job import Job
 from sc2.ids.unit_typeid import UnitTypeId
@@ -35,7 +36,7 @@ class ForwardBehavior(CommandUtils):
                             if touchdist > 0:
                                 step = min(1, touchdist)
                                 goal = unit.position.towards(target.position, step)
-                                self.nospam_pos('forward', unit, 'M', goal)
+                                self.unit_interface.set_command(unit, MoveCommand(goal, 'forward'))
                     else:
                         # dont block collegues while shooting a building
                         rangedist = 99999
@@ -47,7 +48,7 @@ class ForwardBehavior(CommandUtils):
                             step = min(touchdist, rangedist) 
                             step = min(1, step)
                             goal = unit.position.towards(target.position, step)
-                            self.nospam_pos('forward', unit, 'M', goal)
+                            self.unit_interface.set_command(unit, MoveCommand(goal, 'forward'))
 
 
 

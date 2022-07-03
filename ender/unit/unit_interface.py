@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from operator import countOf
+
+from loguru import logger
 
 from ender.job import Job
 from ender.unit.unit_command import IUnitCommand
@@ -66,8 +69,10 @@ class UnitInterface(IUnitInterface):
             if new_commands:
                 for command in commands:
                     if first:
+                        logger.info(f"[{unit.tag}|{unit.type_id}] Executing: {command.__str__()}")
                         await command.execute(unit)
                     else:
+                        logger.info(f"[{unit.tag}|{unit.type_id}] Queueing: {command.__str__()} to command queue!")
                         await command.execute(unit, True)
                     first = False
         self._previousCommands = self._commands
@@ -88,10 +93,4 @@ class UnitInterface(IUnitInterface):
         self._unit_job[tag] = job
 
     def job_count(self, job: Job) -> int:
-        # do not call often
-        count = 0
-        for unt in self.units: # needed to prevent dead unit info
-            current_job = self._unit_job[unt.tag]
-            if current_job == job:
-                count += 1
-        return count
+        return countOf(self._unit_job.values(), job)
