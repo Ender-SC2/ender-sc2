@@ -232,52 +232,40 @@ class Making(Map_if, Resources, Strategy):
             self.larva.random.train(typ)
         if typ in self.all_armytypes:
             crea = self.creator[typ]
+            for unt in self.units(crea) | self.structures(crea):
+                if unt.tag in self.resource_now_tags:
+                    justone = unt
             if crea in {UnitTypeId.LARVA}:
                 self.train(typ)
-            elif typ == UnitTypeId.CHANGELING:
-                first = True
-                for unt in self.units(crea):
-                    if unt.energy >= 50:
-                        if first:
-                            first = False
-                            unt(AbilityId.SPAWNCHANGELING_SPAWNCHANGELING)
-            elif typ == UnitTypeId.QUEEN:
-                found = False
-                for halltype in self.all_halltypes:
-                    for unt in self.structures(halltype).ready.idle:
-                        if unt.tag not in self.queen_of_hall:
-                            found = True
-                            bestunt = unt
-                if found:
-                    bestunt.train(typ)
-                    self.queen_of_hall[bestunt.tag] = -1
+            elif crea == UnitTypeId.OVERSEER:
+                if typ == UnitTypeId.CHANGELING:
+                    justone(AbilityId.SPAWNCHANGELING_SPAWNCHANGELING)
                 else:
-                    logger.info('queen resource error')
+                    justone.train(typ)
+            elif typ == UnitTypeId.QUEEN:
+                justone.train(typ)
+                self.queen_of_hall[justone.tag] = -1
             elif len(self.structures(crea).ready.idle) > 0:
                 # best at a distance
                 bestdist  = -1
                 for unt in self.structures(crea).idle:
-                    itsdist = 9999
-                    for que in self.units(typ):
-                        dist = self.distance(que.position,unt.position)
-                        itsdist = min(dist,itsdist)
-                    if itsdist > bestdist:
-                        bestdist = itsdist
-                        bestunt = unt 
+                    if unt.tag in self.resource_now_tags:
+                        itsdist = 9999
+                        for que in self.units(typ):
+                            dist = self.distance(que.position,unt.position)
+                            itsdist = min(dist,itsdist)
+                        if itsdist > bestdist:
+                            bestdist = itsdist
+                            bestunt = unt 
                 bestunt.train(typ)
             else:
-                # best morph broodlord at home
-                bestdist = 9999
-                for unt in self.units(crea).idle:
-                    itsdist = self.distance(unt.position,self.ourmain)
-                    if itsdist < bestdist:
-                        bestdist = itsdist
-                        bestunt = unt
-                bestunt.train(typ)
+                justone.train(typ)
         if typ in self.all_upgrades:
-            creator = self.creator[typ]
-            evo = random.choice(self.structures(creator).ready.idle)
-            evo(self.creation[typ])
+            crea = self.creator[typ]
+            for unt in self.structures(crea).idle:
+                if unt.tag in self.resource_now_tags:
+                    justone = unt
+            justone(self.creation[typ])
 
     def now_make_a_building(self, typ, histag, buildpos):
         # within the protocoll, just after check_resources
@@ -377,6 +365,12 @@ class Making(Map_if, Resources, Strategy):
         if thing == UnitTypeId.BANELING:
             cocoon = UnitTypeId.BANELINGCOCOON # be aware: tagchange on ending cocoon state.
             return sol + len(self.units(cocoon))
+        if thing == UnitTypeId.CHANGELING:
+            # can change automatic
+            for chtyp in self.all_changelings:
+                for unt in self.units(chtyp):
+                    if unt.age_in_frames < self.seconds:
+                        sol += 1
         creation = self.creation[thing]
         for unt in self.units(cocoon) + self.structures(cocoon):
             for order in unt.orders:

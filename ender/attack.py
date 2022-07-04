@@ -68,6 +68,8 @@ class Attack(Map_if, Tech):
     circler_next_frame = 0 # common for all circlers
     enemy_nat_blocked = False
     enemynatural = None
+    succer = {} # viper loading
+    succed = {} # viper loading
     #
     def __step0(self):
         #
@@ -109,6 +111,7 @@ class Attack(Map_if, Tech):
         await self.corrupt()
         await self.infest()
         await self.vipers()
+        await self.vipers_slow()
         await self.set_sh_goal()
         await self.swarmhosts()
         await self.blocker()
@@ -120,6 +123,7 @@ class Attack(Map_if, Tech):
         await self.dodge_biles()
         await self.bile()
         await self.circle_blockers()
+        await self.spies()
 
     def find_bigattackgoal(self):
         if self.function_listens('find_bigattackgoal',10):
@@ -420,11 +424,11 @@ class Attack(Map_if, Tech):
 
     async def vipers(self):
         if self.function_listens('vipers',5):
+            blind = AbilityId.BLINDINGCLOUD_BLINDINGCLOUD # range 11 rad 2 eng 100
+            draw = AbilityId.EFFECT_ABDUCT # range 9 eng 75
+            attackair = AbilityId.PARASITICBOMB_PARASITICBOMB # range 8 rad 3 eng 125
+            load = AbilityId.VIPERCONSUMESTRUCTURE_VIPERCONSUME # 200 damage 50 eng 14 sec
             for vip in self.units(UnitTypeId.VIPER):
-                blind = AbilityId.BLINDINGCLOUD_BLINDINGCLOUD # range 11 rad 2 eng 100
-                draw = AbilityId.EFFECT_ABDUCT # range 9 eng 75
-                attackair = AbilityId.PARASITICBOMB_PARASITICBOMB # range 8 rad 3 eng 125
-                load = AbilityId.VIPERCONSUMESTRUCTURE_VIPERCONSUME # 200 damage
                 tag = vip.tag
                 pos = vip.position
                 # blind
@@ -448,8 +452,59 @@ class Attack(Map_if, Tech):
                     if self.job_of_unit(vip) != Job.TIRED:
                         vip.move(self.hospital)
                         self.set_job_of_unit(vip, Job.TIRED)
-                elif self.job_of_unit(vip) == Job.TIRED:
-                    self.set_job_of_unit(vip, Job.UNCLEAR)
+
+    async def vipers_slow(self):
+        if self.function_listens('vipers_slow', 77):
+            blind = AbilityId.BLINDINGCLOUD_BLINDINGCLOUD # range 11 rad 2 eng 100
+            draw = AbilityId.EFFECT_ABDUCT # range 9 eng 75
+            attackair = AbilityId.PARASITICBOMB_PARASITICBOMB # range 8 rad 3 eng 125
+            load = AbilityId.VIPERCONSUMESTRUCTURE_VIPERCONSUME # 200 damage 50 eng 14 sec
+            # administration
+            todel = set()
+            for strutag in self.succed:
+                (viptag, endtime) = self.succed[strutag]
+                if self.frame > endtime:
+                    todel.add(strutag)
+            for strutag in todel:
+                del self.succed[strutag]
+            todel = set()
+            for viptag in self.succer:
+                (strutag, endtime) = self.succer[viptag]
+                if self.frame > endtime:
+                    todel.add(viptag)
+            for viptag in todel:
+                del self.succer[viptag]
+            # donors
+            donors = set()
+            for typ in self.all_normalstructuretypes:
+                for stru in self.structures(typ):
+                    if stru.health >= 300:
+                        if stru.tag not in self.succed:
+                            donors.add(stru)
+            for vip in self.units(UnitTypeId.VIPER):
+                # load
+                if self.job_of_unit(vip) == Job.TIRED:
+                    if vip.energy == 200:
+                        self.set_job_of_unit(vip, Job.UNCLEAR)
+                    if vip.tag not in self.succer:
+                        bestdist = 99999
+                        for donor in donors:
+                            dist = self.distance(donor.position, vip.position)
+                            if dist < bestdist:
+                                bestdist = dist
+                                bestdonor = donor
+                        if vip.energy >= 150:
+                            self.set_job_of_unit(vip, Job.UNCLEAR)
+                        elif bestdist < 99999:
+                            # succ
+                            donors.remove(bestdonor)
+                            vip(load, bestdonor)
+                            endtime = self.frame + 14 * self.seconds + 0.5 * bestdist
+                            self.succed[bestdonor.tag] = (vip.tag, endtime)
+                            self.succer[vip.tag] = (bestdonor.tag, endtime)
+                        else: # cannot succ
+                            if vip.energy >= 60: # waiting works too
+                                self.set_job_of_unit(vip, Job.UNCLEAR)
 
     async def set_sh_goal(self):
         if self.function_listens('set_sh_goal', 9 * self.seconds):
@@ -1104,3 +1159,42 @@ class Attack(Map_if, Tech):
                             else: 
                                 # rooting is in making.py
                                 self.to_root.add(tag)
+
+    async def spies(self):
+        if self.function_listens('spies', 1.6 * self.seconds):
+            # half of the changelings get Job.SPY
+            n = 0
+            nspies = 0
+            for chtyp in self.all_changelings:
+                for unt in self.units(chtyp):
+                    n += 1
+                    if self.job_of_unit(unt) == Job.SPY:
+                        nspies += 1
+                    else:
+                        anunt = unt
+            if 2 * nspies < n:
+                unt = anunt
+                self.set_job_of_unit(unt, Job.SPY)
+            # follow
+            for chtyp in self.all_changelings:
+                for unt in self.units(chtyp).idle:
+                    if self.job_of_unit(unt) == Job.SPY:
+                        bestdist = 30
+                        for enetyp in {UnitTypeId.ZERGLING, UnitTypeId.ZEALOT, UnitTypeId.MARINE}:
+                            for ene in self.enemy_units(enetyp):
+                                dist = self.distance(ene.position, unt.position)
+                                if dist < bestdist:
+                                    bestdist = dist
+                                    bestene = ene
+                        if bestdist < 30:
+                            unt.attack(bestene)
+                        else:
+                            goal = self.random_mappoint()
+                            unt.attack(goal)
+
+    def random_mappoint(self) -> Point2:
+        return Point2((random.randrange(self.map_left, self.map_right), random.randrange(self.map_bottom, self.map_top)))
+
+
+
+                

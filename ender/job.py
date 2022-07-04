@@ -26,3 +26,4 @@ class Job(Enum):
     ROAMER = auto() # overlord
     HANGER = auto() # overlord
     FREESPINE = auto() # drone, overlordtransport, spinecrawler
+    SPY = auto() # changeling

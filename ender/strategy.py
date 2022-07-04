@@ -64,7 +64,6 @@ class Strategy(Tech):
         while choice not in {self.Gameplan.TWELVEPOOL, self.Gameplan.ONEBASE_NOGAS, self.Gameplan.ONEBASE, self.Gameplan.TWOBASE_NOGAS, 
                             self.Gameplan.TWOBASE, self.Gameplan.THREEBASE_NOGAS, self.Gameplan.THREEBASE}:
             choice = random.choice(list(self.Gameplan))
-        # choice = self.Gameplan.THREEBASE_NOGAS # debug
         self.set_gameplan(choice)
         #
 
@@ -89,6 +88,13 @@ class Strategy(Tech):
                     if len(self.structures(UnitTypeId.ULTRALISKCAVERN).ready) > 0:
                         if self.gameplan != self.Gameplan.ULTRAWAVE:
                             plan = self.Gameplan.ULTRAWAVE
+            # a few skips
+            if plan == self.Gameplan.TO_LAIR:
+                if len(self.structures(UnitTypeId.LAIR)) > 0:
+                    plan = self.Gameplan.TO_SPIRE
+            if plan == self.Gameplan.TO_HIVE:
+                if len(self.structures(UnitTypeId.HIVE)) > 0:
+                    plan = self.Gameplan.ENDGAME
             logger.info('Transitioning to ' + plan.name)
             await self._client.chat_send('Transitioning to ' + plan.name, team_only=False)
             self.set_gameplan(plan)
