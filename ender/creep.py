@@ -52,8 +52,8 @@ class Creep(Map_if):
             self.__step0()
             self.__did_step0 = True
         #
-        await self.creep_spread() # slowing TODO
-        await self.re_direction() # slowing TODO
+        await self.creep_spread()
+        await self.re_direction()
         await self.queencreep()
         await self.do_creeplord()
         await self.creepdrop()
@@ -89,32 +89,34 @@ class Creep(Map_if):
     async def re_direction(self):
         # if a creepgoal is reached, overwrite it with some other creepgoal.
         if self.frame % 31 == 30: # rarely
-            for directionx in range(0,len(self.creepdirection)):
-                goal = self.creepdirection[directionx]
-                finish = self.directionfinish[directionx]
-                reached = False
-                for typ in self.all_tumortypes:
-                    for stru in self.structures(typ):
-                        pos = stru.position
-                        if self.distance(pos,goal) < finish:
-                            reached = True
-                if reached:
-                    altx = random.randrange(0,len(self.creepdirection))
-                    self.creepdirection[directionx] = self.creepdirection[altx]
-                    self.directionfinish[directionx] = self.directionfinish[altx]
-            self.different_directions = len(set(self.creepdirection))
-            if (self.creepstyle < 2) and (self.different_directions == 1):
-                self.creepstyle += 1
-                #print('creepstyle ' + str(self.creepstyle))
-                self.init_creepstyle()
-            if (self.creepstyle == 0) and (self.frame > 8 * self.minutes):
-                self.creepstyle += 1
-                #print('creepstyle ' + str(self.creepstyle))
-                self.init_creepstyle()
-            if (self.creepstyle == 1) and (self.frame > 16 * self.minutes):
-                self.creepstyle += 1
-                #print('creepstyle ' + str(self.creepstyle))
-                self.init_creepstyle()
+            # against execution slowness, restricted to 20 minutes
+            if self.frame < 20 * self.minutes:
+                for directionx in range(0,len(self.creepdirection)):
+                    goal = self.creepdirection[directionx]
+                    finish = self.directionfinish[directionx]
+                    reached = False
+                    for typ in self.all_tumortypes:
+                        for stru in self.structures(typ):
+                            pos = stru.position
+                            if self.distance(pos,goal) < finish:
+                                reached = True
+                    if reached:
+                        altx = random.randrange(0,len(self.creepdirection))
+                        self.creepdirection[directionx] = self.creepdirection[altx]
+                        self.directionfinish[directionx] = self.directionfinish[altx]
+                self.different_directions = len(set(self.creepdirection))
+                if (self.creepstyle < 2) and (self.different_directions == 1):
+                    self.creepstyle += 1
+                    #print('creepstyle ' + str(self.creepstyle))
+                    self.init_creepstyle()
+                if (self.creepstyle == 0) and (self.frame > 7 * self.minutes):
+                    self.creepstyle += 1
+                    #print('creepstyle ' + str(self.creepstyle))
+                    self.init_creepstyle()
+                if (self.creepstyle == 1) and (self.frame > 14 * self.minutes):
+                    self.creepstyle += 1
+                    #print('creepstyle ' + str(self.creepstyle))
+                    self.init_creepstyle()
 
     def creepable(self, point) -> bool:
         # for a point on the halfgrid, with halves.
@@ -203,79 +205,81 @@ class Creep(Map_if):
         
     async def creep_spread(self):
         if self.frame % 3 == 2:
-            # change random vibration over ([-2,2],[-2,2])
-            self.dx += 1
-            if self.dx == 3:
-                self.dx = -2
-                self.dy += 1
-                if self.dy == 3:
-                    self.dy = -2
-            # activecreep
-            for stru in self.structures(UnitTypeId.CREEPTUMORQUEEN):
-                if stru.tag not in self.activecreep:
-                    self.activecreep.add(stru.tag)
-                    self.activecreeppos[stru.tag] = stru.position
-                    self.random_direction(stru.position,stru.tag)
-                    self.tries[stru.tag] = 0
-                    self.map_build_nodel(stru.position,1)
-            for stru in self.structures(UnitTypeId.CREEPTUMOR):
-                if stru.tag not in self.activecreep:
-                    self.activecreep.add(stru.tag)
-                    self.activecreeppos[stru.tag] = stru.position
-                    self.random_direction(stru.position,stru.tag)
-                    self.tries[stru.tag] = 0
-                    self.map_build_nodel(stru.position,1)
-                    # this is doughter, end mom's activecreep
-                    for (pos,momtag) in self.moms:
-                        if pos == stru.position:
-                            if momtag in self.activecreep: # usually yes
-                                self.directionx_of_tumor[stru.tag] = self.directionx_of_tumor[momtag] # go straight
-                                self.correct_direction(stru.position,stru.tag)
-                                self.activecreep.remove(momtag)
-                                del self.activecreeppos[momtag]
-                                del self.directionx_of_tumor[momtag]
-                                del self.tries[momtag]
-            # moms
-            todel = set()
-            for (pos,momtag) in self.moms:
-                if momtag not in self.activecreep:
-                    todel.add((pos,momtag))
-            self.moms -= todel
-            # creeptumorqueen and creeptumor change after 10 seconds to creeptumorburrowed
-            # The tag remains the same.
-            # the creeptumorburrowed needs 11 waittime. Start that ending the former phase.
-            for stru in self.structures(UnitTypeId.CREEPTUMORQUEEN):
-                self.listenframe_of_structure[stru.tag] = self.frame + 11 * self.seconds
-            for stru in self.structures(UnitTypeId.CREEPTUMOR):
-                self.listenframe_of_structure[stru.tag] = self.frame + 11 * self.seconds
-            # A creeptumorburrowed can build a creeptumor once.
-            for tag in self.activecreep:
-                if self.frame >= self.listenframe_of_structure[tag]:
-                    strupos = self.activecreeppos[tag]
-                    directionx = self.directionx_of_tumor[tag]
-                    dirpoint = self.creepdirection[directionx]
-                    rawpos = strupos.towards(dirpoint,10)
-                    center = Point2((round(rawpos.x - 0.5) + 0.5,round(rawpos.y - 0.5) + 0.5))
-                    altpoint = center
-                    ok = self.creepable_ask_lord(altpoint)
-                    if (not ok):
-                        rawpos = strupos.towards(dirpoint,8)
+            # against execution slowness, restricted to 20 minutes
+            if self.frame < 20 * self.minutes:
+                # change random vibration over ([-2,2],[-2,2])
+                self.dx += 1
+                if self.dx == 3:
+                    self.dx = -2
+                    self.dy += 1
+                    if self.dy == 3:
+                        self.dy = -2
+                # activecreep
+                for stru in self.structures(UnitTypeId.CREEPTUMORQUEEN):
+                    if stru.tag not in self.activecreep:
+                        self.activecreep.add(stru.tag)
+                        self.activecreeppos[stru.tag] = stru.position
+                        self.random_direction(stru.position,stru.tag)
+                        self.tries[stru.tag] = 0
+                        self.map_build_nodel(stru.position,1)
+                for stru in self.structures(UnitTypeId.CREEPTUMOR):
+                    if stru.tag not in self.activecreep:
+                        self.activecreep.add(stru.tag)
+                        self.activecreeppos[stru.tag] = stru.position
+                        self.random_direction(stru.position,stru.tag)
+                        self.tries[stru.tag] = 0
+                        self.map_build_nodel(stru.position,1)
+                        # this is doughter, end mom's activecreep
+                        for (pos,momtag) in self.moms:
+                            if pos == stru.position:
+                                if momtag in self.activecreep: # usually yes
+                                    self.directionx_of_tumor[stru.tag] = self.directionx_of_tumor[momtag] # go straight
+                                    self.correct_direction(stru.position,stru.tag)
+                                    self.activecreep.remove(momtag)
+                                    del self.activecreeppos[momtag]
+                                    del self.directionx_of_tumor[momtag]
+                                    del self.tries[momtag]
+                # moms
+                todel = set()
+                for (pos,momtag) in self.moms:
+                    if momtag not in self.activecreep:
+                        todel.add((pos,momtag))
+                self.moms -= todel
+                # creeptumorqueen and creeptumor change after 10 seconds to creeptumorburrowed
+                # The tag remains the same.
+                # the creeptumorburrowed needs 11 waittime. Start that ending the former phase.
+                for stru in self.structures(UnitTypeId.CREEPTUMORQUEEN):
+                    self.listenframe_of_structure[stru.tag] = self.frame + 11 * self.seconds
+                for stru in self.structures(UnitTypeId.CREEPTUMOR):
+                    self.listenframe_of_structure[stru.tag] = self.frame + 11 * self.seconds
+                # A creeptumorburrowed can build a creeptumor once.
+                for tag in self.activecreep:
+                    if self.frame >= self.listenframe_of_structure[tag]:
+                        strupos = self.activecreeppos[tag]
+                        directionx = self.directionx_of_tumor[tag]
+                        dirpoint = self.creepdirection[directionx]
+                        rawpos = strupos.towards(dirpoint,10)
                         center = Point2((round(rawpos.x - 0.5) + 0.5,round(rawpos.y - 0.5) + 0.5))
-                        altpoint = Point2((center.x + self.dx, center.y + self.dy))
-                        ok = self.creepable(altpoint)
-                    if ok:
-                        for stru in self.structures(UnitTypeId.CREEPTUMORBURROWED):
-                            if stru.tag == tag:
-                                it = UnitTypeId.CREEPTUMOR
-                                pos = altpoint
-                                stru(AbilityId.BUILD_CREEPTUMOR_TUMOR,pos)
-                                self.listenframe_of_structure[tag] = self.frame + 5 * self.seconds
-                                self.map_plan(pos, 1)
-                                self.moms.add((pos,tag))
-                                self.tries[tag] += 1
-                                if self.tries[tag] > 10:
-                                    self.random_direction(strupos,tag)
-                                    self.tries[tag] = 0
+                        altpoint = center
+                        ok = self.creepable_ask_lord(altpoint)
+                        if (not ok):
+                            rawpos = strupos.towards(dirpoint,8)
+                            center = Point2((round(rawpos.x - 0.5) + 0.5,round(rawpos.y - 0.5) + 0.5))
+                            altpoint = Point2((center.x + self.dx, center.y + self.dy))
+                            ok = self.creepable(altpoint)
+                        if ok:
+                            for stru in self.structures(UnitTypeId.CREEPTUMORBURROWED):
+                                if stru.tag == tag:
+                                    it = UnitTypeId.CREEPTUMOR
+                                    pos = altpoint
+                                    stru(AbilityId.BUILD_CREEPTUMOR_TUMOR,pos)
+                                    self.listenframe_of_structure[tag] = self.frame + 5 * self.seconds
+                                    self.map_plan(pos, 1)
+                                    self.moms.add((pos,tag))
+                                    self.tries[tag] += 1
+                                    if self.tries[tag] > 10:
+                                        self.random_direction(strupos,tag)
+                                        self.tries[tag] = 0
 
     async def creepdrop(self):
         # overlords etc drop creep if standing still

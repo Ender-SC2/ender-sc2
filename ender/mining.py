@@ -447,60 +447,63 @@ class Mining(Common):
         # logger.info('game_step = ' + str(self.game_step))
         if self.game_step <= 4:
             # A full-speed drone moves 0.7 in 4 frames
-            for drone in self.units(UnitTypeId.DRONE):
-                if self.job_of_unit(drone) == Job.MIMMINER:
-                    miner = drone.tag
-                    dronepos = drone.position
-                    post = self.assign[miner] # how could this fail?
-                    patchpos = self.position_of_postag(post)
-                    patch = self.patch_of_postag(post)
-                    expo = self.expo_of_postag[post]
-                    base = self.minebase_of_expo_mfu[expo]
-                    basepos = base.position.towards(patchpos, 2)
-                    if miner not in self.info_start_frame:
-                        pdist = self.distance(dronepos, patchpos)
-                        if pdist < 3: # if far, do not start info phase
-                            self.info_start_frame[miner] = self.frame + 4 * self.seconds
-                            self.info_end_frame[miner] = self.frame + 16 * self.seconds
-                            self.patchpoint_dist[miner] = 99999
-                            self.patchpoint[miner] = patchpos
-                            self.basepoint_dist[miner] = 99999
-                            self.basepoint[miner] = basepos
-                            self.hit_carrying[miner] = True
-                    if miner in self.info_start_frame:
-                        if self.frame < self.info_end_frame[miner]:
-                            if self.frame >= self.info_start_frame[miner]:
-                                pdist = self.distance(dronepos, patchpos)
-                                bdist = self.distance(dronepos, basepos)
-                                maxdist = self.distance(basepos, patchpos)
-                                if bdist < maxdist: # inside circle
-                                    if pdist < maxdist: # inside circle
-                                        if pdist < self.patchpoint_dist[miner]:
-                                            self.patchpoint_dist[miner] = pdist
-                                            self.patchpoint[miner] = dronepos
-                                        if bdist < self.basepoint_dist[miner]:
-                                            self.basepoint_dist[miner] = bdist
-                                            self.basepoint[miner] = dronepos
-                        else: # speedmining
-                            if self.frame >= self.listenframe_of_unit[miner]:
-                                pdist = self.distance(dronepos, self.patchpoint[miner])
-                                bdist = self.distance(dronepos, self.basepoint[miner])
-                                if self.hit_carrying[miner]:
-                                    if 0.5 < bdist < 2.0:
-                                        if drone.is_carrying_minerals:
-                                            drone.move(self.basepoint[miner])
-                                            drone(AbilityId.SMART, base, queue=True)
-                                            self.listenframe_of_unit[miner] = self.frame + 5
-                                            self.hit_carrying[miner] = not self.hit_carrying[miner]
-                                else: # hit not carrying
-                                    if 0.5 < pdist < 2.0:
-                                        if not drone.is_carrying_minerals:
-                                            drone.move(self.patchpoint[miner])
-                                            drone(AbilityId.SMART, patch, queue=True)
-                                            self.listenframe_of_unit[miner] = self.frame + 5
-                                            self.hit_carrying[miner] = not self.hit_carrying[miner]
+            # due to slowing the execution restricted to low supply
+            if self.supply_used < 120:
+                for drone in self.units(UnitTypeId.DRONE):
+                    if self.job_of_unit(drone) == Job.MIMMINER:
+                        miner = drone.tag
+                        dronepos = drone.position
+                        post = self.assign[miner] # how could this fail?
+                        patchpos = self.position_of_postag(post)
+                        patch = self.patch_of_postag(post)
+                        expo = self.expo_of_postag[post]
+                        base = self.minebase_of_expo_mfu[expo]
+                        basepos = base.position.towards(patchpos, 2)
+                        if miner not in self.info_start_frame:
+                            pdist = self.distance(dronepos, patchpos)
+                            if pdist < 3: # if far, do not start info phase
+                                self.info_start_frame[miner] = self.frame + 4 * self.seconds
+                                self.info_end_frame[miner] = self.frame + 16 * self.seconds
+                                self.patchpoint_dist[miner] = 99999
+                                self.patchpoint[miner] = patchpos
+                                self.basepoint_dist[miner] = 99999
+                                self.basepoint[miner] = basepos
+                                self.hit_carrying[miner] = True
+                        if miner in self.info_start_frame:
+                            if self.frame < self.info_end_frame[miner]:
+                                if self.frame >= self.info_start_frame[miner]:
+                                    pdist = self.distance(dronepos, patchpos)
+                                    bdist = self.distance(dronepos, basepos)
+                                    maxdist = self.distance(basepos, patchpos)
+                                    if bdist < maxdist: # inside circle
+                                        if pdist < maxdist: # inside circle
+                                            if pdist < self.patchpoint_dist[miner]:
+                                                self.patchpoint_dist[miner] = pdist
+                                                self.patchpoint[miner] = dronepos
+                                            if bdist < self.basepoint_dist[miner]:
+                                                self.basepoint_dist[miner] = bdist
+                                                self.basepoint[miner] = dronepos
+                            else: # speedmining
+                                if self.frame >= self.listenframe_of_unit[miner]:
+                                    pdist = self.distance(dronepos, self.patchpoint[miner])
+                                    bdist = self.distance(dronepos, self.basepoint[miner])
+                                    if self.hit_carrying[miner]:
+                                        if 0.5 < bdist < 2.0:
+                                            if drone.is_carrying_minerals:
+                                                drone.move(self.basepoint[miner])
+                                                drone(AbilityId.SMART, base, queue=True)
+                                                self.listenframe_of_unit[miner] = self.frame + 5
+                                                self.hit_carrying[miner] = not self.hit_carrying[miner]
+                                    else: # hit not carrying
+                                        if 0.5 < pdist < 2.0:
+                                            if not drone.is_carrying_minerals:
+                                                drone.move(self.patchpoint[miner])
+                                                drone(AbilityId.SMART, patch, queue=True)
+                                                self.listenframe_of_unit[miner] = self.frame + 5
+                                                self.hit_carrying[miner] = not self.hit_carrying[miner]
 
     async def check_mining(self):
+        # this routine is for debugging and should not always run
         for drone in self.units(UnitTypeId.DRONE):
             miner = drone.tag
             if self.job_of_unittag(miner) == Job.MIMMINER:

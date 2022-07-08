@@ -36,7 +36,7 @@ class Attack(Map_if, Tech):
     biletarget_buildings = {UnitTypeId.PHOTONCANNON, UnitTypeId.MISSILETURRET, UnitTypeId.BUNKER, \
         UnitTypeId.SPINECRAWLER, UnitTypeId.SPORECRAWLER, UnitTypeId.SPAWNINGPOOL}
     biletarget_units = {UnitTypeId.SIEGETANKSIEGED, UnitTypeId.RAVAGER, UnitTypeId.CORRUPTOR, UnitTypeId.GHOST, \
-        UnitTypeId.LIBERATORAG}
+        UnitTypeId.LIBERATORAG, UnitTypeId.SENTRY, UnitTypeId.COLOSSUS}
     biletarget_no = {UnitTypeId.LARVA, UnitTypeId.EGG, UnitTypeId.AUTOTURRET}
     # bigattacking in common.py
     bigattack_moment = -99999
@@ -59,6 +59,9 @@ class Attack(Map_if, Tech):
                                   RepositionBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
                                   BackBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
                                   SidewardsBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER])]
+    # DEBUG wj
+    # atm (8 jul 22)  no big effect on slowness or gameresult
+    # behaviors: List[IBehavior] = []
     detector_types = [UnitTypeId.MISSILETURRET, UnitTypeId.PHOTONCANNON, UnitTypeId.SPORECRAWLER, \
                     UnitTypeId.OVERSEER, UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.OBSERVER, \
                         UnitTypeId.OBSERVERSIEGEMODE, UnitTypeId.RAVEN]
@@ -70,6 +73,7 @@ class Attack(Map_if, Tech):
     enemynatural = None
     succer = {} # viper loading
     succed = {} # viper loading
+    drawn = {} # viper abducted
     #
     def __step0(self):
         #
@@ -88,7 +92,7 @@ class Attack(Map_if, Tech):
                     bestdist = dist
                     self.enemynatural = pos
         # bigattack_end
-        self.bigattack_end = self.minutes # this sets earliest bigattack at 2 minutes, latest at 6 minutes.
+        self.bigattack_end = self.minutes # this sets earliest bigattack at 2 minutes, latest at 7 minutes.
         #
         self.biletarget_no |= self.all_changelings
         #
@@ -216,13 +220,13 @@ class Attack(Map_if, Tech):
                         for mor in self.morph:
                             if self.morph[mor] == typ:
                                 having += len(self.units(mor))
-                        if 4 * having < 3 * self.make_plan[typ]:
+                        if 5 * having < 4 * self.make_plan[typ]:
                             now = False
                             logger.info('not enough ' + typ.name)
                 # waiting long
-                if self.frame > self.bigattack_end + 5 * self.minutes:
+                if self.frame > self.bigattack_end + 6 * self.minutes:
                     now = True
-                    logger.info('five minute rule')
+                    logger.info('six minute rule')
                 # full army
                 logger.info('armysupply ' + str(self.army_supply_used) + ' of ' + str(self.supplycap_army))
                 if (self.army_supply_used >= self.supplycap_army-2) or (self.supply_used >= 190):
@@ -372,7 +376,7 @@ class Attack(Map_if, Tech):
             sprayers = self.job_count(Job.SPRAYER)
             for unt in self.units(UnitTypeId.CORRUPTOR):
                 tag = unt.tag
-                if sprayers < 5:
+                if sprayers < 7:
                     if tag in self.attackgoal:
                         goal = self.attackgoal[tag]
                         if self.distance(unt.position,goal) < 6:
@@ -447,6 +451,23 @@ class Attack(Map_if, Tech):
                     throw =  self.cast_at_unit('attackair', pos, 8, 3, 7, musthit)
                     if throw is not None:
                         vip(attackair,throw)
+                # draw
+                if vip.energy >= 75:
+                    if self.job_of_unit(vip) == Job.SLAVE:
+                        enes = self.enemy_units.closer_than(9, vip.position)
+                        bestworth = 400
+                        for ene in enes: # DEBUG must exclude larva etc
+                            if ene.tag not in self.drawn:
+                                self.drawn[ene.tag] = 0
+                            if self.frame >= self.drawn[ene.tag] + 5 * self.seconds:
+                                cost = self.calculate_cost(ene.type_id)
+                                worth = 2 * cost.minerals + 3 * cost.vespene
+                                if worth > bestworth:
+                                    bestworth = worth
+                                    bestene = ene
+                        if bestworth > 400:
+                            vip(draw, bestene)
+                            self.drawn[bestene.tag] = self.frame
                 # back
                 if vip.energy < 60:
                     if self.job_of_unit(vip) != Job.TIRED:

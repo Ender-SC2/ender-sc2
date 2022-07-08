@@ -151,22 +151,12 @@ class Making(Map_if, Resources, Strategy):
         for typ in self.all_armytypes:
             await self.make_army_unit(typ)
         await self.expand()
-        await self.build_structure('extr',UnitTypeId.EXTRACTOR)
-        await self.build_structure('spaw',UnitTypeId.SPAWNINGPOOL)
-        await self.build_structure('roac',UnitTypeId.ROACHWARREN)
-        await self.build_structure('bane',UnitTypeId.BANELINGNEST)
-        await self.build_structure('lair',UnitTypeId.LAIR)
-        await self.build_structure('hive',UnitTypeId.HIVE)
-        await self.build_structure('infe',UnitTypeId.INFESTATIONPIT)
-        await self.build_structure('hydr',UnitTypeId.HYDRALISKDEN)
-        await self.build_structure('lurk',UnitTypeId.LURKERDENMP)
-        await self.build_structure('spir',UnitTypeId.SPIRE)
-        await self.build_structure('nydu',UnitTypeId.NYDUSNETWORK)
-        await self.build_structure('grea',UnitTypeId.GREATERSPIRE)
-        await self.build_structure('ultr',UnitTypeId.ULTRALISKCAVERN)
         await self.build_evolutionchambers()
-        await self.build_structure('spor',UnitTypeId.SPORECRAWLER)
-        await self.build_structure('spin',UnitTypeId.SPINECRAWLER)
+        for typ in {UnitTypeId.EXTRACTOR, UnitTypeId.SPAWNINGPOOL, UnitTypeId.ROACHWARREN, UnitTypeId.BANELINGNEST, 
+                    UnitTypeId.LAIR, UnitTypeId.HIVE, UnitTypeId.INFESTATIONPIT, UnitTypeId.HYDRALISKDEN,
+                    UnitTypeId.LURKERDENMP, UnitTypeId.SPIRE, UnitTypeId.NYDUSNETWORK, UnitTypeId.GREATERSPIRE,
+                    UnitTypeId.ULTRALISKCAVERN, UnitTypeId.SPORECRAWLER, UnitTypeId.SPINECRAWLER}:
+            await self.build_structure(typ.name, typ)
         await self.do_emergency()
         await self.make_overlords()
         for upg in self.all_upgrades:
@@ -198,8 +188,7 @@ class Making(Map_if, Resources, Strategy):
                 if self.frame >= started + self.seconds:
                     todel.add(tuple)
                     if self.started(typ) == 0: # conservative
-                        logger.info('Error making a ' + typ.name + ', retrying.')
-                        self.makecommand(typ)
+                        logger.info('Error making a ' + typ.name)
             self.i_am_making_a -= todel
             for tuple in todel:
                 (typ, started, wasmaking) = tuple
@@ -211,10 +200,11 @@ class Making(Map_if, Resources, Strategy):
                 if self.started(typ) > wasmaking:
                     todel.add(tuple)
                 if self.frame >= started + 4 * self.seconds:
-                    todel.add(tuple)
                     if self.started(typ) == 0: # conservative
                         logger.info('Error making a ' + typ.name + ', retrying.')
                         self.makecommand_building(typ, histag, buildpos)
+                if self.frame >= started + 5 * self.seconds:
+                    todel.add(tuple)
             self.i_am_making_a_building -= todel
             for tuple in todel:
                 (typ, started, histag, buildpos, wasmaking) = tuple
@@ -229,27 +219,39 @@ class Making(Map_if, Resources, Strategy):
     def makecommand(self, typ):
         # called by now_make_a
         if typ in {UnitTypeId.DRONE, UnitTypeId.OVERLORD}:
-            self.larva.random.train(typ)
+            larf = self.larva.random
+            larf.train(typ)
+            self.listenframe_of_unit[larf.tag] = self.frame + 5
         if typ in self.all_armytypes:
             crea = self.creator[typ]
             for unt in self.units(crea) | self.structures(crea):
-                if unt.tag in self.resource_now_tags:
+                if unt.tag in self.resourcetags(typ):
                     justone = unt
             if crea in {UnitTypeId.LARVA}:
-                self.train(typ)
+                larf = self.larva.random
+                larf.train(typ)
+                self.listenframe_of_unit[larf.tag] = self.frame + 5
             elif crea == UnitTypeId.OVERSEER:
                 if typ == UnitTypeId.CHANGELING:
                     justone(AbilityId.SPAWNCHANGELING_SPAWNCHANGELING)
+                    self.listenframe_of_unit[justone.tag] = self.frame + 5
                 else:
                     justone.train(typ)
+                    self.listenframe_of_unit[justone.tag] = self.frame + 5
             elif typ == UnitTypeId.QUEEN:
+                # queenhatchery, not just any hatchery.
+                for halltype in self.all_halltypes:
+                    for hall in self.structures(halltype).ready.idle:
+                        if hall.tag not in self.queen_of_hall:
+                            justone = hall
                 justone.train(typ)
+                self.listenframe_of_structure[justone.tag] = self.frame + 5
                 self.queen_of_hall[justone.tag] = -1
             elif len(self.structures(crea).ready.idle) > 0:
                 # best at a distance
                 bestdist  = -1
                 for unt in self.structures(crea).idle:
-                    if unt.tag in self.resource_now_tags:
+                    if unt.tag in self.resourcetags(typ):
                         itsdist = 9999
                         for que in self.units(typ):
                             dist = self.distance(que.position,unt.position)
@@ -258,14 +260,21 @@ class Making(Map_if, Resources, Strategy):
                             bestdist = itsdist
                             bestunt = unt 
                 bestunt.train(typ)
+                self.listenframe_of_structure[bestunt.tag] = self.frame + 5
+            elif crea == UnitTypeId.SWARMHOSTMP:
+                justone.train(typ)
+                self.cooldown_sh[justone.tag] = self.frame + 43 * self.seconds + 10
+                self.listenframe_of_unit[justone.tag] = self.frame + 5
             else:
                 justone.train(typ)
+                self.listenframe_of_unit[justone.tag] = self.frame + 5
         if typ in self.all_upgrades:
             crea = self.creator[typ]
             for unt in self.structures(crea).idle:
-                if unt.tag in self.resource_now_tags:
+                if unt.tag in self.resourcetags(typ):
                     justone = unt
             justone(self.creation[typ])
+            self.listenframe_of_structure[justone.tag] = self.frame + 5
 
     def now_make_a_building(self, typ, histag, buildpos):
         # within the protocoll, just after check_resources
@@ -514,13 +523,18 @@ class Making(Map_if, Resources, Strategy):
                         logger.info('example ' + self.example.name + ' waits for resources')
 
     async def build_evolutionchambers(self):
-        it = UnitTypeId.EVOLUTIONCHAMBER
-        if self.atleast_some_started(it):
-            # second evo after 5 bases
-            if self.nbases >= 5:
-                await self.build_structure('evo2',it)
-        else:
-            await self.build_structure('evo1',it)
+        if self.function_listens('build_evos', 30):
+            it = UnitTypeId.EVOLUTIONCHAMBER
+            have = self.atleast_started(it)
+            if have == 0:
+                await self.build_structure('evo1',it)
+            elif have == 1:
+                if self.nbases >= 5:
+                    await self.build_structure('evo2',it)
+            elif have == 2:
+                if self.supply_used >= 190:
+                    await self.build_structure('evo3',it)
+
         
     async def build_structure(self,name,typ):
         patience = 2 * self.seconds
@@ -715,26 +729,6 @@ class Making(Map_if, Resources, Strategy):
                 return False
         return True
         
-    def check_wannado_upgrade(self, upg) -> bool:
-        if self.atleast_some_started(upg):
-            return False
-        #
-        if not self.tech_check(upg):
-            return False
-        #
-        canstart = True
-        seen = False
-        for thing in self.upgrade_chain:
-            seen = seen or (thing == upg)
-            if not seen: # before
-                if not self.atleast_some_started(thing):
-                    if self.tech_check(thing):
-                        canstart = False
-        if (not canstart):
-            return False
-        #
-        return True
-
     def check_wannado_unit(self, unty) -> bool:
         if not self.tech_check(unty):
             return False
@@ -782,6 +776,21 @@ class Making(Map_if, Resources, Strategy):
                     logger.info('example ' + self.example.name + ' waits for hatches')
                     logger.info(str(len(self.structures(UnitTypeId.HATCHERY))), ' ' , str(self.needhatches[unty]))
                 return False
+        # building_order.  E.g. [hatch pool hatch extractor]
+        if unty in self.building_order:
+            frontdone = True
+            ordered = {}
+            for build in self.building_order:
+                if frontdone:
+                    if build in ordered:
+                        ordered[build] += 1
+                    else:
+                        ordered[build] = 1
+                    if self.atleast_started(build) < ordered[build]:
+                        # build is at the front
+                        frontdone = False
+                        if unty != build:
+                            return False
         # the chosen structype order
         if unty in self.structype_order:
             seen = False
@@ -812,21 +821,41 @@ class Making(Map_if, Resources, Strategy):
                 return False
         return True
 
+    def i_could_upgrade(self, typ, importance) -> bool:
+        if not self.atleast_some_started(typ):
+            if self.tech_check(typ):
+                creator = self.creator[typ]
+                resource = self.resource_of_buildingtype[creator]
+                if self.have_free_resource(resource, importance):
+                    return True
+        return False
+
+    def check_wannado_upgrade(self, upg, importance) -> bool:
+        if self.i_could_upgrade(upg, importance):
+            canstart = True
+            seen = False
+            for thing in self.upgrade_chain:
+                seen = seen or (thing == upg)
+                if not seen: # before
+                    if self.i_could_upgrade(thing, importance):
+                        logger.info('upgrade ' + thing.name + ' makes wait ' + upg.name)
+                        canstart = False
+            if canstart:
+                return True
+        #
+        return False
+
     async def upgrade(self, typ):
         if self.function_listens('upgrade_' + typ.name, 2 * self.seconds):
+            if typ == UpgradeId.EVOLVEGROOVEDSPINES:
+                breaktodebug = True
             importance = self.importance['upgrade']
             if (self.make_plan[typ] > 0) or self.auto_upgrade:
-                importance += 1000                    
-            goon = True
-            creator = self.creator[typ]
-            resource = self.resource_of_buildingtype[creator]
-            if not self.have_free_resource(resource, importance):
-                goon = False
-            if goon:
-                if self.check_wannado_upgrade(typ):
-                    self.claim_resources(typ, importance)
-                    if self.check_resources(typ, importance):
-                        self.now_make_a(typ)
+                importance += 1000
+            if self.check_wannado_upgrade(typ, importance):
+                self.claim_resources(typ, importance)
+                if self.check_resources(typ, importance):
+                    self.now_make_a(typ)
 
     async def make_drones(self):
         if self.function_listens('make_drones', self.seconds):

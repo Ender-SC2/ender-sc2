@@ -131,6 +131,7 @@ class Common(BotAI, IUnitInterface):
     to_root = set() # sporespinecrawlers uprooted to be picked up by 'making'.
     resign = False
     queen_of_hall = {}
+    cooldown_sh = {} # per swarmhost tag the moment it can make locusts.
     #
     __did_step0 = False
     _last_structures_len = 0 # internal speedup

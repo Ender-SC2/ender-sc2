@@ -17,8 +17,8 @@ class Resources(Tech):
     claims = [] # of claimtype. Typ will be unique.
     orderdelay = [] # of claimtype. The order has been given but did not arrive yet.
     groupclaim = None # things, in make_plan but not started, hold a claim at importance 700.
-    example = UnitTypeId.EXTRACTOR
-    resource_now_tags = set() # for resources that are a unit, tags are stored this frame. Not geysers
+    example = UnitTypeId.SCV # SCV if you want no example logged
+    resource_now_tags = {} # for resources that are a unit, tags are stored this frame. Not geysers
 
     def __step0(self):
         self.init_resources()
@@ -62,7 +62,7 @@ class Resources(Tech):
     zero_resources  = dict((res,0) for res in Resource) # always .copy()
     claimed = [] # of (typ, resources, importance, expiration)
     resource_cost = {} # per typ: resource
-    resource_now = {} # in step init.
+    resource_now_amount = {} # in step init. Per resource, the amount.
     resource_of_buildingtype = {} # match for upgrade buildings
 
     def init_resources(self):
@@ -125,90 +125,73 @@ class Resources(Tech):
         self.zero_groupclaim()
 
     async def calc_resource_now(self):
-        self.resource_now = {}
-        self.resource_now_tags = set()
+        self.resource_now_tags = {}
+        for res in self.Resource:
+            self.resource_now_tags[res] = set()
         #
-        self.resource_now[self.Resource.MINERALS] = self.minerals
-        self.resource_now[self.Resource.VESPENE] = self.vespene
-        unts = 0
         for lar in self.larva:
-            unts += 1
-            self.resource_now_tags.add(lar.tag)
-        self.resource_now[self.Resource.LARVAE] = unts
+            self.resource_now_tags[self.Resource.LARVAE].add(lar.tag)
         # drones may idle or be busy, but not build
-        drones = 0
         for unt in self.units(UnitTypeId.DRONE):
             if self.job_of_unit(unt) in [Job.WALKER, Job.BUILDER]:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
-                    self.resource_now_tags.add(unt.tag)
-                    drones += 1
-        self.resource_now[self.Resource.DRONES] = drones
-        self.resource_now[self.Resource.SUPPLY] = self.supply_left
-        self.resource_now[self.Resource.EXPOS] = len(self.freeexpos)
-        self.resource_now[self.Resource.GEYSERS] = len(self.freegeysers)
-        unts = 0
+                    self.resource_now_tags[self.Resource.DRONES].add(unt.tag)
         for unt in self.units(UnitTypeId.CORRUPTOR).idle:
             if self.job_of_unit(unt) == Job.DEFENDATTACK:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
-                    self.resource_now_tags.add(unt.tag)
-                    unts += 1 
-        self.resource_now[self.Resource.CORRUPTORS] = unts
-        unts = 0
+                    self.resource_now_tags[self.Resource.CORRUPTORS].add(unt.tag)
         for unt in self.units(UnitTypeId.HYDRALISK).idle:
             if self.job_of_unit(unt) == Job.DEFENDATTACK:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
-                    self.resource_now_tags.add(unt.tag)
-                    unts += 1 
-        self.resource_now[self.Resource.HYDRALISKS] = unts
-        unts = 0
+                    self.resource_now_tags[self.Resource.HYDRALISKS].add(unt.tag)
         for unt in self.units(UnitTypeId.OVERLORD):
             if self.job_of_unit(unt) != Job.CREEPLORD:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
-                    unts += 1 
-                    self.resource_now_tags.add(unt.tag)
-        self.resource_now[self.Resource.OVERLORDS] = unts
-        unts = 0
+                    self.resource_now_tags[self.Resource.OVERLORDS].add(unt.tag)
         for unt in self.units(UnitTypeId.ZERGLING).idle:
             if self.job_of_unit(unt) == Job.DEFENDATTACK:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
-                    self.resource_now_tags.add(unt.tag)
-                    unts += 1
-        self.resource_now[self.Resource.ZERGLINGS] = unts
-        unts = 0
+                    self.resource_now_tags[self.Resource.ZERGLINGS].add(unt.tag)
         for unt in self.units(UnitTypeId.SWARMHOSTMP).idle: # here cooldown 43 sec?
             if self.frame >= self.listenframe_of_unit[unt.tag]:
-                unts += 1 
-                self.resource_now_tags.add(unt.tag)
-        self.resource_now[self.Resource.SWARMHOSTS] = unts
-        unts = 0
+                if unt.tag in self.cooldown_sh:
+                    if self.frame >= self.cooldown_sh[unt.tag]:
+                        self.resource_now_tags[self.Resource.SWARMHOSTS].add(unt.tag)
         for unt in self.units(UnitTypeId.ROACH).idle:
             if self.frame >= self.listenframe_of_unit[unt.tag]:
-                unts += 1 
-                self.resource_now_tags.add(unt.tag)
-        self.resource_now[self.Resource.ROACHES] = unts
+                self.resource_now_tags[self.Resource.ROACHES].add(unt.tag)
         for building in self.resource_of_buildingtype:
             resource = self.resource_of_buildingtype[building]
-            unts = 0
             for stru in self.structures(building).ready.idle:
                 if self.frame >= self.listenframe_of_structure[stru.tag]:
-                    unts += 1
-                    self.resource_now_tags.add(stru.tag)
-            self.resource_now[resource] = unts
-        unts = 0
+                    self.resource_now_tags[resource].add(stru.tag)
         for halltype in self.all_halltypes:
             for stru in self.structures(halltype).ready.idle:
                 if stru.tag not in self.queen_of_hall:
                     if self.frame >= self.listenframe_of_structure[stru.tag]:
-                        unts += 1
-                        self.resource_now_tags.add(stru.tag)
-        self.resource_now[self.Resource.QUEENHATCHERIES] = unts
-        unts = 0
+                        self.resource_now_tags[self.Resource.QUEENHATCHERIES].add(stru.tag)
         for ovi in self.units(UnitTypeId.OVERSEER):
             if self.frame >= self.listenframe_of_unit[ovi.tag]:
                 if ovi.energy >= 50:
-                    unts += 1
-                    self.resource_now_tags.add(ovi.tag)
-        self.resource_now[self.Resource.OVERSEER50S] = unts
+                    self.resource_now_tags[self.Resource.OVERSEER50S].add(ovi.tag)
+        # resource_now_amount
+        self.resource_now_amount = {}
+        for res in self.Resource:
+            if res in self.resource_now_tags:
+                self.resource_now_amount[res] = len(self.resource_now_tags[res])
+        self.resource_now_amount[self.Resource.MINERALS] = self.minerals
+        self.resource_now_amount[self.Resource.VESPENE] = self.vespene
+        self.resource_now_amount[self.Resource.SUPPLY] = self.supply_left
+        self.resource_now_amount[self.Resource.EXPOS] = len(self.freeexpos)
+        self.resource_now_amount[self.Resource.GEYSERS] = len(self.freegeysers)
+
+    def resourcetags(self, typ): # -> set of tags
+        tagsset = set()
+        typresources = self.resource_cost[typ]
+        for res in self.Resource:
+            if typresources[res] > 0:
+                tagsset |= self.resource_now_tags[res]
+        return tagsset
 
     def zero_groupclaim(self):
         self.groupclaim = self.zero_resources.copy()
@@ -278,7 +261,7 @@ class Resources(Tech):
                 myres = resources[res]
                 if myres > 0:
                     vipres = vipclaimed[res]
-                    nowres = self.resource_now[res]
+                    nowres = self.resource_now_amount[res]
                     if (nowres < vipres + myres):
                         if typ == self.example:
                             logger.info('example lacking ' + res.name)
@@ -315,7 +298,7 @@ class Resources(Tech):
 
     def have_free_resource(self, res, importance) -> bool:
         # use if you want to check whether you want to claim
-        amfree = self.resource_now[res]
+        amfree = self.resource_now_amount[res]
         # claims (with importance atleast mine)
         vipclaimed = 0 
         for hclaim in self.claims:
@@ -346,7 +329,7 @@ class Resources(Tech):
                 need = (hresources[res] > 0)
         if not need:
             return 0
-        amfree = self.resource_now[res]
+        amfree = self.resource_now_amount[res]
         # claims (with importance atleast mine)
         vipclaimed = 0 
         for hclaim in self.claims:
@@ -377,7 +360,7 @@ class Resources(Tech):
                 need = (hresources[res] > 0)
         if not need:
             return 0
-        amfree = self.resource_now[res]
+        amfree = self.resource_now_amount[res]
         # claims (with importance atleast mine)
         vipclaimed = 0 
         for hclaim in self.claims:
