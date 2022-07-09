@@ -34,15 +34,13 @@ class PlaceBuilding(IAction):
             return
         position = self.get_position()
         if position:
-            workers = self.common.units.of_type(UnitTypeId.DRONE).filter(
+            workers = self.common.workers.filter(
                 lambda worker: self.common.job_of_unit(worker) in [Job.MIMMINER] and not worker.is_carrying_resource
             )
             logger.info(f"Placing {self.unit_type} at {position}")
             if not workers.empty:
                 worker = workers.closest_to(position)
                 self.common.set_job_of_unit(worker, Job.BUILDER)
-                self.common.expiration_of_builder[
-                    worker.tag] = self.common.frame + 8 * self.common.seconds  # shortens it
                 worker.build(self.unit_type, position)
             else:
                 logger.info("Fail to find a worker")

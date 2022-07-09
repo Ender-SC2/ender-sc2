@@ -33,7 +33,7 @@ class InfluenceMapPoint2:
 # TODO: Have an option that can consider walkable positions
 class InfluenceMap:
     # TODO: Check actual max map size
-    MAX_MAP_SIZE: int = 512
+    MAX_MAP_SIZE: int = 256
 
     def __init__(self, map_radius: float):
         self._map_radius = map_radius
@@ -90,11 +90,11 @@ class InfluenceMap:
                 if self._in_bounds(position) and \
                         minimum < self._map[position.x][position.y] and \
                         local_center.in_range(local_radius, position):
-                    result = self._local_to_global(position)
-                    if result != center:
+                    if local_center != position:
+                        result = self._local_to_global(position)
                         return result.towards(center, -dodge_radius)
                     else:
-                        return result
+                        return center
         return None
 
     def max_value(self) -> float:
