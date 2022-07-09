@@ -2,17 +2,19 @@
 
 import random
 from enum import Enum, auto
+
 from loguru import logger
 
 from ender.game_plan import GamePlan
 from ender.game_plan import Step
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
+from ender.game_plan.action.worker_scout_action import WorkerScoutAction
+from ender.game_plan.condition import HaveUnit
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.upgrade_id import UpgradeId
 
 
 class Strategy(Tech):
@@ -55,10 +57,11 @@ class Strategy(Tech):
 
     def __step0(self):
         if not self.new_plan:
-            self.new_plan = GamePlan(Step(Any([EnemyUnit(UnitTypeId.BANSHEE),
+            self.new_plan = GamePlan([Step(Any([EnemyUnit(UnitTypeId.BANSHEE),
                                                EnemyUnit(UnitTypeId.ORACLE),
                                                EnemyUnit(UnitTypeId.MUTALISK)]),
-                                          PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())))
+                                          PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())),
+                                      Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction())])
             self.new_plan.setup(self)
 
         #
