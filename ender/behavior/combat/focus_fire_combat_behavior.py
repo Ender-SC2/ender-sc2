@@ -5,6 +5,7 @@ from typing import List, Optional
 from ender.job import Job
 from ender.unit import AttackCommand
 from ender.utils.command_utils import CommandUtils
+from ender.utils.point_utils import distance
 from ender.utils.unit_utils import range_vs
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -42,7 +43,7 @@ class FocusFireCombatBehavior(CommandUtils):
             if self.frame >= self.shot[tag] + 5: # the last shoot command should have arrived
                 if unit.weapon_cooldown < self.bot_ai.client.game_step: # I can shoot (before next programrun)
                     enemies_around = self.bot_ai.enemy_units.filter(lambda enemy:
-                        (self.distance(self.next_position(unit), self.next_position(enemy)) < \
+                        (distance(self.next_position(unit), self.next_position(enemy)) < \
                             range_vs(unit, enemy) + unit.radius + enemy.radius)
                         and (self.enemy_health[enemy.tag] > -5))
                     if not enemies_around.empty:

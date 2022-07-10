@@ -7,6 +7,7 @@ from loguru import logger
 
 from ender.job import Job
 from ender.map_if import Map_if
+from ender.utils.point_utils import distance
 from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -63,7 +64,7 @@ class Creep(Map_if):
         self.directionfinish = []
         if self.creepstyle == 0: # aggressive
             for epo in self.expansion_locations_list:
-                 if self.distance(epo,self.enemymain) < 70:
+                 if distance(epo, self.enemymain) < 70:
                      self.creepdirection.append(epo)
                      self.directionfinish.append(12)
         elif self.creepstyle == 1: # all bases
@@ -98,7 +99,7 @@ class Creep(Map_if):
                     for typ in self.all_tumortypes:
                         for stru in self.structures(typ):
                             pos = stru.position
-                            if self.distance(pos,goal) < finish:
+                            if distance(pos, goal) < finish:
                                 reached = True
                     if reached:
                         altx = random.randrange(0,len(self.creepdirection))
@@ -147,7 +148,7 @@ class Creep(Map_if):
         directionx = self.directionx_of_tumor[tag]
         dirpoint = self.creepdirection[directionx]
         dirfin = self.directionfinish[directionx]
-        while (self.distance(pos,dirpoint) < dirfin) and (self.different_directions > 1):
+        while (distance(pos, dirpoint) < dirfin) and (self.different_directions > 1):
             self.directionx_of_tumor[tag] = self.next_directionx
             self.next_directionx = (self.next_directionx + 1) % len(self.creepdirection)
             directionx = self.directionx_of_tumor[tag]
@@ -166,7 +167,7 @@ class Creep(Map_if):
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
                     itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
                     itsspot = itshatch.position.towards(self.map_center,9)
-                    dist = self.distance(unt.position,itsspot)
+                    dist = distance(unt.position, itsspot)
                     if dist > 4:
                         unt.move(itsspot)
                         self.listenframe_of_unit[unt.tag] = self.frame + 5
@@ -326,7 +327,7 @@ class Creep(Map_if):
                         tag = lord.tag
                         if tag not in self.creeplords:
                             if self.job_of_unit(lord) in {Job.UNCLEAR, Job.HANGER, Job.ROAMER}:
-                                dist = self.distance(lord.position, self.ourmain)
+                                dist = distance(lord.position, self.ourmain)
                                 if dist < bestdist:
                                     bestdist = dist
                                     best_unit = lord
@@ -351,7 +352,7 @@ class Creep(Map_if):
                     if tag in self.creeplords:
                         if self.creeplord_state[tag] == 'moving':
                             itspoint = self.creeplord_goal[tag]
-                            dist = self.distance(lordpos, itspoint)
+                            dist = distance(lordpos, itspoint)
                             if dist < 1:
                                 if self.has_creep(itspoint):
                                     self.creeplord_state[tag] = 'free'
@@ -378,22 +379,23 @@ class Creep(Map_if):
             for tag in self.creeplords:
                 if self.creeplord_state[tag] in {'moving', 'dropping'}:
                     goal = self.creeplord_goal[tag]
-                    if self.distance(goal, point) < 10:
+                    if distance(goal, point) < 10:
                         goodpoint = False
             if goodpoint:
                 # send one close to point
                 bestdist = 99999
+                bestlord = None
                 for typ in {UnitTypeId.OVERLORD}:
                     for lord in self.units(typ):
                         tag = lord.tag
                         if tag in self.creeplords:
                             if self.creeplord_state[tag] == 'free':
                                 lordpos = lord.position
-                                dist = self.distance(lordpos, point)
+                                dist = distance(lordpos, point)
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestlord = lord
-                if bestdist < 99999:
+                if bestlord:
                     lord = bestlord
                     tag = lord.tag
                     self.creeplord_state[tag] = 'moving'

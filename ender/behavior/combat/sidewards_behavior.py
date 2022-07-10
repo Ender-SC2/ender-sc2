@@ -5,6 +5,7 @@ from typing import List, Optional
 from ender.job import Job
 from ender.unit import MoveCommand
 from ender.utils.command_utils import CommandUtils
+from ender.utils.point_utils import distance
 from sc2.ids.unit_typeid import UnitTypeId
 
 
@@ -28,7 +29,7 @@ class SidewardsBehavior(CommandUtils):
         if len(myunits) >= 2:
             mygrouppos = myunits.center
             enemies = self.bot_ai.enemy_units.filter(
-                lambda ene: self.distance(ene.position, mygrouppos) < 15)
+                lambda ene: distance(ene.position, mygrouppos) < 15)
             if len(enemies) > 0:
                 health = 0
                 for unit in myunits:
@@ -39,12 +40,12 @@ class SidewardsBehavior(CommandUtils):
                 sumdist = 0
                 for unit in myunits:
                     oppo = enemies.closest_to(unit)
-                    dist = self.distance(unit.position, oppo.position)
+                    dist = distance(unit.position, oppo.position)
                     sumdist += dist
                 avgdist = sumdist / len(myunits)
                 if self.frame > self.hitframe + 25:  # I have not been hit
                     for unit in myunits:
-                        if self.distance(unit.position, mygrouppos) > 1:
+                        if distance(unit.position, mygrouppos) > 1:
                             oppo = enemies.closest_to(unit)
                             spread = unit.position.towards(mygrouppos, -2)
                             position = self.next_position(oppo).towards(spread, avgdist + self.back)
