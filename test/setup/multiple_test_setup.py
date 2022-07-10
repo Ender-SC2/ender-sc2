@@ -6,7 +6,6 @@ from test.setup.test_setup import ITestSetup
 
 
 class MultipleTestSetup(ITestSetup):
-
     def __init__(self, requirements: Union[List[ITestSetup], ITestSetup]):
         self.setups = convert_into_iterable(requirements)
 

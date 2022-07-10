@@ -4,7 +4,6 @@ from ender.common import Common
 
 
 class TestBase:
-
     @abstractmethod
     def setup(self, common: Common):
         pass

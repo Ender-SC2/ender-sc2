@@ -8,7 +8,6 @@ from sc2.position import Point2
 
 
 class TestUnitInterface(IsolatedAsyncioTestCase):
-
     async def test_command_execute(self):
         unit = Mock()
         target = Point2()
@@ -97,5 +96,5 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         assert sut.job_count(Job.BIGATTACK) == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
