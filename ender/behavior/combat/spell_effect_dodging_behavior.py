@@ -1,8 +1,6 @@
 # spell_effect_dodging_behavior.py
 from typing import List, Optional, Dict
 
-from loguru import logger
-
 from ender.job import Job
 from ender.map import InfluenceMap
 from ender.unit import MoveCommand
@@ -10,7 +8,6 @@ from ender.utils.ability_utils import ability_duration, ability_range, ability_r
     ability_damage_type, ability_damage
 from ender.utils.command_utils import CommandUtils
 from ender.utils.effect_utils import effect_ability
-from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -44,18 +41,17 @@ class SpellEffectDodgingBehavior(CommandUtils):
             in_danger = self.in_dangerous_area(unit)
             if in_danger:
                 # TODO: Find a better dodge distance
-                safest_point = influence_map.get_closest_point(unit.position, unit.radius, 3, -10)
+                safest_point = influence_map.get_closest_point(unit.position, unit.radius + self.extra_dodge_range, 3,
+                                                               -30)
                 if safest_point and safest_point != unit.position:
                     self.unit_interface.set_command(unit, MoveCommand(safest_point, "SpellDodging"))
-                else:
-                    logger.error(f"Could not find a safe point close to {unit.position}")
 
     def check_existing_spells(self):
         game_time = self.bot_ai.time
         # Delete old spells
         to_delete = set()
         for key in self.spells.keys():
-            self.spells[key] = [time for time in self.spells[key] if time > game_time]
+            self.spells[key] = [time for time in self.spells[key] if time >= game_time]
             if len(self.spells[key]) == 0:
                 to_delete.add(key)
         for key in to_delete:
@@ -81,14 +77,14 @@ class SpellEffectDodgingBehavior(CommandUtils):
         return False
 
     def create_influence_map(self) -> InfluenceMap:
-        influence_map = InfluenceMap(ability_radius[AbilityId.EFFECT_CORROSIVEBILE])
+        influence_map = InfluenceMap(1)
         for (position, effect), times in self.spells.items():
             ability = effect_ability[effect]
             for time in times:
                 time_to_end = (time - self.bot_ai.time) / ability_duration[ability]
                 if ability_damage_type[ability] == AbilityDamageType.PERSISTENT:
-                    damage = ability_damage[ability] * (1 - time_to_end)
+                    damage = ability_damage[ability] * ((1 - time_to_end) ** 2)
                 else:
-                    damage = ability_damage[ability] * time_to_end * time_to_end
+                    damage = ability_damage[ability] * (time_to_end ** 2)
                 influence_map.add_point(position, ability_radius[ability] + self.extra_dodge_range, -damage)
         return influence_map

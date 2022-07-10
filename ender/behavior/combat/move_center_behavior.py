@@ -6,6 +6,7 @@ from math import sqrt
 from ender.utils.command_utils import CommandUtils
 from ender.job import Job
 from ender.unit import AttackCommand
+from ender.utils.point_utils import distance
 from sc2.ids.unit_typeid import UnitTypeId
 
 
@@ -34,7 +35,7 @@ class MoveCenterBehavior(CommandUtils):
             if len(unit.orders) > 0:
                 self.busy[tag] = self.frame
             if self.frame >= self.busy[tag] + 20:
-                if self.distance(unit.position, goal) > sqrt(len(myunits)):
+                if distance(unit.position, goal) > sqrt(len(myunits)):
                     self.nospam_pos('center', unit, 'A', goal)
             if self.frame < 20: # begin of testgame
                 self.nospam_pos('center', unit, 'A', goal)

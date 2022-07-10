@@ -12,4 +12,12 @@ class CreateUnitsTestSetup(ITestSetup):
 
     async def setup(self, bot_ai: BotAI):
         await bot_ai.client.debug_create_unit(
-            [[self.unit_type, self.amount, bot_ai.game_info.map_center + self.offset, bot_ai.player_id]])
+            [
+                [
+                    self.unit_type,
+                    self.amount,
+                    bot_ai.game_info.map_center + self.offset,
+                    bot_ai.player_id,
+                ]
+            ]
+        )

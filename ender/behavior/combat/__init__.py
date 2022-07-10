@@ -5,3 +5,4 @@ from .focus_fire_combat_behavior import FocusFireCombatBehavior
 from .forward_behavior import ForwardBehavior
 from .reposition_behavior import RepositionBehavior
 from .sidewards_behavior import SidewardsBehavior
+from .neural_behavior import NeuralBehavior
