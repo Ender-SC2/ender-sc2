@@ -2,19 +2,19 @@
 
 import random
 from enum import Enum, auto
-
 from loguru import logger
 
 from ender.game_plan import GamePlan
 from ender.game_plan import Step
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
-from ender.game_plan.action.worker_scout_action import WorkerScoutAction
-from ender.game_plan.condition import HaveUnit
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.enemy_unit import EnemyUnit
+from ender.game_plan.action.worker_scout_action import WorkerScoutAction
+from ender.game_plan.condition import HaveUnit
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 
 
 class Strategy(Tech):
@@ -47,7 +47,7 @@ class Strategy(Tech):
                     Gameplan.TWOBASE, Gameplan.THREEBASE_NOGAS, Gameplan.THREEBASE, Gameplan.RAVATHREE}
     gameplan = Gameplan.ENDGAME
     followup = Gameplan.ENDGAME
-    last_bigattack_count = 0
+    last_wave_count = 0
     zero_plan = {} # 0 for every unit, structure, or upgrade
     result_plan = {}
     new_plan = None
@@ -56,14 +56,13 @@ class Strategy(Tech):
     auto_queen = True
 
     def __step0(self):
-        if not self.new_plan:
-            self.new_plan = GamePlan([Step(Any([EnemyUnit(UnitTypeId.BANSHEE),
-                                               EnemyUnit(UnitTypeId.ORACLE),
-                                               EnemyUnit(UnitTypeId.MUTALISK)]),
-                                          PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())),
-                                      Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction())])
-            self.new_plan.setup(self)
-
+        #
+        self.new_plan = GamePlan([Step(Any([EnemyUnit(UnitTypeId.BANSHEE),
+                                           EnemyUnit(UnitTypeId.ORACLE),
+                                           EnemyUnit(UnitTypeId.MUTALISK)]),
+                                      PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())),
+                                  Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction())])
+        self.new_plan.setup(self)
         #
         self.init_zero_plan()
         #
@@ -86,8 +85,8 @@ class Strategy(Tech):
             await self._client.chat_send('Tag:' + self.gameplan.name, team_only=False)
             self.__did_step0 = True
         #
-        if self.bigattack_count != self.last_bigattack_count:
-            self.last_bigattack_count = self.bigattack_count
+        if self.wave_count != self.last_wave_count:
+            self.last_wave_count = self.wave_count
             # change strategy to followup
             plan = self.followup
             # alternatives
@@ -323,7 +322,7 @@ class Strategy(Tech):
         self.add_morphers()
         self.tech_close()
         # debug
-        logger.info('bigattack_count = ' + str(self.bigattack_count))
+        logger.info('wave_count = ' + str(self.wave_count))
         logger.info('gameplan = ' + self.gameplan.name)
         lookat = set(self.result_plan.keys())
         for rava in lookat:
@@ -429,13 +428,6 @@ class Strategy(Tech):
     async def react(self):
         if self.function_listens('react', 50):
             if self.gameplan == self.Gameplan.REACTIVE:
-                # enemybases
-                enemybases = 1
-                for halltype in self.all_halltypes:
-                    for (struc, pos) in self.enemy_struc_mem:
-                        if struc == halltype:
-                            if pos != self.enemymain:
-                                enemybases += 1
                 # my started bases
                 mybases = 0
                 for halltype in self.all_halltypes:
@@ -448,12 +440,24 @@ class Strategy(Tech):
                         if stru.tag in self.last_health:
                             if stru.health < self.last_health[stru.tag]:
                                 danger = True
-                if enemybases == 1:
+                if self.nenemybases == 1:
                     if self.frame > 2.5 * self.minutes:
                         danger = True
-                if enemybases == 2:
+                if self.nenemybases == 2:
                     if self.frame > 5 * self.minutes:
                         danger = True
+                ene_worth = 0
+                for tag in self.enemy_unit_mem:
+                    (typ, pos) = self.enemy_unit_mem[tag]
+                    if typ not in self.all_workertypes:
+                        ene_worth += self.worth(typ)
+                my_worth = 0
+                for unt in self.units:
+                    typ = unt.type_id
+                    if typ not in self.all_workertypes:
+                        my_worth += self.worth(typ)
+                if ene_worth >= my_worth + 1000:
+                    danger = True
                 if danger:
                     # choose plan
                     if self.vespene == 0:

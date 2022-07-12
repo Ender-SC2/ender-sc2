@@ -1,13 +1,13 @@
 # common.py, Ender
 
-from math import sqrt
-from typing import List, overload
+from typing import List
 
 from loguru import logger
 
 from ender.job import Job
 from ender.unit.unit_command import IUnitCommand
 from ender.unit.unit_interface import IUnitInterface, UnitInterface
+from ender.utils.point_utils import distance
 from sc2.bot_ai import BotAI  # parent class we inherit from
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -101,8 +101,11 @@ class Common(BotAI, IUnitInterface):
     iteration = 0
     frame = 0 # will have even numbers if game_step=2
     nbases = 1 # own halls > 80% ready
+    nenemybases = 1 # enemy halls seen (started)
     enemy_struc_mem = set() # structures out of sight still are there (expected)
     enemy_struc_mem_hash = 0 # to react on changes
+    enemy_unit_mem = {} # enemy units, about each second, per tag: (type, last seen place) 
+    eum_frame = 0
     structures_hash = 0 # to react on changes
     freeexpos = []
     freegeysers = []
@@ -123,7 +126,7 @@ class Common(BotAI, IUnitInterface):
     listenframe_of_structure = {} # frame the command will have arrived
     listenframe_of_function = {} # frame the command will have arrived
     limbo = {} # per tag of a disappeared unit: the frame to forget it
-    bigattack_count = 0 # report from attack to strategy
+    wave_count = 0 # report from attack to strategy
     bigattacking = False # report from attack
     supplytricking = False # report from making
     next_expansion = None # report from making to attack (block)
@@ -214,6 +217,16 @@ class Common(BotAI, IUnitInterface):
                     if not seen:
                         todel.add(tp)
             self.enemy_struc_mem -= todel
+            # enemy_unit_mem
+            if self.frame > self.eum_frame:
+                self.eum_frame = self.frame + 21
+                for ene in self.enemy_units:
+                    self.enemy_unit_mem[ene.tag] = (ene.type_id, ene.position)
+            # nenemybases
+            self.nenemybases = 0
+            for (typ, pos) in self.enemy_struc_mem:
+                if typ in self.all_halltypes:
+                    self.nenemybases += 1
             # enemy_struc_mem_hash
             enemy_struc_mem_len = len(self.enemy_struc_mem)
             if enemy_struc_mem_len != self._last_enemy_struc_mem_len:
@@ -259,10 +272,10 @@ class Common(BotAI, IUnitInterface):
                 free = True
                 for typ in self.all_halltypes:
                     for stru in self.structures(typ):
-                        if self.distance(stru.position,pos) < 3:
+                        if distance(stru.position,pos) < 3:
                             free = False
                 for (enetyp,enepos) in self.enemy_struc_mem:
-                    if self.distance(enepos,pos) < 3:
+                    if distance(enepos,pos) < 3:
                         free = False
                 if free:
                     self.freeexpos.append(pos)
@@ -303,10 +316,6 @@ class Common(BotAI, IUnitInterface):
                             self.queens_supply_used += 2
             # army_supply_used
             self.army_supply_used = self.supply_used - (self.drones_supply_used + self.queens_supply_used)
-
-    def distance(self, p, q) -> float:
-        sd = (p.x-q.x)*(p.x-q.x) + (p.y-q.y)*(p.y-q.y)
-        return sqrt(sd)
 
     def range_vs(self, unit: Unit, target: Unit) -> float:
         ground_range = 0

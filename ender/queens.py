@@ -4,6 +4,7 @@
 
 from ender.common import Common
 from ender.job import Job
+from ender.utils.point_utils import distance
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -12,7 +13,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 class Queens(Common):
 
     __did_step0 = False
-    nextinject = {} # per hatch to prevent overinjecting
+    nextinject = {} # per hatch to prevent overINJECTER
     treating = {} # per patient the next treating moment
 
     def __step0(self):
@@ -55,22 +56,22 @@ class Queens(Common):
                         if self.frame >= self.listenframe_of_unit[unt.tag]:
                             if self.choose_inject(unt.position):
                                 pos = unt.position
-                                self.set_job_of_unit(unt, Job.INJECTING)
+                                self.set_job_of_unit(unt, Job.INJECTER)
                                 itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(pos)
                                 self.nextinject[itshatch.tag] = self.frame + 21 * self.seconds
             # move to its spot
             for unt in self.units(UnitTypeId.QUEEN).idle:
-                if self.job_of_unit(unt) == Job.INJECTING:
+                if self.job_of_unit(unt) == Job.INJECTER:
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
                         itsspot = itshatch.position.towards(self.map_center,4)
-                        dist = self.distance(unt.position,itsspot)
+                        dist = distance(unt.position,itsspot)
                         if dist > 4:
                             unt.move(itsspot)
                             self.listenframe_of_unit[unt.tag] = self.frame + 5
             # inject
             for unt in self.units(UnitTypeId.QUEEN).idle:
-                if self.job_of_unit(unt) == Job.INJECTING:
+                if self.job_of_unit(unt) == Job.INJECTER:
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         if unt.energy >= 25:
                             itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
@@ -126,7 +127,7 @@ class Queens(Common):
                                                 if self.frame < self.treating[other.tag]:
                                                     may_treat_it = False
                                             if may_treat_it:
-                                                dist = self.distance(unt.position,other.position)
+                                                dist = distance(unt.position,other.position)
                                                 if dist < 7:
                                                     unt(AbilityId.TRANSFUSION_TRANSFUSION,other)
                                                     self.listenframe_of_unit[tag] = self.frame + 5
@@ -141,6 +142,6 @@ class Queens(Common):
                         for hall in self.structures(halltype):
                             if hall.tag == halltag:
                                 for que in self.units(UnitTypeId.QUEEN):
-                                    if self.distance(que.position, hall.position) < 10:
+                                    if distance(que.position, hall.position) < 10:
                                         if self.job_of_unit(que) != Job.NURSE:
                                             self.queen_of_hall[halltag] = que.tag

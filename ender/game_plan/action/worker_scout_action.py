@@ -52,7 +52,7 @@ class WorkerScoutAction(IAction):
         self.worker_tag = self.common.workers.filter(
             lambda worker: self.common.job_of_unit(worker) in [Job.MIMMINER] and not worker.is_carrying_resource
         ).closest_to(self.common.enemymain).tag
-        self.common.set_job_of_unittag(self.worker_tag, Job.SCOUTING)
+        self.common.set_job_of_unittag(self.worker_tag, Job.SCOUT)
         self.state = WorkerScoutState.SCOUTING_MAIN
 
     def get_worker(self) -> Optional[Unit]:
@@ -72,8 +72,8 @@ class WorkerScoutAction(IAction):
                 self.circle_step = (self.circle_step + 1) % self.CIRCLE_STEPS
                 worker.move(point, queue=True)
             if self.common.time > 90 or not self.common.enemy_structures.of_type(
-                    UnitTypeId.BARRACKS).empty or not self.common.enemy_structures.of_type(
-                    UnitTypeId.WARPGATE).empty or not self.common.enemy_structures.of_type(UnitTypeId.SPAWNINGPOOL).empty:
+                    UnitTypeId.BARRACKS).ready.empty or not self.common.enemy_structures.of_type(
+                    UnitTypeId.WARPGATE).ready.empty or not self.common.enemy_structures.of_type(UnitTypeId.SPAWNINGPOOL).ready.empty:
                 self.state = WorkerScoutState.SCOUTING_EXPANSIONS
 
     def scouting_expansions(self):

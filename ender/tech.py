@@ -279,3 +279,13 @@ class Tech(Common):
         #
         if not self.did_tech_onstep:
             self.did_tech_onstep = True
+
+    # utility
+    def worth(self, typ) -> int:
+        worth = 0
+        if typ not in {UnitTypeId.MULE, UnitTypeId.AUTOTURRET, UnitTypeId.LARVA}:
+            if typ not in (self.all_eggtypes | self.all_changelings):
+                cost = self.calculate_cost(typ)
+                worth = 2 * cost.minerals + 3 * cost.vespene
+        return worth
+

@@ -7,6 +7,7 @@ from ender.job import Job
 from ender.map_if import Map_if
 from ender.resources import Resources
 from ender.strategy import Strategy
+from ender.utils.point_utils import distance
 import sc2
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -254,7 +255,7 @@ class Making(Map_if, Resources, Strategy):
                     if unt.tag in self.resourcetags(typ):
                         itsdist = 9999
                         for que in self.units(typ):
-                            dist = self.distance(que.position,unt.position)
+                            dist = distance(que.position,unt.position)
                             itsdist = min(dist,itsdist)
                         if itsdist > bestdist:
                             bestdist = itsdist
@@ -447,7 +448,7 @@ class Making(Map_if, Resources, Strategy):
                         flyingattackers = 0
                         for ene in self.enemy_units:
                             if ene.type_id not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER}:
-                                if self.distance(ene.position,strupos) < 10:
+                                if distance(ene.position,strupos) < 10:
                                     if ene.is_flying:
                                         flyingattackers += 1
                                     else:
@@ -596,7 +597,7 @@ class Making(Map_if, Resources, Strategy):
                     elif typ in self.all_sporetypes:
                         abasepos = self.structures(UnitTypeId.HATCHERY).random.position
                         # give extra chance to offensive placement
-                        if self.distance(abasepos, self.ourmain) < self.distance(abasepos, self.enemymain):
+                        if distance(abasepos, self.ourmain) < distance(abasepos, self.enemymain):
                             abasepos = self.structures(UnitTypeId.HATCHERY).random.position
                         pos = abasepos.towards(self.map_center,3)
                         # for supplytrick, place spores under a miner
@@ -633,7 +634,7 @@ class Making(Map_if, Resources, Strategy):
             return True
         for drone in self.units(UnitTypeId.DRONE):
             if drone.tag == histag:
-                if self.distance(drone.position, buildpos) < 4:
+                if distance(drone.position, buildpos) < 4:
                     return True
         return False
 
@@ -649,14 +650,14 @@ class Making(Map_if, Resources, Strategy):
                 for drone in self.units(UnitTypeId.DRONE):
                     tag = drone.tag
                     if self.job_of_unittag(tag) not in {Job.WALKER, Job.BUILDER}:
-                        dist = self.distance(drone.position,buildpos)
+                        dist = distance(drone.position,buildpos)
                         if dist < bestdist:
                             bestdist = dist
                             bestdrone = drone
                 if bestdist < 99999:
                     drone = bestdrone
                     tag = drone.tag
-                    dist = self.distance(drone.position,buildpos)
+                    dist = distance(drone.position,buildpos)
                     mimgap = self.mineral_gap(typ)
                     gasgap = self.vespene_gap(typ)
                     if (mimminers > 0):
@@ -865,7 +866,7 @@ class Making(Map_if, Resources, Strategy):
                 if self.atleast_started(typ) < lategame_max:
                     # opening can delay making drones
                     delay = False
-                    if self.bigattack_count == 0:
+                    if self.wave_count == 0:
                         if len(self.opening) > 0:
                             todel = False
                             (kind, kind_am, thing, thing_am) = self.opening[0]
@@ -909,12 +910,12 @@ class Making(Map_if, Resources, Strategy):
             herbase = False
             for halltype in self.all_halltypes:
                 for stru in self.structures(halltype):
-                    dist = self.distance(stru.position,pos)
+                    dist = distance(stru.position,pos)
                     if dist < 3:
                         mybase = True
                 for (ene,enepos) in self.enemy_struc_mem:
                     if ene == halltype:
-                        dist = self.distance(enepos,pos)
+                        dist = distance(enepos,pos)
                         if dist < 3:
                             herbase = True
             expansion = (pos,height,hasmin,hasgas,mybase,herbase,myblock,herblock,myarmy,herarmy)
@@ -933,7 +934,7 @@ class Making(Map_if, Resources, Strategy):
                         evalu = 0
                         evalu += height
                         if self.nbases == 1:
-                            evalu -= self.distance(self.ourmain,pos)
+                            evalu -= distance(self.ourmain,pos)
                         if herblock:
                             evalu -= 10
                         if herarmy:
@@ -1001,7 +1002,7 @@ class Making(Map_if, Resources, Strategy):
                         bestunt = None
                         for unt in self.units(UnitTypeId.DRONE):
                             if self.job_of_unit(unt) in [Job.UNCLEAR, Job.MIMMINER]:
-                                dist = self.distance(unt.position, pos)
+                                dist = distance(unt.position, pos)
                                 if dist < clodist:
                                     clodist = dist
                                     bestunt = unt

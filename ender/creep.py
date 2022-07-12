@@ -64,7 +64,7 @@ class Creep(Map_if):
         self.directionfinish = []
         if self.creepstyle == 0: # aggressive
             for epo in self.expansion_locations_list:
-                 if distance(epo, self.enemymain) < 70:
+                 if distance(epo,self.enemymain) < 70:
                      self.creepdirection.append(epo)
                      self.directionfinish.append(12)
         elif self.creepstyle == 1: # all bases
@@ -99,7 +99,7 @@ class Creep(Map_if):
                     for typ in self.all_tumortypes:
                         for stru in self.structures(typ):
                             pos = stru.position
-                            if distance(pos, goal) < finish:
+                            if distance(pos,goal) < finish:
                                 reached = True
                     if reached:
                         altx = random.randrange(0,len(self.creepdirection))
@@ -148,7 +148,7 @@ class Creep(Map_if):
         directionx = self.directionx_of_tumor[tag]
         dirpoint = self.creepdirection[directionx]
         dirfin = self.directionfinish[directionx]
-        while (distance(pos, dirpoint) < dirfin) and (self.different_directions > 1):
+        while (distance(pos,dirpoint) < dirfin) and (self.different_directions > 1):
             self.directionx_of_tumor[tag] = self.next_directionx
             self.next_directionx = (self.next_directionx + 1) % len(self.creepdirection)
             directionx = self.directionx_of_tumor[tag]
@@ -160,20 +160,20 @@ class Creep(Map_if):
             if self.job_of_unit(unt) == Job.UNCLEAR:
                 if unt.energy >= 27: # inject pickup is at 23
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
-                        self.set_job_of_unit(unt, Job.CREEPING)
+                        self.set_job_of_unit(unt, Job.CREEPER)
         # move to its spot
         for unt in self.units(UnitTypeId.QUEEN).idle:
-            if self.job_of_unit(unt) == Job.CREEPING:
+            if self.job_of_unit(unt) == Job.CREEPER:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
                     itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
                     itsspot = itshatch.position.towards(self.map_center,9)
-                    dist = distance(unt.position, itsspot)
+                    dist = distance(unt.position,itsspot)
                     if dist > 4:
                         unt.move(itsspot)
                         self.listenframe_of_unit[unt.tag] = self.frame + 5
         # make creeptumor
         for unt in self.units(UnitTypeId.QUEEN).idle:
-            if self.job_of_unit(unt) == Job.CREEPING:
+            if self.job_of_unit(unt) == Job.CREEPER:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
                     if unt.energy >= 25:
                         untpos = unt.position
@@ -384,7 +384,6 @@ class Creep(Map_if):
             if goodpoint:
                 # send one close to point
                 bestdist = 99999
-                bestlord = None
                 for typ in {UnitTypeId.OVERLORD}:
                     for lord in self.units(typ):
                         tag = lord.tag
@@ -395,7 +394,7 @@ class Creep(Map_if):
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestlord = lord
-                if bestlord:
+                if bestdist < 99999:
                     lord = bestlord
                     tag = lord.tag
                     self.creeplord_state[tag] = 'moving'

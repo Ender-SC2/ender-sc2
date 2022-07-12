@@ -7,6 +7,7 @@ import os
 from ender.common import Common
 from ender.job import Job
 from ender.utils.unit_utils import range_vs
+from ender.utils.point_utils import distance
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -125,11 +126,11 @@ class Overlords(Common):
             for ovi in self.units(UnitTypeId.OVERLORD):
                 if self.job_of_unit(ovi) in {Job.ROAMER, Job.HANGER}:
                     enemies = self.enemy_units.filter (
-                        lambda ene: self.distance(ene.position, ovi.position) < 13 ).filter(
+                        lambda ene: distance(ene.position, ovi.position) < 13 ).filter(
                             lambda ene: range_vs(ene, ovi) > 0)
                     rangedist = 99999
                     for ene in enemies:
-                        rd = self.distance(ovi.position, ene.position) - range_vs(ene, ovi)
+                        rd = distance(ovi.position, ene.position) - range_vs(ene, ovi)
                         if rd < rangedist:
                             rangedist = rd
                             monster = ene
@@ -142,7 +143,7 @@ class Overlords(Common):
     def tension_point_add(self, point: Point2):
         dist = 99999
         for apoint in self.tension_points:
-            dist = min(self.distance(point, apoint), dist)
+            dist = min(distance(point, apoint), dist)
         if dist > 3:
             self.tension_points.add(point)
 
@@ -195,7 +196,7 @@ class Overlords(Common):
                     if self.frame >= self.listenframe_of_unit[lor.tag]:
                         if self.job_of_unit(lor) in {Job.UNCLEAR, Job.HANGER, Job.ROAMER}: # premorph jobs
                             if lor.health >= 50:
-                                dist = self.distance(lor.position, goal)
+                                dist = distance(lor.position, goal)
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestlord = lor
@@ -204,7 +205,7 @@ class Overlords(Common):
                     for pastype in self.passenger_types:
                         for pas in self.units(pastype):
                             if self.job_of_unit(pas) in {Job.UNCLEAR, Job.VOLUNTEER, Job.MIMMINER, Job.DEFENDATTACK}:
-                                dist = self.distance(pas.position, goal) - 200 * self.passenger_types.index(pastype)
+                                dist = distance(pas.position, goal) - 200 * self.passenger_types.index(pastype)
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestpas = pas
@@ -236,14 +237,14 @@ class Overlords(Common):
                                                 self.listenframe_of_unit[unt.tag] = self.frame + self.seconds
                                             # remeet on idle
                                             elif self.trip_phase[trip] == 'phoned':
-                                                if self.distance(unt.position,lor.position) < 2:
+                                                if distance(unt.position,lor.position) < 2:
                                                     self.trip_phase[trip] = 'flying'
                                                     lor(AbilityId.LOAD_OVERLORD,unt)
                                                     lor(AbilityId.MOVE_MOVE,goal,queue=True)
                                                     self.listenframe_of_unit[lor.tag] = self.frame + 8 * self.seconds
                                                     self.listenframe_of_unit[unt.tag] = self.frame + 4 * self.seconds
                                                 elif len(lor.orders) == 0:
-                                                    if self.distance(unt.position,lor.position) >= 2:
+                                                    if distance(unt.position,lor.position) >= 2:
                                                         lor.move(unt.position)
                                                         self.listenframe_of_unit[lor.tag] = self.frame + self.seconds
             # per trip (transport visible)
@@ -254,7 +255,7 @@ class Overlords(Common):
                     if self.frame >= self.listenframe_of_unit[lor.tag]:
                         if lor.tag == lortag:
                             if self.trip_phase[trip] == 'flying':
-                                if self.distance(lor.position,goal) < 1:
+                                if distance(lor.position,goal) < 1:
                                     self.trip_phase[trip] = 'falling'
                                     lor(AbilityId.UNLOADALLAT_OVERLORD,goal)
                                     self.listenframe_of_unit[lor.tag] = self.frame + 3 * self.seconds
@@ -263,7 +264,7 @@ class Overlords(Common):
                                     goal = lor.position
                                     self.trip_goal[trip] = goal
                                 elif len(lor.orders) == 0:
-                                    if self.distance(lor.position,goal) >= 2:
+                                    if distance(lor.position,goal) >= 2:
                                         lor.move(goal)
                                         self.listenframe_of_unit[lor.tag] = self.frame + self.seconds
             # per trip (passenger visible)

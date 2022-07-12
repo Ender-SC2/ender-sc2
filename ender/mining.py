@@ -15,6 +15,7 @@ from loguru import logger
 
 from ender.common import Common
 from ender.job import Job
+from ender.utils.point_utils import distance
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.ids.ability_id import AbilityId
@@ -82,7 +83,7 @@ class Mining(Common):
             post = self.postag_of_position(respos)
             bestdist = 99999
             for expo in self.expansion_locations_list:
-                dist = self.distance(expo,respos)
+                dist = distance(expo,respos)
                 if dist < bestdist:
                     bestdist = dist
                     bestexpo = expo
@@ -92,7 +93,7 @@ class Mining(Common):
             post = self.postag_of_position(respos)
             bestdist = 99999
             for expo in self.expansion_locations_list:
-                dist = self.distance(expo,respos)
+                dist = distance(expo,respos)
                 if dist < bestdist:
                     bestdist = dist
                     bestexpo = expo
@@ -179,7 +180,7 @@ class Mining(Common):
                 bestdist = 99999
                 for bas in self.minebases:
                     baspos = bas.position
-                    dist = self.distance(baspos,expo)
+                    dist = distance(baspos,expo)
                     if dist < bestdist:
                         bestdist = dist
                         bestbas = bas
@@ -191,7 +192,7 @@ class Mining(Common):
                 post = self.postag_of_position(respos)
                 expo = self.expo_of_postag[post]
                 bas = self.minebase_of_expo_mfu[expo]
-                dist = self.distance(bas.position, respos)
+                dist = distance(bas.position, respos)
                 if dist < 10:
                     self.gaswork.append(post)
                     self.gaswork.append(post)
@@ -203,7 +204,7 @@ class Mining(Common):
                 post = self.postag_of_position(respos)
                 expo = self.expo_of_postag[post]
                 bas = self.minebase_of_expo_mfu[expo]
-                dist = self.distance(bas.position, respos)
+                dist = distance(bas.position, respos)
                 if dist < 10:
                     self.mimwork.append(post)
                     self.mimwork.append(post)
@@ -271,7 +272,7 @@ class Mining(Common):
             best_work: Optional[int] = None
             for post in self.gasfreework:
                 gaspos = self.position_of_postag(post)
-                dist = self.distance(gaspos, drone.position)
+                dist = distance(gaspos, drone.position)
                 if dist < best_dist:
                     best_dist = dist
                     best_work = post
@@ -290,7 +291,7 @@ class Mining(Common):
                 best_work: Optional[int] = None
                 for post in self.mimfreework:
                     mimpos = self.position_of_postag(post)
-                    dist = self.distance(mimpos, drone.position)
+                    dist = distance(mimpos, drone.position)
                     if dist < best_dist:
                         best_dist = dist
                         best_work = post
@@ -334,7 +335,7 @@ class Mining(Common):
                 bestminer: Optional[Unit] = None
                 for drone in self.units(UnitTypeId.DRONE):
                     if self.job_of_unit(drone) == Job.UNCLEAR:
-                        dist = self.distance(gaspos, drone.position)
+                        dist = distance(gaspos, drone.position)
                         if dist < bestdist:
                             bestdist = dist
                             bestminer = drone
@@ -352,7 +353,7 @@ class Mining(Common):
                 bestminer: Optional[Unit] = None
                 for drone in self.units(UnitTypeId.DRONE):
                     if self.job_of_unit(drone) == Job.UNCLEAR:
-                        dist = self.distance(mimpos, drone.position)
+                        dist = distance(mimpos, drone.position)
                         if dist < bestdist:
                             bestdist = dist
                             bestminer = drone
@@ -460,7 +461,7 @@ class Mining(Common):
                         base = self.minebase_of_expo_mfu[expo]
                         basepos = base.position.towards(patchpos, 2)
                         if miner not in self.info_start_frame:
-                            pdist = self.distance(dronepos, patchpos)
+                            pdist = distance(dronepos, patchpos)
                             if pdist < 3: # if far, do not start info phase
                                 self.info_start_frame[miner] = self.frame + 4 * self.seconds
                                 self.info_end_frame[miner] = self.frame + 16 * self.seconds
@@ -472,9 +473,9 @@ class Mining(Common):
                         if miner in self.info_start_frame:
                             if self.frame < self.info_end_frame[miner]:
                                 if self.frame >= self.info_start_frame[miner]:
-                                    pdist = self.distance(dronepos, patchpos)
-                                    bdist = self.distance(dronepos, basepos)
-                                    maxdist = self.distance(basepos, patchpos)
+                                    pdist = distance(dronepos, patchpos)
+                                    bdist = distance(dronepos, basepos)
+                                    maxdist = distance(basepos, patchpos)
                                     if bdist < maxdist: # inside circle
                                         if pdist < maxdist: # inside circle
                                             if pdist < self.patchpoint_dist[miner]:
@@ -485,8 +486,8 @@ class Mining(Common):
                                                 self.basepoint[miner] = dronepos
                             else: # speedmining
                                 if self.frame >= self.listenframe_of_unit[miner]:
-                                    pdist = self.distance(dronepos, self.patchpoint[miner])
-                                    bdist = self.distance(dronepos, self.basepoint[miner])
+                                    pdist = distance(dronepos, self.patchpoint[miner])
+                                    bdist = distance(dronepos, self.basepoint[miner])
                                     if self.hit_carrying[miner]:
                                         if 0.5 < bdist < 2.0:
                                             if drone.is_carrying_minerals:
@@ -595,7 +596,7 @@ class Mining(Common):
                     respos = patch.position
                     post = self.postag_of_position(respos)
                     if post not in self.mimwork:
-                        dist = self.distance(untpos, respos)
+                        dist = distance(untpos, respos)
                         if dist < bestdist:
                             bestdist = dist
                             bestpatch = patch
