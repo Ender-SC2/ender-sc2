@@ -61,7 +61,7 @@ class Making(Map_if, Resources, Strategy):
     expiration_of_builder = {} # it is a temporal job
     experience = [] # walktime for prewalkers
     example = UnitTypeId.SPORECRAWLER # for debugging, e.g. EXTRACTOR. To silence: SCV
-    emergency = set() # A thing in emergency gets 2000 importance.
+    # emergency in common.py
     # supplytricking in common.py
     supplytrick_phase = 'no'
     supplytrick_end = 0
@@ -158,7 +158,6 @@ class Making(Map_if, Resources, Strategy):
                     UnitTypeId.LURKERDENMP, UnitTypeId.SPIRE, UnitTypeId.NYDUSNETWORK, UnitTypeId.GREATERSPIRE,
                     UnitTypeId.ULTRALISKCAVERN, UnitTypeId.SPORECRAWLER, UnitTypeId.SPINECRAWLER}:
             await self.build_structure(typ.name, typ)
-        await self.do_emergency()
         await self.make_overlords()
         for upg in self.all_upgrades:
             await self.upgrade(upg)
@@ -167,7 +166,7 @@ class Making(Map_if, Resources, Strategy):
         await self.builder_admin()
         await self.go_walk()
         await self.downroot()
-        await self.do_freespine()
+        await self.plant_freespine()
         await self.destroyed()
         await self.do_supplytrick()
         await self.rallypoints()
@@ -437,33 +436,6 @@ class Making(Map_if, Resources, Strategy):
             return True
         return False
 
-    async def do_emergency(self):
-        self.emergency = set()
-        if self.frame < 6 * self.minutes:
-            if self.function_listens('emergency',10):
-                for stru in self.structures(UnitTypeId.HATCHERY):
-                    strupos = stru.position
-                    if stru.build_progress >= 0.5:
-                        groundattackers = 0
-                        flyingattackers = 0
-                        for ene in self.enemy_units:
-                            if ene.type_id not in {UnitTypeId.OVERLORD, UnitTypeId.OVERSEER}:
-                                if distance(ene.position,strupos) < 10:
-                                    if ene.is_flying:
-                                        flyingattackers += 1
-                                    else:
-                                        groundattackers += 1
-                        # spore or spine
-                        if (flyingattackers >= 1) or (groundattackers >= 2):
-                            if 3 * flyingattackers > groundattackers:
-                                typ = UnitTypeId.SPORECRAWLER
-                                if self.atleast_started(typ) < groundattackers:
-                                    self.emergency.add(typ)
-                                else:
-                                    typ = UnitTypeId.SPINECRAWLER
-                                    if self.atleast_started(typ) < flyingattackers:
-                                        self.emergency.add(typ)
-
     async def expand(self):
         if self.next_expansion == self.nowhere:
             if self.frame % 17 == 16:
@@ -514,8 +486,9 @@ class Making(Map_if, Resources, Strategy):
                 # increase importance if in make_plan
                 if (self.make_plan[typ] > 0) or ((typ == UnitTypeId.QUEEN) and self.auto_queen):
                     importance += 1000
-                if typ in self.emergency:
-                    importance = 2000
+                for (emerg_typ, emerg_pos) in self.emergency:
+                    if emerg_typ == typ:
+                        importance = 2000
                 self.claim_resources(typ,importance)
                 if self.check_resources(typ,importance):
                     self.now_make_a(typ)
@@ -556,8 +529,9 @@ class Making(Map_if, Resources, Strategy):
                     importance = self.importance['lone_building']
                 if (self.make_plan[typ] > 0):
                     importance += 1000                    
-                if typ in self.emergency:
-                    importance = 2000
+                for (emerg_typ, emerg_pos) in self.emergency:
+                    if emerg_typ == typ:
+                        importance = 2000
                 self.claim_resources(typ,importance)
                 if typ not in self.buildplan:
                     size = self.size_of_structure[typ]
@@ -607,6 +581,10 @@ class Making(Map_if, Resources, Strategy):
                                     gooddrone = drone
                             pos = gooddrone.position
                             self.set_job_of_unit(gooddrone,Job.UNCLEAR)
+                        # emergency position
+                        for (emerg_typ, emerg_pos) in self.emergency:
+                            if emerg_typ == typ:
+                                pos = emerg_pos
                         pos = self.map_around(pos,size)
                         self.map_plan(pos, size)
                         expiration = self.frame + self.minutes
@@ -913,9 +891,10 @@ class Making(Map_if, Resources, Strategy):
                     dist = distance(stru.position,pos)
                     if dist < 3:
                         mybase = True
-                for (ene,enepos) in self.enemy_struc_mem:
-                    if ene == halltype:
-                        dist = distance(enepos,pos)
+                for postag in self.enemy_struc_mem:
+                    (enetyp, enepos) = self.enemy_struc_mem[postag]
+                    if enetyp == halltype:
+                        dist = distance(enepos, pos)
                         if dist < 3:
                             herbase = True
             expansion = (pos,height,hasmin,hasgas,mybase,herbase,myblock,herblock,myarmy,herarmy)
@@ -1041,8 +1020,8 @@ class Making(Map_if, Resources, Strategy):
                                 stru(down, pos)
                                 self.listenframe_of_structure[stru.tag] = self.frame + self.seconds * 10
 
-    async def do_freespine(self):
-        if self.function_listens('do_freespine',11):
+    async def plant_freespine(self):
+        if self.function_listens('plant_freespine',11):
             for unt in self.units(UnitTypeId.DRONE):
                 if self.job_of_unit(unt) == Job.FREESPINE:
                     if self.listenframe_of_unit[unt.tag] < self.frame:

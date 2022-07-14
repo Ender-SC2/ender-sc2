@@ -609,9 +609,11 @@ class Mining(Common):
                 else:
                     unt = an_unemployed
                     goal = self.enemymain
-                    for (typ,pos) in self.enemy_struc_mem:
+                    for postag in self.enemy_struc_mem:
+                        (typ, pos) = self.enemy_struc_mem[postag]
                         goal = pos
-                    for (typ,pos) in self.enemy_struc_mem:
+                    for postag in self.enemy_struc_mem:
+                        (typ, pos) = self.enemy_struc_mem[postag]
                         if typ in self.all_halltypes:
                             goal = pos
                     unt.attack(goal)

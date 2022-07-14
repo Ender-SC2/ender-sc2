@@ -27,25 +27,9 @@ class PlaceBuilding(IAction):
 
     def execute(self):
         if self.has_building():
-            logger.info("Already have building")
+            logger.info("Already have building " + self.unit_type.name + " enough.")
             return
-        if not self.common.can_afford(self.unit_type):
-            logger.info("Can't afford")
-            return
-        position = self.get_position()
-        if position:
-            workers = self.common.workers.filter(
-                lambda worker: self.common.job_of_unit(worker) in [Job.MIMMINER] and not worker.is_carrying_resource
-            )
-            logger.info(f"Placing {self.unit_type} at {position}")
-            if not workers.empty:
-                worker = workers.closest_to(position)
-                self.common.set_job_of_unit(worker, Job.BUILDER)
-                worker.build(self.unit_type, position)
-            else:
-                logger.info("Fail to find a worker")
-        else:
-            logger.info("Fail to find a good building position")
+        self.common.emergency.add((self.unit_type, self.building_positioning))
 
     def has_building(self):
         if not self.on_base:

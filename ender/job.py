@@ -20,6 +20,7 @@ class Job(Enum):
     SPRAYER = auto()
     GUARD = auto() # drone
     TRANSPORTER = auto() # overlordtransport or passenger
+    HARASSER = auto() # overlordtransport
     VOLUNTEER = auto()
     TIRED = auto() # waits for energy
     CREEPLORD = auto() # overlord

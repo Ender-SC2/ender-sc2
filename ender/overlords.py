@@ -27,7 +27,7 @@ class Overlords(Common):
     trips = set() # of (passenger.tag, overlordtransport.tag)    Both unique
     trip_goal = {} # per trip: a goal
     trip_phase = {} # per trip: none -> destined -> phoned -> flying -> falling
-    passenger_types = [UnitTypeId.LURKERMP, UnitTypeId.ROACH, UnitTypeId.DRONE]
+    passenger_types = [UnitTypeId.LURKERMP, UnitTypeId.BANELING, UnitTypeId.DRONE]
     freespine_couples = set()
 
     def __step0(self):
@@ -161,6 +161,32 @@ class Overlords(Common):
     
     async def transport(self):
         if self.function_listens('transport',11):
+            # log
+            for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
+                job = self.job_of_unit(lor)
+                logger.info('Overlordtransport ' + job.name)
+            logger.info('freespine_couples: ' + str(self.freespine_couples))
+            # Half of the overlordtransports are harasser
+            harassers = 0
+            others = 0
+            for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
+                if self.job_of_unit(lor) == Job.HARASSER:
+                    harassers += 1
+                else:
+                    others += 1
+            if harassers + 1 < others:
+                first = True
+                for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
+                    if self.job_of_unit(lor) == Job.UNCLEAR:
+                        if first:
+                            first = False
+                            self.set_job_of_unit(lor, Job.HARASSER)
+                            lor.move(self.ourmain)
+            if harassers > others:
+                first = True
+                for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
+                    if self.job_of_unit(lor) == Job.HARASSER:
+                        self.set_job_of_unit(lor, Job.UNCLEAR)
             # trips gone wrong
             todel = set()
             for trip in self.trips:
@@ -183,18 +209,18 @@ class Overlords(Common):
                 stri += ' ' + self.trip_phase[trip]
                 logger.info(stri)
             #
-            if len(self.structures(UnitTypeId.LAIR)) > 0:
+            if len(self.structures(UnitTypeId.LAIR)) + len(self.structures(UnitTypeId.HIVE)) > 0:
                 # make trips
                 goals = [self.enemymain]
-                for (typ,pos) in self.enemy_struc_mem:
+                for postag in self.enemy_struc_mem:
+                    (typ, pos) = self.enemy_struc_mem[postag]
                     if typ in self.all_halltypes:
                         goals.append(pos)
                 goal = random.choice(goals)
-                goal = goal.towards(self.ourmain, 4)
                 bestdist = 99999
                 for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
                     if self.frame >= self.listenframe_of_unit[lor.tag]:
-                        if self.job_of_unit(lor) in {Job.UNCLEAR, Job.HANGER, Job.ROAMER}: # premorph jobs
+                        if self.job_of_unit(lor) in {Job.UNCLEAR, Job.HARASSER, Job.HANGER, Job.ROAMER}: # premorph jobs
                             if lor.health >= 50:
                                 dist = distance(lor.position, goal)
                                 if dist < bestdist:
@@ -205,18 +231,23 @@ class Overlords(Common):
                     for pastype in self.passenger_types:
                         for pas in self.units(pastype):
                             if self.job_of_unit(pas) in {Job.UNCLEAR, Job.VOLUNTEER, Job.MIMMINER, Job.DEFENDATTACK}:
-                                dist = distance(pas.position, goal) - 200 * self.passenger_types.index(pastype)
+                                dist = distance(pas.position, goal) + 200 * self.passenger_types.index(pastype)
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestpas = pas
+                                    if pastype == UnitTypeId.DRONE:
+                                        bestgoal = goal.towards(self.ourmain, 4)
+                                    else:
+                                        bestgoal = goal.towards(self.map_center, -4)
                     if bestdist < 99999:
                         self.set_job_of_unit(bestpas, Job.TRANSPORTER)
                         self.set_job_of_unit(bestlord, Job.TRANSPORTER)
                         trip = (bestpas.tag, bestlord.tag)
                         self.trips.add(trip)
-                        self.trip_goal[trip] = goal
+                        self.trip_goal[trip] = bestgoal
                         self.trip_phase[trip] = 'destined'
             # per trip (both visible)
+            todel = set()
             for trip in self.trips:
                 goal = self.trip_goal[trip]
                 (pastag,lortag) = trip
@@ -232,21 +263,41 @@ class Overlords(Common):
                                                 meetingpoint = Point2((0.5 * lor.position.x + 0.5 * unt.position.x,
                                                                     0.5 * lor.position.y + 0.5 * unt.position.y))
                                                 lor.move(meetingpoint)
-                                                self.listenframe_of_unit[lor.tag] = self.frame + self.seconds
+                                                self.listenframe_of_unit[lortag] = self.frame + self.seconds
                                                 unt.move(meetingpoint)
-                                                self.listenframe_of_unit[unt.tag] = self.frame + self.seconds
+                                                self.listenframe_of_unit[pastag] = self.frame + self.seconds
                                             # remeet on idle
                                             elif self.trip_phase[trip] == 'phoned':
                                                 if distance(unt.position,lor.position) < 2:
                                                     self.trip_phase[trip] = 'flying'
                                                     lor(AbilityId.LOAD_OVERLORD,unt)
                                                     lor(AbilityId.MOVE_MOVE,goal,queue=True)
-                                                    self.listenframe_of_unit[lor.tag] = self.frame + 8 * self.seconds
-                                                    self.listenframe_of_unit[unt.tag] = self.frame + 4 * self.seconds
+                                                    self.listenframe_of_unit[lortag] = self.frame + 8 * self.seconds
+                                                    self.listenframe_of_unit[pastag] = self.frame + 4 * self.seconds
                                                 elif len(lor.orders) == 0:
                                                     if distance(unt.position,lor.position) >= 2:
                                                         lor.move(unt.position)
-                                                        self.listenframe_of_unit[lor.tag] = self.frame + self.seconds
+                                                        self.listenframe_of_unit[lortag] = self.frame + self.seconds
+                                            elif self.trip_phase[trip] == 'falling':
+                                                del self.trip_goal[trip]
+                                                del self.trip_phase[trip]
+                                                todel.add(trip)
+                                                if unt.type_id == UnitTypeId.LURKERMP:
+                                                    unt(AbilityId.BURROWDOWN_LURKER)
+                                                    self.listenframe_of_unit[pastag] = self.frame + 4 * self.seconds
+                                                    self.set_job_of_unittag(lortag, Job.HARASSER)
+                                                    lor.move(self.ourmain)
+                                                    self.listenframe_of_unit[lortag] = self.frame + self.seconds
+                                                elif unt.type_id == UnitTypeId.DRONE:
+                                                    self.set_job_of_unittag(lortag,Job.FREESPINE)
+                                                    self.set_job_of_unittag(pastag,Job.FREESPINE)
+                                                    self.listenframe_of_unit[pastag] = self.frame + 2 * self.seconds
+                                                    self.freespine_couples.add((lortag, pastag))
+                                                elif unt.type_id == UnitTypeId.BANELING:
+                                                    self.set_job_of_unittag(lortag, Job.HARASSER)
+                                                    lor.move(self.ourmain)
+                                                    self.listenframe_of_unit[lortag] = self.frame + self.seconds
+            self.trips -= todel
             # per trip (transport visible)
             for trip in self.trips:
                 goal = self.trip_goal[trip]
@@ -258,7 +309,7 @@ class Overlords(Common):
                                 if distance(lor.position,goal) < 1:
                                     self.trip_phase[trip] = 'falling'
                                     lor(AbilityId.UNLOADALLAT_OVERLORD,goal)
-                                    self.listenframe_of_unit[lor.tag] = self.frame + 3 * self.seconds
+                                    self.listenframe_of_unit[lortag] = self.frame + 3 * self.seconds
                                     self.listenframe_of_unit[pastag] = self.frame + 3 * self.seconds
                                 elif lor.health < 50:
                                     goal = lor.position
@@ -266,30 +317,7 @@ class Overlords(Common):
                                 elif len(lor.orders) == 0:
                                     if distance(lor.position,goal) >= 2:
                                         lor.move(goal)
-                                        self.listenframe_of_unit[lor.tag] = self.frame + self.seconds
-            # per trip (passenger visible)
-            todel = set()
-            for trip in self.trips:
-                goal = self.trip_goal[trip]
-                (pastag,lortag) = trip
-                for pastype in self.passenger_types:
-                    for unt in self.units(pastype):
-                        if unt.tag == pastag:
-                            if self.frame >= self.listenframe_of_unit[unt.tag]:
-                                if self.trip_phase[trip] == 'falling':
-                                    del self.trip_goal[trip]
-                                    del self.trip_phase[trip]
-                                    todel.add(trip)
-                                    if unt.type_id == UnitTypeId.LURKERMP:
-                                        unt(AbilityId.BURROWDOWN_LURKER)
-                                        self.listenframe_of_unit[unt.tag] = self.frame + 4 * self.seconds
-                                        self.set_job_of_unittag(lortag, Job.UNCLEAR)
-                                    elif unt.type_id == UnitTypeId.DRONE:
-                                        self.set_job_of_unittag(lortag,Job.FREESPINE)
-                                        self.set_job_of_unittag(unt.tag,Job.FREESPINE)
-                                        self.listenframe_of_unit[unt.tag] = self.frame + 2 * self.seconds
-                                        self.freespine_couples.add((lortag, unt.tag))
-            self.trips -= todel
+                                        self.listenframe_of_unit[lortag] = self.frame + self.seconds
 
     async def do_freespine(self):
         # a freespine_couple is (overlordtransport FREESPINE, drone or spinecrawler FREESPINE)
@@ -299,7 +327,7 @@ class Overlords(Common):
             for couple in self.freespine_couples:
                 (lortag, unttag) = couple
                 seen = 0
-                for lor in self.units(UnitTypeId.OVERLORDTANSPORT):
+                for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
                     if lor.tag == lortag:
                         if self.job_of_unit(lor) == Job.FREESPINE:
                             seen += 1
@@ -315,7 +343,7 @@ class Overlords(Common):
                     todel.add(couple)
             self.freespine_couples -= todel
             for (lortag, unttag) in todel:
-                for lor in self.units(UnitTypeId.OVERLORDTANSPORT):
+                for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
                     if lor.tag == lortag:
                         if self.job_of_unit(lor) == Job.FREESPINE:
                             self.set_job_of_unit(lor, Job.UNCLEAR)

@@ -362,7 +362,8 @@ class Map_if(Common):
                 for cons in self.enemy_drawings:
                     (position, size, typ) = cons
                     seen = False
-                    for (strutyp, struposition) in self.enemy_struc_mem:
+                    for postag in self.enemy_struc_mem:
+                        (strutyp, struposition) = self.enemy_struc_mem[postag]
                         if (struposition == position) and (strutyp == typ):
                             seen = True
                     if not seen:
@@ -372,7 +373,8 @@ class Map_if(Common):
                     (position, size, typ) = cons
                     self.map_unbuild(position, size)
                 # draw enemy buildings
-                for (typ, position) in self.enemy_struc_mem:
+                for postag in self.enemy_struc_mem:
+                    (typ, position) = self.enemy_struc_mem[postag]
                     size = self.size_of_structure[typ]
                     cons = (position, size, typ)
                     if cons not in self.enemy_drawings:

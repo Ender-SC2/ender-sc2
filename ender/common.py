@@ -102,7 +102,7 @@ class Common(BotAI, IUnitInterface):
     frame = 0 # will have even numbers if game_step=2
     nbases = 1 # own halls > 80% ready
     nenemybases = 1 # enemy halls seen (started)
-    enemy_struc_mem = set() # structures out of sight still are there (expected)
+    enemy_struc_mem = {} # structures out of sight still are there (expected). Using postag to make position unique.
     enemy_struc_mem_hash = 0 # to react on changes
     enemy_unit_mem = {} # enemy units, about each second, per tag: (type, last seen place) 
     eum_frame = 0
@@ -139,12 +139,13 @@ class Common(BotAI, IUnitInterface):
     __did_step0 = False
     _last_structures_len = 0 # internal speedup
     _last_enemy_struc_mem_len = 0 # internal speedup
-
+    emergency = set() # A thing in emergency will build with 2000 importance. Set of (typ, pos)
 
     async def __step0(self):
         self.enemymain = self.enemy_start_locations[0].position
         self.ourmain = self.start_location
-        self.enemy_struc_mem.add((UnitTypeId.COMMANDCENTER,self.enemymain))
+        postag = self.postag_of_pos(self.enemymain)
+        self.enemy_struc_mem[postag] = (UnitTypeId.COMMANDCENTER,self.enemymain)
         self.map_center = self.game_info.map_center
         self.map_left = self.game_info.playable_area.x
         self.map_right = self.game_info.playable_area.width+self.game_info.playable_area.x
@@ -205,18 +206,21 @@ class Common(BotAI, IUnitInterface):
                 if not stru.is_flying: # moving, like BARRACKSFLYING
                     if stru.type_id not in {UnitTypeId.SPINECRAWLERUPROOTED,UnitTypeId.SPORECRAWLERUPROOTED}:
                         if stru.type_id not in self.all_tumortypes: # too much
-                            self.enemy_struc_mem.add((stru.type_id,stru.position))
+                            postag = self.postag_of_pos(stru.position)
+                            self.enemy_struc_mem[postag] = (stru.type_id, stru.position)
             todel = set()
-            for tp in self.enemy_struc_mem:
-                (typ,pos) = tp
+            for postag in self.enemy_struc_mem:
+                tp = self.enemy_struc_mem[postag]
+                (typ, pos) = tp
                 if self.is_visible(pos):
                     seen = False
                     for ene in self.enemy_structures:
                         if (ene.position == pos):
                             seen = True
                     if not seen:
-                        todel.add(tp)
-            self.enemy_struc_mem -= todel
+                        todel.add(postag)
+            for postag in todel:
+                del self.enemy_struc_mem[postag]
             # enemy_unit_mem
             if self.frame > self.eum_frame:
                 self.eum_frame = self.frame + 21
@@ -224,7 +228,8 @@ class Common(BotAI, IUnitInterface):
                     self.enemy_unit_mem[ene.tag] = (ene.type_id, ene.position)
             # nenemybases
             self.nenemybases = 0
-            for (typ, pos) in self.enemy_struc_mem:
+            for postag in self.enemy_struc_mem:
+                (typ, pos) = self.enemy_struc_mem[postag]
                 if typ in self.all_halltypes:
                     self.nenemybases += 1
             # enemy_struc_mem_hash
@@ -232,9 +237,8 @@ class Common(BotAI, IUnitInterface):
             if enemy_struc_mem_len != self._last_enemy_struc_mem_len:
                 self._last_enemy_struc_mem_len = enemy_struc_mem_len
                 ehash = 0
-                for tp in self.enemy_struc_mem:
-                    (typ,pos) = tp
-                    ehash += pos.x
+                for postag in self.enemy_struc_mem:
+                    ehash += postag
                 self.enemy_struc_mem_hash = ehash
             # structures_hash
             structures_len = len(self.structures)
@@ -260,7 +264,8 @@ class Common(BotAI, IUnitInterface):
                 for stru in self.structures(alt):
                     if geyser.position == stru.position:
                         free = False
-                for (enetyp,enepos) in self.enemy_struc_mem:
+                for postag in self.enemy_struc_mem:
+                    (enetyp, enepos) = self.enemy_struc_mem[postag]
                     if enepos == geyser.position:
                         free = False
                 if free:
@@ -274,8 +279,9 @@ class Common(BotAI, IUnitInterface):
                     for stru in self.structures(typ):
                         if distance(stru.position,pos) < 3:
                             free = False
-                for (enetyp,enepos) in self.enemy_struc_mem:
-                    if distance(enepos,pos) < 3:
+                for postag in self.enemy_struc_mem:
+                    (enetyp, enepos) = self.enemy_struc_mem[postag]
+                    if distance(enepos, pos) < 3:
                         free = False
                 if free:
                     self.freeexpos.append(pos)
@@ -369,3 +375,7 @@ class Common(BotAI, IUnitInterface):
             if self.job_of_unit(unt) == job:
                 count += 1
         return count
+
+    def postag_of_pos(self, pos) -> int:    
+        return round(400 * pos.x + 2 * pos.y)
+

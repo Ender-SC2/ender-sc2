@@ -210,7 +210,7 @@ class Strategy(Tech):
         elif gameplan == self.Gameplan.FOURBASE:
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 6
-            self.result_plan[UnitTypeId.EXTRACTOR] = 6
+            self.result_plan[UnitTypeId.EXTRACTOR] = 7
             self.result_plan[UnitTypeId.ZERGLING] = 10
             self.result_plan[UnitTypeId.BANELING] = 20
             self.result_plan[UnitTypeId.ROACH] = 20
@@ -450,12 +450,14 @@ class Strategy(Tech):
                 for tag in self.enemy_unit_mem:
                     (typ, pos) = self.enemy_unit_mem[tag]
                     if typ not in self.all_workertypes:
-                        ene_worth += self.worth(typ)
+                        if typ not in {UnitTypeId.QUEEN, UnitTypeId.OVERLORD}:
+                            ene_worth += self.worth(typ)
                 my_worth = 0
                 for unt in self.units:
                     typ = unt.type_id
-                    if typ not in self.all_workertypes:
-                        my_worth += self.worth(typ)
+                    if typ in self.all_armytypes:
+                        if typ not in {UnitTypeId.QUEEN, UnitTypeId.OVERLORD}:
+                            my_worth += self.worth(typ)
                 if ene_worth >= my_worth + 1000:
                     danger = True
                 if danger:

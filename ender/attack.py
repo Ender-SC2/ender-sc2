@@ -38,7 +38,7 @@ class Attack(Map_if, Tech):
         UnitTypeId.SPINECRAWLER, UnitTypeId.SPORECRAWLER, UnitTypeId.SPAWNINGPOOL}
     biletarget_units = {UnitTypeId.SIEGETANKSIEGED, UnitTypeId.RAVAGER, UnitTypeId.CORRUPTOR, UnitTypeId.GHOST, \
         UnitTypeId.LIBERATORAG, UnitTypeId.SENTRY, UnitTypeId.COLOSSUS}
-    biletarget_no = {UnitTypeId.LARVA, UnitTypeId.EGG, UnitTypeId.AUTOTURRET}
+    biletarget_no = {UnitTypeId.LARVA, UnitTypeId.EGG, UnitTypeId.AUTOTURRET, UnitTypeId.MULE}
     # bigattacking in common.py
     bigattack_moment = -99999
     bigattack_end = 0 # the end of a bigattack, also allowing a new bigattack
@@ -47,7 +47,8 @@ class Attack(Map_if, Tech):
     gatherpoint = None # 2/3 bigattack_goal + 1/3 defendgoal
     attack_started = {} # separate gather phase from actual attack phase
     last_catch = {} # for burrowed banelings
-    burbanes = set() # of positions where a burrowed baneling is or was.
+    burbanes = {} # of positions where a own burrowed baneling is or was. Per tag: (pos, upframe)
+    dontburrow = {} # A baneling can have temporary don't-burrow status. Per tag: downframe.
     pos_of_blocker = {}
     blocker_of_pos = {}
     may_spawn = {} # timer for swarmhosts
@@ -60,9 +61,6 @@ class Attack(Map_if, Tech):
                                   RepositionBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
                                   BackBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
                                   SidewardsBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER])]
-    # DEBUG wj
-    # atm (8 jul 22)  no big effect on slowness or gameresult
-    # behaviors: List[IBehavior] = []
     detector_types = [UnitTypeId.MISSILETURRET, UnitTypeId.PHOTONCANNON, UnitTypeId.SPORECRAWLER, \
                     UnitTypeId.OVERSEER, UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.OBSERVER, \
                         UnitTypeId.OBSERVERSIEGEMODE, UnitTypeId.RAVEN]
@@ -71,6 +69,7 @@ class Attack(Map_if, Tech):
     circler_pos = {}
     circler_next_frame = 0 # common for all circlers
     enemy_nat_blocked = False
+    want_enemy_nat_block = True
     enemynatural = None
     succer = {} # viper loading
     succed = {} # viper loading
@@ -97,6 +96,7 @@ class Attack(Map_if, Tech):
         #
         self.biletarget_no |= self.all_changelings
         #
+        self.want_enemy_nat_block = (random.random() < 0.5)
 
 
     async def on_step(self, iteration: int):
@@ -134,10 +134,12 @@ class Attack(Map_if, Tech):
         if self.function_listens('find_bigattackgoal',10):
             goals = [] # of (dumbness,dist_to_enemymain,pos)
             goals.append((2,0,self.enemymain))
-            for (typ,pos) in self.enemy_struc_mem:
+            for postag in self.enemy_struc_mem:
+                (typ, pos) = self.enemy_struc_mem[postag]
                 dist = distance(pos,self.enemymain)
                 goals.append((1,dist,pos))
-            for (typ,pos) in self.enemy_struc_mem:
+            for postag in self.enemy_struc_mem:
+                (typ, pos) = self.enemy_struc_mem[postag]
                 if typ in self.all_halltypes:
                     dist = distance(pos,self.defendgoal)
                     goals.append((0,dist,pos))
@@ -201,7 +203,6 @@ class Attack(Map_if, Tech):
                     ground_damage = False
                     for typ in self.all_armytypes:
                         for unt in self.units(typ):
-                            tag = unt.tag
                             if self.job_of_unit(unt) == Job.BIGATTACK:
                                 if (unt.can_attack_ground) or (unt.type_id == UnitTypeId.BROODLORD):
                                     ground_damage = True
@@ -250,7 +251,7 @@ class Attack(Map_if, Tech):
                     wanttrade = True
                     if self.nbases >= self.nenemybases + 2:
                         wanttrade = False
-                    if (self.army_supply_used >= self.supplycap_army-2) or (self.supply_used >= 190):
+                    if (self.army_supply_used >= self.supplycap_army-10) or (self.supply_used >= 180):
                         wanttrade = True
                     if wanttrade:
                         # report
@@ -275,6 +276,7 @@ class Attack(Map_if, Tech):
                         self.bigattack_end = self.bigattack_moment + 30 * self.seconds
                     else: # not want trade
                         logger.info('SKIPPING BIGATTACK!')
+                        await self._client.chat_send('skipping attack', team_only=False)
                         self.wave_count += 1
                         self.bigattack_moment = self.frame + 30 * self.seconds
                         self.bigattack_end = self.frame + self.minutes
@@ -542,7 +544,8 @@ class Attack(Map_if, Tech):
         if self.function_listens('set_sh_goal', 9 * self.seconds):
             self.sh_goal = self.enemymain
             mindist = 99999
-            for (typ, pos) in self.enemy_struc_mem:
+            for postag in self.enemy_struc_mem:
+                (typ, pos) = self.enemy_struc_mem[postag]
                 if typ in self.all_halltypes:
                     dist = distance(self.ourmain,pos)
                     if dist < mindist:
@@ -756,17 +759,18 @@ class Attack(Map_if, Tech):
             else:
                 startframe = 13 * self.seconds
             if self.frame > startframe:
-                if not self.enemy_nat_blocked:
-                    pos = self.enemynatural
-                    for unt in self.units(UnitTypeId.DRONE):
-                        tag = unt.tag
-                        if not self.enemy_nat_blocked:
-                            self.enemy_nat_blocked = True
-                            # connect
-                            self.pos_of_blocker[tag] = pos
-                            self.blocker_of_pos[pos] = tag
-                            self.set_job_of_unit(unt, Job.BLOCKER)
-                            self.start_block_circle(96, tag, pos)
+                if self.want_enemy_nat_block:
+                    if not self.enemy_nat_blocked:
+                        pos = self.enemynatural
+                        for unt in self.units(UnitTypeId.DRONE):
+                            tag = unt.tag
+                            if not self.enemy_nat_blocked:
+                                self.enemy_nat_blocked = True
+                                # connect
+                                self.pos_of_blocker[tag] = pos
+                                self.blocker_of_pos[pos] = tag
+                                self.set_job_of_unit(unt, Job.BLOCKER)
+                                self.start_block_circle(96, tag, pos)
             # recruit zerglings
             if self.nbases >= 3: # 3 finished bases
                 for unt in self.units(UnitTypeId.ZERGLING):
@@ -870,7 +874,7 @@ class Attack(Map_if, Tech):
                 for typ in candidates:
                     for sla in self.units(typ):
                         if self.job_of_unit(sla) not in [Job.SLAVE, Job.SCRATCHED, Job.TIRED, Job.WOUNDED,
-                                                          Job.BERSERKER, Job.BLOCKER]:
+                                                          Job.BERSERKER, Job.BLOCKER, Job.TRANSPORTER, Job.HARASSER]:
                             self.set_job_of_unit(sla, Job.SLAVE)
                             self.master[sla.tag] = self.units(UnitTypeId.BROODLORD).random.tag
             # move slaves
@@ -967,7 +971,8 @@ class Attack(Map_if, Tech):
                     self.bilecool[tag] = 0
                 if self.frame >= self.bilecool[tag]:
                     targets = []
-                    for (enetyp, enepos) in self.enemy_struc_mem:
+                    for postag in self.enemy_struc_mem:
+                        (enetyp, enepos) = self.enemy_struc_mem[postag]
                         if distance(ravpos, enepos) < 9.5 + self.size_of_structure[enetyp] / 2:
                             if distance(ravpos, enepos) > 9:
                                 throwat = ravpos.towards(enepos, 9)
@@ -983,7 +988,8 @@ class Attack(Map_if, Tech):
                                 else:
                                     throwat = enepos
                                 targets.append((2,throwat))
-                    for (enetyp, enepos) in self.enemy_struc_mem:
+                    for postag in self.enemy_struc_mem:
+                        (enetyp, enepos) = self.enemy_struc_mem[postag]
                         if distance(ravpos, enepos) < 9.5 + self.size_of_structure[enetyp] / 2:
                             if enetyp in self.biletarget_buildings:
                                 if distance(ravpos, enepos) > 9:
@@ -1002,8 +1008,23 @@ class Attack(Map_if, Tech):
                                 targets.append((0,throwat))
                     if len(targets) > 0:
                         targets.sort()
-                        target = targets[0][1]
-                        rav(AbilityId.EFFECT_CORROSIVEBILE, target)
+                        besttargetpos = targets[0][1]
+                        # experimental code to not bile double (except on sieged tank)
+                        if targets[0][0] > 0: # target not sieged tank
+                            targetfound = False
+                            for targetpair in targets:
+                                if not targetfound:
+                                    targetpos = targetpair[1]
+                                    double = False
+                                    for (bileposition,landframe) in self.biles:
+                                        if self.frame < landframe:
+                                            if distance(targetpos, bileposition) < 1:
+                                                double = True
+                                    if not double:
+                                        targetfound = True
+                                        besttargetpos = targetpos
+                        #
+                        rav(AbilityId.EFFECT_CORROSIVEBILE, besttargetpos)
                         self.bilecool[tag] = self.frame + 7.5 * self.seconds
 
 
@@ -1086,6 +1107,7 @@ class Attack(Map_if, Tech):
 
     async def banes(self):
         bur = AbilityId.BURROWDOWN_BANELING
+        burup = AbilityId.BURROWUP_BANELING
         bang = AbilityId.EXPLODE_EXPLODE
         for unt in self.units(UnitTypeId.BANELING):
             pos = unt.position
@@ -1093,7 +1115,11 @@ class Attack(Map_if, Tech):
             for ene in self.enemy_units:
                 if ene.type_id not in self.all_workertypes:
                     if distance(ene.position,pos) < 10:
-                        burrow = True
+                        if unt.tag in self.dontburrow:
+                            if self.frame >= self.dontburrow[unt.tag]:
+                                burrow = True
+                        else:
+                            burrow = True
             if burrow:
                 # detected?
                 for ene in self.enemy_units:
@@ -1107,14 +1133,17 @@ class Attack(Map_if, Tech):
                                 burrow = False
                 # max 2 within radius 5
                 amclose = 0
-                for burba in self.burbanes:
-                    if distance(burba,pos) < 5:
+                for atag in self.burbanes:
+                    (apos, aframe) = self.burbanes[atag]
+                    if distance(apos,pos) < 5:
                         amclose += 1
                 if amclose >= 2:
                     burrow = False
                 if burrow:
-                    self.burbanes.add(pos)
+                    upframe = self.frame + self.minutes
+                    self.burbanes[unt.tag] = (pos, upframe)
                     unt(bur)
+        # explode
         for unt in self.units(UnitTypeId.BANELINGBURROWED):
             pos = unt.position
             # radius = 2.2
@@ -1135,8 +1164,26 @@ class Attack(Map_if, Tech):
                 last_catch = set()
             if len(catch) < len(last_catch):
                 unt(bang)
-                # keep it in burbanes
+                # chosen is to ignore administration of burbanes
             self.last_catch[unt.tag] = catch
+        # upframe
+        for unt in self.units(UnitTypeId.BANELINGBURROWED):
+            tag = unt.tag
+            if tag in self.burbanes:
+                (pos, upframe) = self.burbanes[tag]
+                if self.frame >= upframe:
+                    unt(burup)
+                    del self.burbanes[tag]
+                    self.dontburrow[tag] = self.frame + 6 * self.seconds
+        # dontburrow administration
+        if self.frame % 37 == 0:
+            todel = set()
+            for tag in self.dontburrow:
+                if self.frame >= self.dontburrow[tag]:
+                    todel.add(tag)
+            for tag in todel:
+                del self.dontburrow[tag]              
+
             
     async def do_dried(self):
         if self.function_listens('do_dried', 21 * self.seconds):

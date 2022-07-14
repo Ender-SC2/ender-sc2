@@ -37,11 +37,12 @@ class Antiair(Common):
             self._last_enemy_struc_mem_hash = self.enemy_struc_mem_hash
             antiairs = set() # set of positions of enemy antiairor buildings
             ehash = 0
-            for tpplus in self.enemy_struc_mem:
+            for postag in self.enemy_struc_mem:
+                tpplus = self.enemy_struc_mem[postag]
                 (typ, pos) = tpplus
                 if typ in self.static_antiair_types:
                     antiairs.add(pos)
-                    ehash += pos.x
+                    ehash += postag
             if self.antiair_hash != ehash:
                 self.antiair_hash = ehash
                 self.antiair_pos = antiairs
