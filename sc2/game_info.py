@@ -46,7 +46,7 @@ class Ramp:
 
     @property_mutable_cache
     def upper(self) -> Set[Point2]:
-        """ Returns the upper points of a ramp. """
+        """Returns the upper points of a ramp."""
         current_max = -10000
         result = set()
         for p in self._points:
@@ -60,7 +60,7 @@ class Ramp:
 
     @property_mutable_cache
     def upper2_for_ramp_wall(self) -> Set[Point2]:
-        """ Returns the 2 upper ramp points of the main base ramp required for the supply depot and barracks placement properties used in this file. """
+        """Returns the 2 upper ramp points of the main base ramp required for the supply depot and barracks placement properties used in this file."""
         if len(self.upper) > 5:
             # NOTE: this was way too slow on large ramps
             return set()  # HACK: makes this work for now
@@ -97,7 +97,7 @@ class Ramp:
 
     @property_immutable_cache
     def barracks_in_middle(self) -> Optional[Point2]:
-        """ Barracks position in the middle of the 2 depots """
+        """Barracks position in the middle of the 2 depots"""
         if len(self.upper) not in {2, 5}:
             return None
         if len(self.upper2_for_ramp_wall) == 2:
@@ -112,7 +112,7 @@ class Ramp:
 
     @property_immutable_cache
     def depot_in_middle(self) -> Optional[Point2]:
-        """ Depot in the middle of the 3 depots """
+        """Depot in the middle of the 3 depots"""
         if len(self.upper) not in {2, 5}:
             return None
         if len(self.upper2_for_ramp_wall) == 2:
@@ -131,7 +131,7 @@ class Ramp:
 
     @property_mutable_cache
     def corner_depots(self) -> Set[Point2]:
-        """ Finds the 2 depot positions on the outside """
+        """Finds the 2 depot positions on the outside"""
         if not self.upper2_for_ramp_wall:
             return set()
         if len(self.upper2_for_ramp_wall) == 2:
@@ -149,7 +149,7 @@ class Ramp:
 
     @property_immutable_cache
     def barracks_can_fit_addon(self) -> bool:
-        """ Test if a barracks can fit an addon at natural ramp """
+        """Test if a barracks can fit an addon at natural ramp"""
         # https://i.imgur.com/4b2cXHZ.png
         if len(self.upper2_for_ramp_wall) == 2:
             return self.barracks_in_middle.x + 1 > max(self.corner_depots, key=lambda depot: depot.x).x
@@ -157,7 +157,7 @@ class Ramp:
 
     @property_immutable_cache
     def barracks_correct_placement(self) -> Optional[Point2]:
-        """ Corrected placement so that an addon can fit """
+        """Corrected placement so that an addon can fit"""
         if self.barracks_in_middle is None:
             return None
         if len(self.upper2_for_ramp_wall) == 2:
@@ -239,8 +239,7 @@ class GameInfo:
         self.map_ramps: List[Ramp] = None  # Filled later by BotAI._prepare_first_step
         self.vision_blockers: Set[Point2] = None  # Filled later by BotAI._prepare_first_step
         self.player_races: Dict[int, Race] = {
-            p.player_id: p.race_actual or p.race_requested
-            for p in self._proto.player_info
+            p.player_id: p.race_actual or p.race_requested for p in self._proto.player_info
         }
         self.start_locations: List[Point2] = [Point2.from_proto(sl) for sl in self._proto.start_raw.start_locations]
         self.player_start_location: Point2 = None  # Filled later by BotAI._prepare_first_step
@@ -249,17 +248,21 @@ class GameInfo:
         """Calculate points that are pathable but not placeable.
         Then divide them into ramp points if not all points around the points are equal height
         and into vision blockers if they are."""
+
         def equal_height_around(tile):
             # mask to slice array 1 around tile
-            sliced = self.terrain_height.data_numpy[tile[1] - 1:tile[1] + 2, tile[0] - 1:tile[0] + 2]
+            sliced = self.terrain_height.data_numpy[tile[1] - 1 : tile[1] + 2, tile[0] - 1 : tile[0] + 2]
             return len(np.unique(sliced)) == 1
 
         map_area = self.playable_area
         # all points in the playable area that are pathable but not placable
         points = [
-            Point2((a, b)) for (b, a), value in np.ndenumerate(self.pathing_grid.data_numpy)
-            if value == 1 and map_area.x <= a < map_area.x + map_area.width and map_area.y <= b < map_area.y +
-            map_area.height and self.placement_grid[(a, b)] == 0
+            Point2((a, b))
+            for (b, a), value in np.ndenumerate(self.pathing_grid.data_numpy)
+            if value == 1
+            and map_area.x <= a < map_area.x + map_area.width
+            and map_area.y <= b < map_area.y + map_area.height
+            and self.placement_grid[(a, b)] == 0
         ]
         # divide points into ramp points and vision blockers
         rampPoints = [point for point in points if not equal_height_around(point)]

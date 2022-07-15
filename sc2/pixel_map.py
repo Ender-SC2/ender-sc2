@@ -44,13 +44,13 @@ class PixelMap:
         return self._proto.bits_per_pixel // 8
 
     def __getitem__(self, pos):
-        """ Example usage: is_pathable = self._game_info.pathing_grid[Point2((20, 20))] != 0 """
+        """Example usage: is_pathable = self._game_info.pathing_grid[Point2((20, 20))] != 0"""
         assert 0 <= pos[0] < self.width, f"x is {pos[0]}, self.width is {self.width}"
         assert 0 <= pos[1] < self.height, f"y is {pos[1]}, self.height is {self.height}"
         return int(self.data_numpy[pos[1], pos[0]])
 
     def __setitem__(self, pos, value):
-        """ Example usage: self._game_info.pathing_grid[Point2((20, 20))] = 255 """
+        """Example usage: self._game_info.pathing_grid[Point2((20, 20))] = 255"""
         assert 0 <= pos[0] < self.width, f"x is {pos[0]}, self.width is {self.width}"
         assert 0 <= pos[1] < self.height, f"y is {pos[1]}, self.height is {self.height}"
         assert (

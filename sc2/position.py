@@ -42,7 +42,7 @@ class Pointlike(tuple):
         This is to speed up the sorting process.
 
         :param p2:"""
-        return (self[0] - p2[0])**2 + (self[1] - p2[1])**2
+        return (self[0] - p2[0]) ** 2 + (self[1] - p2[1]) ** 2
 
     def is_closer_than(self, distance: Union[int, float], p: Union[Unit, Point2]) -> bool:
         """Check if another point (or unit) is closer than the given distance.
@@ -112,14 +112,14 @@ class Pointlike(tuple):
 
         :param p:
         """
-        return self.__class__(a + b for a, b in itertools.zip_longest(self, p[:len(self)], fillvalue=0))
+        return self.__class__(a + b for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0))
 
     def unit_axes_towards(self, p):
         """
 
         :param p:
         """
-        return self.__class__(_sign(b - a) for a, b in itertools.zip_longest(self, p[:len(self)], fillvalue=0))
+        return self.__class__(_sign(b - a) for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0))
 
     def towards(self, p: Union[Unit, Pointlike], distance: Union[int, float] = 1, limit: bool = False) -> Pointlike:
         """
@@ -138,7 +138,7 @@ class Pointlike(tuple):
         if limit:
             distance = min(d, distance)
         return self.__class__(
-            a + (b - a) / d * distance for a, b in itertools.zip_longest(self, p[:len(self)], fillvalue=0)
+            a + (b - a) / d * distance for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0)
         )
 
     def __eq__(self, other):
@@ -174,12 +174,12 @@ class Point2(Pointlike):
 
     @property
     def length(self) -> float:
-        """ This property exists in case Point2 is used as a vector. """
+        """This property exists in case Point2 is used as a vector."""
         return math.hypot(self[0], self[1])
 
     @property
     def normalized(self) -> Point2:
-        """ This property exists in case Point2 is used as a vector. """
+        """This property exists in case Point2 is used as a vector."""
         length = self.length
         # Cannot normalize if length is zero
         assert length
@@ -235,7 +235,7 @@ class Point2(Pointlike):
         distanceBetweenPoints = self.distance_to(p)
         assert r >= distanceBetweenPoints / 2
         # remaining distance from center towards the intersection, using pythagoras
-        remainingDistanceFromCenter = (r**2 - (distanceBetweenPoints / 2)**2)**0.5
+        remainingDistanceFromCenter = (r**2 - (distanceBetweenPoints / 2) ** 2) ** 0.5
         # center of both points
         offsetToCenter = Point2(((p.x - self.x) / 2, (p.y - self.y) / 2))
         center = self.offset(offsetToCenter)
@@ -308,7 +308,7 @@ class Point2(Pointlike):
         return self.distance_to_point2(other) <= dist
 
     def direction_vector(self, other: Point2) -> Point2:
-        """ Converts a vector to a direction that can face vertically, horizontally or diagonal or be zero, e.g. (0, 0), (1, -1), (1, 0) """
+        """Converts a vector to a direction that can face vertically, horizontally or diagonal or be zero, e.g. (0, 0), (1, -1), (1, 0)"""
         return self.__class__((_sign(other.x - self.x), _sign(other.y - self.y)))
 
     def manhattan_distance(self, other: Point2) -> float:
@@ -395,12 +395,12 @@ class Rect(tuple):
 
     @property
     def right(self) -> float:
-        """ Returns the x-coordinate of the rectangle of its right side. """
+        """Returns the x-coordinate of the rectangle of its right side."""
         return self.x + self.width
 
     @property
     def top(self) -> float:
-        """ Returns the y-coordinate of the rectangle of its top side. """
+        """Returns the y-coordinate of the rectangle of its top side."""
         return self.y + self.height
 
     @property

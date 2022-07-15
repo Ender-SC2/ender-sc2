@@ -9,42 +9,45 @@ from sc2.ids.unit_typeid import UnitTypeId
 class Tech(Common):
 
     __did_step0 = False
-    tech_chains = [] # We can make a thing only if the things before it are finished.
-                     # Direct creator self.tech_chains are omitted.
-    creator = {} # per unittype the unit making it.
-    morph = {} # morph[UnitTypeId.RAVAGER] = UnitTypeId.ROACH
-                # morph[UnitTypeId.OVERSEER] = UnitTypeId.OVERLORD
-                # morph[UnitTypeId.OVERLORDTRANSPORT] = UnitTypeId.OVERLORD
-                # larva morphs are omitted
-    ind_upgrade_use = {} # the unittype that benefits from this upgrade most.
-    speed = {} # in griddist/sec
+    tech_chains = []  # We can make a thing only if the things before it are finished.
+    # Direct creator self.tech_chains are omitted.
+    creator = {}  # per unittype the unit making it.
+    morph = {}  # morph[UnitTypeId.RAVAGER] = UnitTypeId.ROACH
+    # morph[UnitTypeId.OVERSEER] = UnitTypeId.OVERLORD
+    # morph[UnitTypeId.OVERLORDTRANSPORT] = UnitTypeId.OVERLORD
+    # larva morphs are omitted
+    ind_upgrade_use = {}  # the unittype that benefits from this upgrade most.
+    speed = {}  # in griddist/sec
 
-    
     def __step0(self):
-        self.tech_chains.append([UpgradeId.ZERGMISSILEWEAPONSLEVEL1, 
-                                UpgradeId.ZERGMISSILEWEAPONSLEVEL2,
-                                UpgradeId.ZERGMISSILEWEAPONSLEVEL3])
+        self.tech_chains.append(
+            [
+                UpgradeId.ZERGMISSILEWEAPONSLEVEL1,
+                UpgradeId.ZERGMISSILEWEAPONSLEVEL2,
+                UpgradeId.ZERGMISSILEWEAPONSLEVEL3,
+            ]
+        )
         self.tech_chains.append([UnitTypeId.LAIR, UpgradeId.ZERGMISSILEWEAPONSLEVEL2])
         self.tech_chains.append([UnitTypeId.HIVE, UpgradeId.ZERGMISSILEWEAPONSLEVEL3])
-        self.tech_chains.append([UpgradeId.ZERGMELEEWEAPONSLEVEL1,
-                                UpgradeId.ZERGMELEEWEAPONSLEVEL2,
-                                UpgradeId.ZERGMELEEWEAPONSLEVEL3])
+        self.tech_chains.append(
+            [UpgradeId.ZERGMELEEWEAPONSLEVEL1, UpgradeId.ZERGMELEEWEAPONSLEVEL2, UpgradeId.ZERGMELEEWEAPONSLEVEL3]
+        )
         self.tech_chains.append([UnitTypeId.LAIR, UpgradeId.ZERGMELEEWEAPONSLEVEL2])
         self.tech_chains.append([UnitTypeId.HIVE, UpgradeId.ZERGMELEEWEAPONSLEVEL3])
-        self.tech_chains.append([UpgradeId.ZERGGROUNDARMORSLEVEL1,
-                                UpgradeId.ZERGGROUNDARMORSLEVEL2,
-                                UpgradeId.ZERGGROUNDARMORSLEVEL3])
+        self.tech_chains.append(
+            [UpgradeId.ZERGGROUNDARMORSLEVEL1, UpgradeId.ZERGGROUNDARMORSLEVEL2, UpgradeId.ZERGGROUNDARMORSLEVEL3]
+        )
         self.tech_chains.append([UnitTypeId.LAIR, UpgradeId.ZERGGROUNDARMORSLEVEL2])
         self.tech_chains.append([UnitTypeId.HIVE, UpgradeId.ZERGGROUNDARMORSLEVEL3])
         self.tech_chains.append([UnitTypeId.HIVE, UpgradeId.ZERGLINGATTACKSPEED])
-        self.tech_chains.append([UpgradeId.ZERGFLYERARMORSLEVEL1,
-                                UpgradeId.ZERGFLYERARMORSLEVEL2,
-                                UpgradeId.ZERGFLYERARMORSLEVEL3])
+        self.tech_chains.append(
+            [UpgradeId.ZERGFLYERARMORSLEVEL1, UpgradeId.ZERGFLYERARMORSLEVEL2, UpgradeId.ZERGFLYERARMORSLEVEL3]
+        )
         self.tech_chains.append([UnitTypeId.LAIR, UpgradeId.ZERGFLYERARMORSLEVEL2])
         self.tech_chains.append([UnitTypeId.HIVE, UpgradeId.ZERGFLYERARMORSLEVEL3])
-        self.tech_chains.append([UpgradeId.ZERGFLYERWEAPONSLEVEL1,
-                                UpgradeId.ZERGFLYERWEAPONSLEVEL2,
-                                UpgradeId.ZERGFLYERWEAPONSLEVEL3])
+        self.tech_chains.append(
+            [UpgradeId.ZERGFLYERWEAPONSLEVEL1, UpgradeId.ZERGFLYERWEAPONSLEVEL2, UpgradeId.ZERGFLYERWEAPONSLEVEL3]
+        )
         self.tech_chains.append([UnitTypeId.LAIR, UpgradeId.ZERGFLYERWEAPONSLEVEL2])
         self.tech_chains.append([UnitTypeId.HIVE, UpgradeId.ZERGFLYERWEAPONSLEVEL3])
         self.tech_chains.append([UnitTypeId.LAIR, UpgradeId.LURKERRANGE])
@@ -58,11 +61,20 @@ class Tech(Common):
         self.tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.BANELINGNEST, UnitTypeId.BANELING])
         self.tech_chains.append([UnitTypeId.HATCHERY, UnitTypeId.EVOLUTIONCHAMBER])
         self.tech_chains.append([UnitTypeId.LAIR, UnitTypeId.HYDRALISKDEN, UnitTypeId.HYDRALISK])
-        self.tech_chains.append([UnitTypeId.LAIR, UnitTypeId.INFESTATIONPIT, UnitTypeId.HIVE,
-                                UnitTypeId.ULTRALISKCAVERN, UnitTypeId.ULTRALISK])
+        self.tech_chains.append(
+            [
+                UnitTypeId.LAIR,
+                UnitTypeId.INFESTATIONPIT,
+                UnitTypeId.HIVE,
+                UnitTypeId.ULTRALISKCAVERN,
+                UnitTypeId.ULTRALISK,
+            ]
+        )
         self.tech_chains.append([UnitTypeId.HYDRALISKDEN, UnitTypeId.LURKERDENMP, UnitTypeId.LURKERMP])
         self.tech_chains.append([UnitTypeId.LAIR, UnitTypeId.NYDUSNETWORK])
-        self.tech_chains.append([UnitTypeId.HATCHERY, UnitTypeId.SPAWNINGPOOL, UnitTypeId.ROACHWARREN, UnitTypeId.ROACH])
+        self.tech_chains.append(
+            [UnitTypeId.HATCHERY, UnitTypeId.SPAWNINGPOOL, UnitTypeId.ROACHWARREN, UnitTypeId.ROACH]
+        )
         self.tech_chains.append([UnitTypeId.SPAWNINGPOOL, UnitTypeId.LAIR, UnitTypeId.SPIRE, UnitTypeId.CORRUPTOR])
         self.tech_chains.append([UnitTypeId.INFESTATIONPIT, UnitTypeId.INFESTOR])
         self.tech_chains.append([UnitTypeId.SPIRE, UnitTypeId.MUTALISK])
@@ -91,7 +103,7 @@ class Tech(Common):
         self.creator[UnitTypeId.CHANGELING] = UnitTypeId.OVERSEER
         self.creator[UnitTypeId.CREEPTUMOR] = UnitTypeId.CREEPTUMORBURROWED
         self.creator[UnitTypeId.CREEPTUMORBURROWED] = UnitTypeId.CREEPTUMOR
-        self.creator[UnitTypeId.QUEEN] = UnitTypeId.HATCHERY # also lair etc
+        self.creator[UnitTypeId.QUEEN] = UnitTypeId.HATCHERY  # also lair etc
         self.creator[UnitTypeId.OVERSEER] = UnitTypeId.OVERLORD
         self.creator[UnitTypeId.OVERLORDTRANSPORT] = UnitTypeId.OVERLORD
         self.creator[UnitTypeId.OVERSEERSIEGEMODE] = UnitTypeId.OVERSEER
@@ -115,81 +127,81 @@ class Tech(Common):
         #
         # list of structures, with species, builddura, size. Can be flying, can be lowered.
         # terran
-        self.init_structures('T',UnitTypeId.SUPPLYDEPOT, 21, 2)
-        self.init_structures('T',UnitTypeId.SUPPLYDEPOTLOWERED, 21, 2)
-        self.init_structures('T',UnitTypeId.BARRACKS, 46, 3)
-        self.init_structures('T',UnitTypeId.BARRACKSFLYING, 46, 3)
-        self.init_structures('T',UnitTypeId.REFINERY, 21, 3)
-        self.init_structures('T',UnitTypeId.REFINERYRICH, 21, 3)
-        self.init_structures('T',UnitTypeId.BARRACKSTECHLAB, 18, 2)
-        self.init_structures('T',UnitTypeId.FACTORY, 43, 3)
-        self.init_structures('T',UnitTypeId.FACTORYFLYING, 43, 3)
-        self.init_structures('T',UnitTypeId.FACTORYTECHLAB, 18, 2)
-        self.init_structures('T',UnitTypeId.STARPORT, 36, 3)
-        self.init_structures('T',UnitTypeId.STARPORTFLYING, 36, 3)
-        self.init_structures('T',UnitTypeId.STARPORTTECHLAB, 18, 2)
-        self.init_structures('T',UnitTypeId.TECHLAB, 18, 2)
-        self.init_structures('T',UnitTypeId.FUSIONCORE,46, 3)
-        self.init_structures('T',UnitTypeId.COMMANDCENTER, 71, 5)
-        self.init_structures('T',UnitTypeId.COMMANDCENTERFLYING, 71, 5)
-        self.init_structures('T',UnitTypeId.PLANETARYFORTRESS, 36, 5)
-        self.init_structures('T',UnitTypeId.ORBITALCOMMAND, 25, 5)
-        self.init_structures('T',UnitTypeId.ORBITALCOMMANDFLYING, 25, 5)
-        self.init_structures('T',UnitTypeId.ENGINEERINGBAY, 25, 3)
-        self.init_structures('T',UnitTypeId.MISSILETURRET,18, 2)
-        self.init_structures('T',UnitTypeId.ARMORY, 46, 3)
-        self.init_structures('T',UnitTypeId.BUNKER, 29, 3)
-        self.init_structures('T',UnitTypeId.SENSORTOWER, 18, 2)
-        self.init_structures('T',UnitTypeId.GHOSTACADEMY, 20, 3)
-        self.init_structures('T',UnitTypeId.BARRACKSREACTOR, 36, 2)
-        self.init_structures('T',UnitTypeId.FACTORYREACTOR, 36, 2)
-        self.init_structures('T',UnitTypeId.STARPORTREACTOR, 36, 2)
-        self.init_structures('T',UnitTypeId.REACTOR, 36, 2)
-        self.init_structures('T',UnitTypeId.AUTOTURRET, 0, 2)
+        self.init_structures("T", UnitTypeId.SUPPLYDEPOT, 21, 2)
+        self.init_structures("T", UnitTypeId.SUPPLYDEPOTLOWERED, 21, 2)
+        self.init_structures("T", UnitTypeId.BARRACKS, 46, 3)
+        self.init_structures("T", UnitTypeId.BARRACKSFLYING, 46, 3)
+        self.init_structures("T", UnitTypeId.REFINERY, 21, 3)
+        self.init_structures("T", UnitTypeId.REFINERYRICH, 21, 3)
+        self.init_structures("T", UnitTypeId.BARRACKSTECHLAB, 18, 2)
+        self.init_structures("T", UnitTypeId.FACTORY, 43, 3)
+        self.init_structures("T", UnitTypeId.FACTORYFLYING, 43, 3)
+        self.init_structures("T", UnitTypeId.FACTORYTECHLAB, 18, 2)
+        self.init_structures("T", UnitTypeId.STARPORT, 36, 3)
+        self.init_structures("T", UnitTypeId.STARPORTFLYING, 36, 3)
+        self.init_structures("T", UnitTypeId.STARPORTTECHLAB, 18, 2)
+        self.init_structures("T", UnitTypeId.TECHLAB, 18, 2)
+        self.init_structures("T", UnitTypeId.FUSIONCORE, 46, 3)
+        self.init_structures("T", UnitTypeId.COMMANDCENTER, 71, 5)
+        self.init_structures("T", UnitTypeId.COMMANDCENTERFLYING, 71, 5)
+        self.init_structures("T", UnitTypeId.PLANETARYFORTRESS, 36, 5)
+        self.init_structures("T", UnitTypeId.ORBITALCOMMAND, 25, 5)
+        self.init_structures("T", UnitTypeId.ORBITALCOMMANDFLYING, 25, 5)
+        self.init_structures("T", UnitTypeId.ENGINEERINGBAY, 25, 3)
+        self.init_structures("T", UnitTypeId.MISSILETURRET, 18, 2)
+        self.init_structures("T", UnitTypeId.ARMORY, 46, 3)
+        self.init_structures("T", UnitTypeId.BUNKER, 29, 3)
+        self.init_structures("T", UnitTypeId.SENSORTOWER, 18, 2)
+        self.init_structures("T", UnitTypeId.GHOSTACADEMY, 20, 3)
+        self.init_structures("T", UnitTypeId.BARRACKSREACTOR, 36, 2)
+        self.init_structures("T", UnitTypeId.FACTORYREACTOR, 36, 2)
+        self.init_structures("T", UnitTypeId.STARPORTREACTOR, 36, 2)
+        self.init_structures("T", UnitTypeId.REACTOR, 36, 2)
+        self.init_structures("T", UnitTypeId.AUTOTURRET, 0, 2)
         # protoss
-        self.init_structures('P',UnitTypeId.NEXUS, 71, 5)
-        self.init_structures('P',UnitTypeId.PYLON, 18, 2)
-        self.init_structures('P',UnitTypeId.ASSIMILATOR, 21, 3)
-        self.init_structures('P',UnitTypeId.ASSIMILATORRICH, 21, 3)
-        self.init_structures('P',UnitTypeId.GATEWAY, 46, 3)
-        self.init_structures('P',UnitTypeId.FORGE, 32, 3)
-        self.init_structures('P',UnitTypeId.PHOTONCANNON, 29, 2)
-        self.init_structures('P',UnitTypeId.SHIELDBATTERY, 29, 2)
-        self.init_structures('P',UnitTypeId.WARPGATE, 7, 3)
-        self.init_structures('P',UnitTypeId.CYBERNETICSCORE, 36, 3)
-        self.init_structures('P',UnitTypeId.TWILIGHTCOUNCIL, 36, 3)
-        self.init_structures('P',UnitTypeId.ROBOTICSFACILITY, 46, 3)
-        self.init_structures('P',UnitTypeId.STARGATE, 43, 3)
-        self.init_structures('P',UnitTypeId.TEMPLARARCHIVE, 36, 3)
-        self.init_structures('P',UnitTypeId.DARKSHRINE, 71, 2)
-        self.init_structures('P',UnitTypeId.ROBOTICSBAY, 46, 3)
-        self.init_structures('P',UnitTypeId.FLEETBEACON, 43, 3)
-        self.init_structures('P',UnitTypeId.ORACLESTASISTRAP, 11, 1)
+        self.init_structures("P", UnitTypeId.NEXUS, 71, 5)
+        self.init_structures("P", UnitTypeId.PYLON, 18, 2)
+        self.init_structures("P", UnitTypeId.ASSIMILATOR, 21, 3)
+        self.init_structures("P", UnitTypeId.ASSIMILATORRICH, 21, 3)
+        self.init_structures("P", UnitTypeId.GATEWAY, 46, 3)
+        self.init_structures("P", UnitTypeId.FORGE, 32, 3)
+        self.init_structures("P", UnitTypeId.PHOTONCANNON, 29, 2)
+        self.init_structures("P", UnitTypeId.SHIELDBATTERY, 29, 2)
+        self.init_structures("P", UnitTypeId.WARPGATE, 7, 3)
+        self.init_structures("P", UnitTypeId.CYBERNETICSCORE, 36, 3)
+        self.init_structures("P", UnitTypeId.TWILIGHTCOUNCIL, 36, 3)
+        self.init_structures("P", UnitTypeId.ROBOTICSFACILITY, 46, 3)
+        self.init_structures("P", UnitTypeId.STARGATE, 43, 3)
+        self.init_structures("P", UnitTypeId.TEMPLARARCHIVE, 36, 3)
+        self.init_structures("P", UnitTypeId.DARKSHRINE, 71, 2)
+        self.init_structures("P", UnitTypeId.ROBOTICSBAY, 46, 3)
+        self.init_structures("P", UnitTypeId.FLEETBEACON, 43, 3)
+        self.init_structures("P", UnitTypeId.ORACLESTASISTRAP, 11, 1)
         # zerg
-        self.init_structures('Z',UnitTypeId.HATCHERY, 71, 5)
-        self.init_structures('Z',UnitTypeId.LAIR, 57, 5)
-        self.init_structures('Z',UnitTypeId.HIVE, 71, 5)
-        self.init_structures('Z',UnitTypeId.EXTRACTOR, 21, 3)
-        self.init_structures('Z',UnitTypeId.EXTRACTORRICH, 21, 3)
-        self.init_structures('Z',UnitTypeId.SPAWNINGPOOL, 46, 3)
-        self.init_structures('Z',UnitTypeId.SPINECRAWLER, 36, 2)
-        self.init_structures('Z',UnitTypeId.SPORECRAWLER, 21, 2)
-        self.init_structures('Z',UnitTypeId.SPINECRAWLERUPROOTED, 36, 2)
-        self.init_structures('Z',UnitTypeId.SPORECRAWLERUPROOTED, 21, 2)
-        self.init_structures('Z',UnitTypeId.EVOLUTIONCHAMBER, 25, 3)
-        self.init_structures('Z',UnitTypeId.ROACHWARREN, 39, 3)
-        self.init_structures('Z',UnitTypeId.BANELINGNEST, 43, 3)
-        self.init_structures('Z',UnitTypeId.HYDRALISKDEN, 29, 3)
-        self.init_structures('Z',UnitTypeId.LURKERDENMP, 57, 3)
-        self.init_structures('Z',UnitTypeId.SPIRE, 71, 3)
-        self.init_structures('Z',UnitTypeId.GREATERSPIRE, 71, 3)
-        self.init_structures('Z',UnitTypeId.NYDUSNETWORK, 36, 3)
-        self.init_structures('Z',UnitTypeId.NYDUSCANAL, 14, 3)
-        self.init_structures('Z',UnitTypeId.INFESTATIONPIT, 36, 3)
-        self.init_structures('Z',UnitTypeId.ULTRALISKCAVERN, 46, 3)
-        self.init_structures('Z',UnitTypeId.CREEPTUMOR, 11, 1)
-        self.init_structures('Z',UnitTypeId.CREEPTUMORBURROWED, 11, 1)
-        self.init_structures('Z',UnitTypeId.CREEPTUMORQUEEN, 11, 1)
+        self.init_structures("Z", UnitTypeId.HATCHERY, 71, 5)
+        self.init_structures("Z", UnitTypeId.LAIR, 57, 5)
+        self.init_structures("Z", UnitTypeId.HIVE, 71, 5)
+        self.init_structures("Z", UnitTypeId.EXTRACTOR, 21, 3)
+        self.init_structures("Z", UnitTypeId.EXTRACTORRICH, 21, 3)
+        self.init_structures("Z", UnitTypeId.SPAWNINGPOOL, 46, 3)
+        self.init_structures("Z", UnitTypeId.SPINECRAWLER, 36, 2)
+        self.init_structures("Z", UnitTypeId.SPORECRAWLER, 21, 2)
+        self.init_structures("Z", UnitTypeId.SPINECRAWLERUPROOTED, 36, 2)
+        self.init_structures("Z", UnitTypeId.SPORECRAWLERUPROOTED, 21, 2)
+        self.init_structures("Z", UnitTypeId.EVOLUTIONCHAMBER, 25, 3)
+        self.init_structures("Z", UnitTypeId.ROACHWARREN, 39, 3)
+        self.init_structures("Z", UnitTypeId.BANELINGNEST, 43, 3)
+        self.init_structures("Z", UnitTypeId.HYDRALISKDEN, 29, 3)
+        self.init_structures("Z", UnitTypeId.LURKERDENMP, 57, 3)
+        self.init_structures("Z", UnitTypeId.SPIRE, 71, 3)
+        self.init_structures("Z", UnitTypeId.GREATERSPIRE, 71, 3)
+        self.init_structures("Z", UnitTypeId.NYDUSNETWORK, 36, 3)
+        self.init_structures("Z", UnitTypeId.NYDUSCANAL, 14, 3)
+        self.init_structures("Z", UnitTypeId.INFESTATIONPIT, 36, 3)
+        self.init_structures("Z", UnitTypeId.ULTRALISKCAVERN, 46, 3)
+        self.init_structures("Z", UnitTypeId.CREEPTUMOR, 11, 1)
+        self.init_structures("Z", UnitTypeId.CREEPTUMORBURROWED, 11, 1)
+        self.init_structures("Z", UnitTypeId.CREEPTUMORQUEEN, 11, 1)
         #
         # morph is used for counting zerglings
         # morph is also used for disappearing creators
@@ -202,10 +214,10 @@ class Tech(Common):
         self.morph[UnitTypeId.OVERSEER] = UnitTypeId.OVERLORD
         self.morph[UnitTypeId.OVERLORDTRANSPORT] = UnitTypeId.OVERLORD
         self.morph[UnitTypeId.OBSERVERSIEGEMODE] = UnitTypeId.OVERLORD
-        for unt in self.all_burrowtypes: # e.g. banelingburrowed
-            crea = self.creator[unt] # e.g. baneling
+        for unt in self.all_burrowtypes:  # e.g. banelingburrowed
+            crea = self.creator[unt]  # e.g. baneling
             if crea in self.morph:
-                crea = self.morph[crea] # e.g. zergling
+                crea = self.morph[crea]  # e.g. zergling
             self.morph[unt] = crea
         #
         self.ind_upgrade_use[UpgradeId.OVERLORDSPEED] = UnitTypeId.OVERSEER
@@ -265,8 +277,7 @@ class Tech(Common):
         if UpgradeId.GLIALRECONSTITUTION in self.state.upgrades:
             self.speed[UnitTypeId.ROACH] = 4.2
 
-
-    def init_structures(self,species,barra,builddura, size):
+    def init_structures(self, species, barra, builddura, size):
         self.builddura_of_structure[barra] = builddura
         self.size_of_structure[barra] = size
         self.species_of_structure[barra] = species
@@ -288,4 +299,3 @@ class Tech(Common):
                 cost = self.calculate_cost(typ)
                 worth = 2 * cost.minerals + 3 * cost.vespene
         return worth
-
