@@ -6,7 +6,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 
 class PlaceBuildingPerBase(IAction):
-
     def __init__(self, unit_type: UnitTypeId, building_positioning: Positioning, amount: int = 1):
         self.common = None
         self.unit_type = unit_type
@@ -21,8 +20,7 @@ class PlaceBuildingPerBase(IAction):
     def execute(self):
         for townhall in self.common.townhalls:
             if townhall.tag not in self.actions:
-                action = PlaceBuilding(self.unit_type, self.building_positioning, self.amount,
-                                       townhall.position)
+                action = PlaceBuilding(self.unit_type, self.building_positioning, self.amount, townhall.position)
                 action.setup(self.common)
                 self.actions[townhall.tag] = action
         remove = []
