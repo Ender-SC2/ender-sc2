@@ -120,12 +120,12 @@ class EffectData:
 
     @property
     def is_mine(self) -> bool:
-        """Checks if the effect is caused by me."""
+        """ Checks if the effect is caused by me. """
         return self._proto.alliance == IS_MINE
 
     @property
     def is_enemy(self) -> bool:
-        """Checks if the effect is hostile."""
+        """ Checks if the effect is hostile. """
         return self._proto.alliance == IS_ENEMY
 
     @property
@@ -234,11 +234,12 @@ class GameState:
 
     @property_cache_forever
     def dead_units(self) -> Set[int]:
-        """A set of unit tags that died this frame"""
+        """ A set of unit tags that died this frame """
         _dead_units = {dead_unit_tag for dead_unit_tag in self.observation_raw.event.dead_units}
         if self.previous_observation:
             return _dead_units | {
-                dead_unit_tag for dead_unit_tag in self.previous_observation.observation.raw_data.event.dead_units
+                dead_unit_tag
+                for dead_unit_tag in self.previous_observation.observation.raw_data.event.dead_units
             }
         return _dead_units
 
@@ -311,9 +312,7 @@ class GameState:
                 )
             else:
                 # Camera move actions
-                actions.append(
-                    ActionRawCameraMove(Point2.from_proto(action.action_raw.camera_move.center_world_space))
-                )
+                actions.append(ActionRawCameraMove(Point2.from_proto(action.action_raw.camera_move.center_world_space)))
         return actions
 
     @property_cache_forever

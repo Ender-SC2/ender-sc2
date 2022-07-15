@@ -62,7 +62,7 @@ class GameMatch:
                 self.sc2_config = [{}]
             while len(self.sc2_config) < len(self.players):
                 self.sc2_config += self.sc2_config
-            self.sc2_config = self.sc2_config[: len(self.players)]
+            self.sc2_config = self.sc2_config[:len(self.players)]
 
     @property
     def needed_sc2_count(self) -> int:
@@ -94,7 +94,7 @@ class SlidingTimeWindow:
         self.window = []
 
     def push(self, value: float):
-        self.window = (self.window + [value])[-self.window_size :]
+        self.window = (self.window + [value])[-self.window_size:]
 
     def clear(self):
         self.window = []
@@ -265,9 +265,9 @@ async def _play_game_ai(client, player_id, ai, realtime, step_time_limit, game_t
                         except asyncio.TimeoutError:
                             step_time = time.monotonic() - step_start
                             logger.warning(
-                                f"Running AI step: out of budget; "
-                                + f"budget={budget:.2f}, steptime={step_time:.2f}, "
-                                + f"window={time_window.available_fmt}"
+                                f"Running AI step: out of budget; " +
+                                f"budget={budget:.2f}, steptime={step_time:.2f}, " +
+                                f"window={time_window.available_fmt}"
                             )
                             out_of_budget = True
                         step_time = time.monotonic() - step_start
@@ -317,7 +317,13 @@ async def _play_game_ai(client, player_id, ai, realtime, step_time_limit, game_t
 
 
 async def _play_game(
-    player, client: Client, realtime, portconfig, step_time_limit=None, game_time_limit=None, rgb_render_config=None
+    player,
+    client: Client,
+    realtime,
+    portconfig,
+    step_time_limit=None,
+    game_time_limit=None,
+    rgb_render_config=None
 ) -> Result:
     assert isinstance(realtime, bool), repr(realtime)
 

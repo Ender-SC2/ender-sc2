@@ -27,3 +27,4 @@ class CommandUtils(IBehavior):
         for unt in self.bot_ai.units:
             nowpos = unt.position
             self.last_position[unt.tag] = nowpos
+

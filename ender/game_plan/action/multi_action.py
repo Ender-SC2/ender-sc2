@@ -5,6 +5,7 @@ from ender.game_plan.action.action import IAction
 
 
 class MultiAction:
+
     def __init__(self, action_list: List[IAction]):
         self.action_list = action_list
 

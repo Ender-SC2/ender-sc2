@@ -4,14 +4,8 @@ from typing import List, Optional, Dict
 from ender.job import Job
 from ender.map import InfluenceMap
 from ender.unit import MoveCommand
-from ender.utils.ability_utils import (
-    ability_duration,
-    ability_range,
-    ability_radius,
-    AbilityDamageType,
-    ability_damage_type,
-    ability_damage,
-)
+from ender.utils.ability_utils import ability_duration, ability_range, ability_radius, AbilityDamageType, \
+    ability_damage_type, ability_damage
 from ender.utils.command_utils import CommandUtils
 from ender.utils.effect_utils import effect_ability
 from sc2.ids.effect_id import EffectId
@@ -36,8 +30,8 @@ class SpellEffectDodgingBehavior(CommandUtils):
 
     async def on_step(self, iteration: int):
         my_units = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-            and (not self.unit_types or unit.type_id in self.unit_types)
+            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
+                    not self.unit_types or unit.type_id in self.unit_types)
         )
         if my_units.empty:
             return
@@ -47,9 +41,8 @@ class SpellEffectDodgingBehavior(CommandUtils):
             in_danger = self.in_dangerous_area(unit)
             if in_danger:
                 # TODO: Find a better dodge distance
-                safest_point = influence_map.get_closest_point(
-                    unit.position, unit.radius + self.extra_dodge_range, 3, -30
-                )
+                safest_point = influence_map.get_closest_point(unit.position, unit.radius + self.extra_dodge_range, 3,
+                                                               -30)
                 if safest_point and safest_point != unit.position:
                     self.unit_interface.set_command(unit, MoveCommand(safest_point, "SpellDodging"))
 
@@ -92,6 +85,6 @@ class SpellEffectDodgingBehavior(CommandUtils):
                 if ability_damage_type[ability] == AbilityDamageType.PERSISTENT:
                     damage = ability_damage[ability] * ((1 - time_to_end) ** 2)
                 else:
-                    damage = ability_damage[ability] * (time_to_end**2)
+                    damage = ability_damage[ability] * (time_to_end ** 2)
                 influence_map.add_point(position, ability_radius[ability] + self.extra_dodge_range, -damage)
         return influence_map

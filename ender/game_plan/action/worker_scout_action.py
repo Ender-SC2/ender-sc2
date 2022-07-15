@@ -49,13 +49,9 @@ class WorkerScoutAction(IAction):
         self.states[self.state]()
 
     def start_scouting(self):
-        self.worker_tag = (
-            self.common.workers.filter(
-                lambda worker: self.common.job_of_unit(worker) in [Job.MIMMINER] and not worker.is_carrying_resource
-            )
-            .closest_to(self.common.enemymain)
-            .tag
-        )
+        self.worker_tag = self.common.workers.filter(
+            lambda worker: self.common.job_of_unit(worker) in [Job.MIMMINER] and not worker.is_carrying_resource
+        ).closest_to(self.common.enemymain).tag
         self.common.set_job_of_unittag(self.worker_tag, Job.SCOUT)
         self.state = WorkerScoutState.SCOUTING_MAIN
 
@@ -70,21 +66,14 @@ class WorkerScoutAction(IAction):
         worker = self.get_worker()
         if worker:
             if len(worker.orders) < 2:
-                point = Point2(
-                    (
-                        self.common.enemymain.x + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].x,
-                        self.common.enemymain.y + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].y,
-                    )
-                )
+                point = (Point2((self.common.enemymain.x + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].x,
+                                 self.common.enemymain.y + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].y)))
                 self.next_action_time = self.common.time + self.WORKER_MOVEMENT_DELAY
                 self.circle_step = (self.circle_step + 1) % self.CIRCLE_STEPS
                 worker.move(point, queue=True)
-            if (
-                self.common.time > 90
-                or not self.common.enemy_structures.of_type(UnitTypeId.BARRACKS).ready.empty
-                or not self.common.enemy_structures.of_type(UnitTypeId.WARPGATE).ready.empty
-                or not self.common.enemy_structures.of_type(UnitTypeId.SPAWNINGPOOL).ready.empty
-            ):
+            if self.common.time > 90 or not self.common.enemy_structures.of_type(
+                    UnitTypeId.BARRACKS).ready.empty or not self.common.enemy_structures.of_type(
+                    UnitTypeId.WARPGATE).ready.empty or not self.common.enemy_structures.of_type(UnitTypeId.SPAWNINGPOOL).ready.empty:
                 self.state = WorkerScoutState.SCOUTING_EXPANSIONS
 
     def scouting_expansions(self):
