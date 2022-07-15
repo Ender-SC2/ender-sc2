@@ -168,14 +168,8 @@ TRAIN_INFO: Dict[UnitTypeId, Dict[UnitTypeId, Dict[str, Union[AbilityId, bool, U
     UnitTypeId.LARVA: {
         UnitTypeId.CORRUPTOR: {"ability": AbilityId.LARVATRAIN_CORRUPTOR, "required_building": UnitTypeId.SPIRE},
         UnitTypeId.DRONE: {"ability": AbilityId.LARVATRAIN_DRONE},
-        UnitTypeId.HYDRALISK: {
-            "ability": AbilityId.LARVATRAIN_HYDRALISK,
-            "required_building": UnitTypeId.HYDRALISKDEN,
-        },
-        UnitTypeId.INFESTOR: {
-            "ability": AbilityId.LARVATRAIN_INFESTOR,
-            "required_building": UnitTypeId.INFESTATIONPIT,
-        },
+        UnitTypeId.HYDRALISK: {"ability": AbilityId.LARVATRAIN_HYDRALISK, "required_building": UnitTypeId.HYDRALISKDEN},
+        UnitTypeId.INFESTOR: {"ability": AbilityId.LARVATRAIN_INFESTOR, "required_building": UnitTypeId.INFESTATIONPIT},
         UnitTypeId.MUTALISK: {"ability": AbilityId.LARVATRAIN_MUTALISK, "required_building": UnitTypeId.SPIRE},
         UnitTypeId.OVERLORD: {"ability": AbilityId.LARVATRAIN_OVERLORD},
         UnitTypeId.ROACH: {"ability": AbilityId.LARVATRAIN_ROACH, "required_building": UnitTypeId.ROACHWARREN},
@@ -318,10 +312,7 @@ TRAIN_INFO: Dict[UnitTypeId, Dict[UnitTypeId, Dict[str, Union[AbilityId, bool, U
             "required_building": UnitTypeId.BARRACKS,
             "requires_placement_position": True,
         },
-        UnitTypeId.COMMANDCENTER: {
-            "ability": AbilityId.TERRANBUILD_COMMANDCENTER,
-            "requires_placement_position": True,
-        },
+        UnitTypeId.COMMANDCENTER: {"ability": AbilityId.TERRANBUILD_COMMANDCENTER, "requires_placement_position": True},
         UnitTypeId.ENGINEERINGBAY: {
             "ability": AbilityId.TERRANBUILD_ENGINEERINGBAY,
             "required_building": UnitTypeId.COMMANDCENTER,

@@ -25,29 +25,29 @@ from sc2.unit import Unit
 class Mining(Common):
 
     __did_step0 = False
-    expo_of_postag = {}  # constant. For mineralpatches and geysers.
-    patch_of_postag_mfu = {}  # multiframe unit
-    gas_of_postag_mfu = {}  # multiframe unit
+    expo_of_postag = {} # constant. For mineralpatches and geysers.
+    patch_of_postag_mfu = {} # multiframe unit
+    gas_of_postag_mfu = {} # multiframe unit
     minables_hash = -1
     minables_hash_last = -2
     goodgeysers = set()
     minebases = set()
-    minebase_of_expo_mfu = {}  # multiframe unit
+    minebase_of_expo_mfu = {} # multiframe unit
     gasbuildings = set()
-    gaswork = []  # multiset
-    mimwork = []  # multiset
-    miner_hash = -1
+    gaswork = [] # multiset
+    mimwork = [] # multiset
+    miner_hash = -1 
     miner_hash_last = -2
-    gasfreework = []  # multiset
-    mimfreework = []  # multiset
-    assign = {}  # Per dronetag: the postag of the mineralpatch or geyser. For drones with a mining job.
-    info_start_frame = {}  # for speedmining
-    info_end_frame = {}  # for speedmining
-    patchpoint = {}  # for speedmining
-    basepoint = {}  # for speedmining
-    patchpoint_dist = {}  # for speedmining
-    basepoint_dist = {}  # for speedmining
-    hit_carrying = {}  # for speedmining
+    gasfreework = [] # multiset
+    mimfreework = [] # multiset
+    assign = {} # Per dronetag: the postag of the mineralpatch or geyser. For drones with a mining job. 
+    info_start_frame = {} # for speedmining
+    info_end_frame = {} # for speedmining
+    patchpoint = {} # for speedmining
+    basepoint = {} # for speedmining
+    patchpoint_dist = {} # for speedmining
+    basepoint_dist = {} # for speedmining
+    hit_carrying = {} # for speedmining
 
     def __step0(self):
         self.calc_expo_of_postag()
@@ -65,7 +65,7 @@ class Mining(Common):
         await self.assign_free_workers()
         await self.steer_miners()
         await self.speed_mining()
-        # await self.check_mining()
+        #await self.check_mining()
         await self.volunteers()
         await self.balancer()
 
@@ -73,7 +73,7 @@ class Mining(Common):
         return round(2 * point.x) * 1000 + round(2 * point.y)
 
     def position_of_postag(self, post: int) -> Point2:
-        return Point2(((post // 1000) / 2, (post % 1000) / 2))
+        return Point2(( (post // 1000)/2, (post % 1000) / 2 ))
 
     def calc_expo_of_postag(self):
         # at gamestart
@@ -83,7 +83,7 @@ class Mining(Common):
             post = self.postag_of_position(respos)
             bestdist = 99999
             for expo in self.expansion_locations_list:
-                dist = distance(expo, respos)
+                dist = distance(expo,respos)
                 if dist < bestdist:
                     bestdist = dist
                     bestexpo = expo
@@ -93,7 +93,7 @@ class Mining(Common):
             post = self.postag_of_position(respos)
             bestdist = 99999
             for expo in self.expansion_locations_list:
-                dist = distance(expo, respos)
+                dist = distance(expo,respos)
                 if dist < bestdist:
                     bestdist = dist
                     bestexpo = expo
@@ -111,7 +111,7 @@ class Mining(Common):
             post = self.postag_of_position(gas.position)
             self.gas_of_postag_mfu[post] = gas
 
-    def patch_of_postag(self, post: int):  # -> Unit
+    def patch_of_postag(self, post: int): # -> Unit
         patch = None
         if post in self.patch_of_postag_mfu:
             patch = self.patch_of_postag_mfu[post]
@@ -180,7 +180,7 @@ class Mining(Common):
                 bestdist = 99999
                 for bas in self.minebases:
                     baspos = bas.position
-                    dist = distance(baspos, expo)
+                    dist = distance(baspos,expo)
                     if dist < bestdist:
                         bestdist = dist
                         bestbas = bas
@@ -223,6 +223,7 @@ class Mining(Common):
         # as a consequence:
         if self.miner_hash_last != self.miner_hash:
             self.calc_workers()
+
 
     def calc_workers(self):
         # minertags
@@ -308,8 +309,8 @@ class Mining(Common):
                 freeworkers += 1
         freework = len(self.gasfreework) + len(self.mimfreework)
         if 0 < freeworkers <= freework:
-            if self.frame > 3 * self.minutes:  # DEBUG
-                breakthis = True  # DEBUG
+            if self.frame > 3 * self.minutes: # DEBUG
+                breakthis = True # DEBUG
             # assign leftover workers to leftover work
             # balance on excess gas
             for drone in self.units(UnitTypeId.DRONE):
@@ -317,10 +318,10 @@ class Mining(Common):
                     if self.minerals >= self.vespene:
                         self.assign_drone_to_closest_gas(drone)
                         self.assign_drone_to_closest_patch(drone)
-                    else:  # having much gas
+                    else: # having much gas
                         self.assign_drone_to_closest_patch(drone)
                         self.assign_drone_to_closest_gas(drone)
-
+                     
     async def assign_free_work(self):
         freeworkers = 0
         for drone in self.units(UnitTypeId.DRONE):
@@ -377,13 +378,13 @@ class Mining(Common):
                     #
                     if len(drone.orders) == 0:
                         if drone.is_carrying_minerals:
-                            drone(AbilityId.SMART, base)  # HARVEST_RETURN with an argument
+                            drone(AbilityId.SMART, base) # HARVEST_RETURN with an argument
                             self.listenframe_of_unit[miner] = self.frame + 5
-                            logger.info("miner kicked to return")
-                        else:  # not carrying minerals
+                            logger.info('miner kicked to return')
+                        else: # not carrying minerals
                             drone(AbilityId.HARVEST_GATHER, patch)
                             self.listenframe_of_unit[miner] = self.frame + 5
-                            logger.info("miner kicked to gather")
+                            logger.info('miner kicked to gather')
                     elif len(drone.orders) == 1:
                         if drone.is_carrying_minerals:
                             for order in drone.orders:
@@ -391,13 +392,13 @@ class Mining(Common):
                                     if type(order.target) == int:
                                         if order.target != base.tag:
                                             if order.target != 0:
-                                                drone(AbilityId.SMART, base)  # HARVEST_RETURN with an argument
+                                                drone(AbilityId.SMART, base) # HARVEST_RETURN with an argument
                                                 self.listenframe_of_unit[miner] = self.frame + 5
-                                                logger.info("miner kicked to correct base")
-                        else:  # not .is_carrying_minerals
+                                                logger.info('miner kicked to correct base')
+                        else: # not .is_carrying_minerals
                             for order in drone.orders:
                                 if order.ability.id == AbilityId.MOVE:
-                                    logger.info("follow-the-hatchery bug")
+                                    logger.info('follow-the-hatchery bug')
                                     drone(AbilityId.HARVEST_GATHER, patch)
                                     self.listenframe_of_unit[miner] = self.frame + 5
                                 elif order.ability.id == AbilityId.HARVEST_GATHER:
@@ -406,7 +407,7 @@ class Mining(Common):
                                             if order.target != 0:
                                                 drone(AbilityId.HARVEST_GATHER, patch)
                                                 self.listenframe_of_unit[miner] = self.frame + 5
-                                                logger.info("miner kicked to correct patch")
+                                                logger.info('miner kicked to correct patch')
             if self.job_of_unit(drone) == Job.GASMINER:
                 if self.frame >= self.listenframe_of_unit[miner]:
                     post = self.assign[miner]
@@ -416,13 +417,13 @@ class Mining(Common):
                     #
                     if len(drone.orders) == 0:
                         if drone.is_carrying_vespene:
-                            drone(AbilityId.SMART, base)  # HARVEST_RETURN with an argument
+                            drone(AbilityId.SMART, base) # HARVEST_RETURN with an argument
                             self.listenframe_of_unit[miner] = self.frame + 5
-                            logger.info("gasminer kicked to return")
-                        else:  # not carrying vespene
+                            logger.info('gasminer kicked to return')
+                        else: # not carrying vespene
                             drone(AbilityId.HARVEST_GATHER, gas)
                             self.listenframe_of_unit[miner] = self.frame + 5
-                            logger.info("gasminer kicked to gather")
+                            logger.info('gasminer kicked to gather')
                     elif len(drone.orders) == 1:
                         if drone.is_carrying_vespene:
                             for order in drone.orders:
@@ -430,10 +431,10 @@ class Mining(Common):
                                     if type(order.target) == int:
                                         if order.target != base.tag:
                                             if order.target != 0:
-                                                drone(AbilityId.SMART, base)  # HARVEST_RETURN with an argument
+                                                drone(AbilityId.SMART, base) # HARVEST_RETURN with an argument
                                                 self.listenframe_of_unit[miner] = self.frame + 5
-                                                logger.info("miner kicked to correct base")
-                        else:  # not .is_carrying_vespene
+                                                logger.info('miner kicked to correct base')
+                        else: # not .is_carrying_vespene
                             for order in drone.orders:
                                 if order.ability.id == AbilityId.HARVEST_GATHER:
                                     if type(order.target) == int:
@@ -441,7 +442,7 @@ class Mining(Common):
                                             if order.target != 0:
                                                 drone(AbilityId.HARVEST_GATHER, gas)
                                                 self.listenframe_of_unit[miner] = self.frame + 5
-                                                logger.info("miner kicked to correct gasbuilding")
+                                                logger.info('miner kicked to correct gasbuilding')
 
     async def speed_mining(self):
         # logger.info('game_step = ' + str(self.game_step))
@@ -453,7 +454,7 @@ class Mining(Common):
                     if self.job_of_unit(drone) == Job.MIMMINER:
                         miner = drone.tag
                         dronepos = drone.position
-                        post = self.assign[miner]  # how could this fail?
+                        post = self.assign[miner] # how could this fail?
                         patchpos = self.position_of_postag(post)
                         patch = self.patch_of_postag(post)
                         expo = self.expo_of_postag[post]
@@ -461,7 +462,7 @@ class Mining(Common):
                         basepos = base.position.towards(patchpos, 2)
                         if miner not in self.info_start_frame:
                             pdist = distance(dronepos, patchpos)
-                            if pdist < 3:  # if far, do not start info phase
+                            if pdist < 3: # if far, do not start info phase
                                 self.info_start_frame[miner] = self.frame + 4 * self.seconds
                                 self.info_end_frame[miner] = self.frame + 16 * self.seconds
                                 self.patchpoint_dist[miner] = 99999
@@ -475,15 +476,15 @@ class Mining(Common):
                                     pdist = distance(dronepos, patchpos)
                                     bdist = distance(dronepos, basepos)
                                     maxdist = distance(basepos, patchpos)
-                                    if bdist < maxdist:  # inside circle
-                                        if pdist < maxdist:  # inside circle
+                                    if bdist < maxdist: # inside circle
+                                        if pdist < maxdist: # inside circle
                                             if pdist < self.patchpoint_dist[miner]:
                                                 self.patchpoint_dist[miner] = pdist
                                                 self.patchpoint[miner] = dronepos
                                             if bdist < self.basepoint_dist[miner]:
                                                 self.basepoint_dist[miner] = bdist
                                                 self.basepoint[miner] = dronepos
-                            else:  # speedmining
+                            else: # speedmining
                                 if self.frame >= self.listenframe_of_unit[miner]:
                                     pdist = distance(dronepos, self.patchpoint[miner])
                                     bdist = distance(dronepos, self.basepoint[miner])
@@ -494,7 +495,7 @@ class Mining(Common):
                                                 drone(AbilityId.SMART, base, queue=True)
                                                 self.listenframe_of_unit[miner] = self.frame + 5
                                                 self.hit_carrying[miner] = not self.hit_carrying[miner]
-                                    else:  # hit not carrying
+                                    else: # hit not carrying
                                         if 0.5 < pdist < 2.0:
                                             if not drone.is_carrying_minerals:
                                                 drone.move(self.patchpoint[miner])
@@ -514,17 +515,17 @@ class Mining(Common):
                 # expectations
                 normal = False
                 if drone.is_carrying_minerals:
-                    carries_min = "Y"
+                    carries_min = 'Y'
                     if len(drone.orders) == 1:
                         for order in drone.orders:
                             if order.ability.id == AbilityId.HARVEST_RETURN:
                                 if type(order.target) == int:
                                     if order.target == base.tag:
                                         normal = True
-                                    elif order.target == 0:  # seen, but why?
+                                    elif order.target == 0: # seen, but why?
                                         normal = True
-                else:  # not .is_carrying_minerals
-                    carries_min = "N"
+                else: # not .is_carrying_minerals
+                    carries_min = 'N'
                     if len(drone.orders) == 1:
                         for order in drone.orders:
                             if order.ability.id == AbilityId.HARVEST_GATHER:
@@ -547,26 +548,26 @@ class Mining(Common):
                                     successes += 1
                     if successes == 2:
                         normal = True
-                        logger.info("speedmining")
+                        logger.info('speedmining')
                 if normal:
-                    logger.info("mining normal")
+                    logger.info('mining normal')
                 else:
-                    logger.info("mining strange")
+                    logger.info('mining strange')
                     # broad logging:
-                    logger.info("   is_carrying_minerals = " + carries_min)
-                    logger.info("   len orders = " + str(len(drone.orders)))
+                    logger.info('   is_carrying_minerals = ' + carries_min)
+                    logger.info('   len orders = '+str(len(drone.orders)))
                     for order in drone.orders:
-                        logger.info("   order.ability.id = " + str(order.ability.id))
-                        logger.info("   type(order.target) = " + type(order.target).__name__)
+                        logger.info('   order.ability.id = ' + str(order.ability.id))
+                        logger.info('   type(order.target) = ' + type(order.target).__name__)
                         if type(order.target) == int:
-                            logger.info(str(order.target) + " != " + str(patch.tag))
+                            logger.info(str(order.target) + ' != ' + str(patch.tag))
                             for stru in self.structures:
                                 if stru.tag == order.target:
-                                    logger.info("   order.target = " + stru.type_id.name)
+                                    logger.info('   order.target = ' + stru.type_id.name) 
 
     async def volunteers(self):
         # have nojob workers mine anywhere
-        if self.function_listens("volunteers", 30):
+        if self.function_listens('volunteers',30):
             # count, an_unemployed, a_volunteer
             unemployed = 0
             volunteers = 0
@@ -625,45 +626,47 @@ class Mining(Common):
                     volunteers -= 1
                     unemployed += 1
 
-    async def balancer(self):
-        # when minerals and vespene are out of balance, fire a miner.
-        if self.function_listens("balancer", 40):  # 2 seconds
-            firemim = False
-            if self.minerals > 2 * self.vespene + 100:
-                if self.vespene > 0:
-                    firemim = True
-            firegas = False
-            if self.vespene > 2 * self.minerals + 100:
-                firegas = True
-            if firegas or firemim:
-                mimminers = 0
-                gasminers = 0
-                unclear = 0
-                for drone in self.units(UnitTypeId.DRONE):
-                    job = self.job_of_unit(drone)
-                    if job == Job.UNCLEAR:
-                        unclear += 1
-                    elif job == Job.MIMMINER:
-                        mimminers += 1
-                    elif job == Job.GASMINER:
-                        gasminers += 1
-                if unclear == 0:
-                    if firemim:
-                        if mimminers >= 2:
-                            first = True
-                            for drone in self.units(UnitTypeId.DRONE):
-                                job = self.job_of_unit(drone)
-                                if job == Job.MIMMINER:
-                                    if first:
-                                        first = False
-                                        logger.info("imbalance, so firing a mimminer")
-                                        self.set_job_of_unit(drone, Job.UNCLEAR)
-                    if firegas:
-                        first = True
-                        for drone in self.units(UnitTypeId.DRONE):
-                            job = self.job_of_unit(drone)
-                            if job == Job.GASMINER:
-                                if first:
-                                    first = False
-                                    logger.info("imbalance, so firing a gasminer")
-                                    self.set_job_of_unit(drone, Job.UNCLEAR)
+
+    async def balancer(self):                                      
+        # when minerals and vespene are out of balance, fire a miner.          
+        if self.function_listens('balancer',40): # 2 seconds       
+            firemim = False                                        
+            if self.minerals > 2 * self.vespene + 100:             
+                if self.vespene > 0:                               
+                    firemim = True                                 
+            firegas = False                                        
+            if self.vespene > 2 * self.minerals + 100:             
+                firegas = True                                     
+            if firegas or firemim:                                 
+                mimminers = 0                                      
+                gasminers = 0                                      
+                unclear = 0                                        
+                for drone in self.units(UnitTypeId.DRONE):         
+                    job = self.job_of_unit(drone)              
+                    if job == Job.UNCLEAR:                    
+                        unclear += 1                               
+                    elif job == Job.MIMMINER:                 
+                        mimminers += 1                             
+                    elif job == Job.GASMINER:                 
+                        gasminers += 1                             
+                if unclear == 0:                                   
+                    if firemim:                                    
+                        if mimminers >= 2:                         
+                            first = True                           
+                            for drone in self.units(UnitTypeId.DRONE):         
+                                job = self.job_of_unit(drone)  
+                                if job == Job.MIMMINER:       
+                                    if first:                      
+                                        first = False              
+                                        logger.info('imbalance, so firing a mimminer') 
+                                        self.set_job_of_unit(drone, Job.UNCLEAR) 
+                    if firegas:                                    
+                        first = True                               
+                        for drone in self.units(UnitTypeId.DRONE): 
+                            job = self.job_of_unit(drone)      
+                            if job == Job.GASMINER:           
+                                if first:                          
+                                    first = False                  
+                                    logger.info('imbalance, so firing a gasminer')     
+                                    self.set_job_of_unit(drone, Job.UNCLEAR) 
+

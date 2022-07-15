@@ -56,7 +56,7 @@ class BotAI(DistanceCalculation):
     EXPANSION_GAP_THRESHOLD = 15
 
     def _initialize_variables(self):
-        """Called from main.py internally"""
+        """ Called from main.py internally """
         DistanceCalculation.__init__(self)
         # Specific opponent bot ID used in sc2ai ladder games http://sc2ai.net/ and on ai arena https://aiarena.net
         # The bot ID will stay the same each game so your bot can "adapt" to the opponent
@@ -128,12 +128,12 @@ class BotAI(DistanceCalculation):
 
     @property
     def time(self) -> float:
-        """Returns time in seconds, assumes the game is played on 'faster'"""
+        """ Returns time in seconds, assumes the game is played on 'faster' """
         return self.state.game_loop / 22.4  # / (1/1.4) * (1/16)
 
     @property
     def time_formatted(self) -> str:
-        """Returns time as string in min:sec format"""
+        """ Returns time as string in min:sec format """
         t = self.time
         return f"{int(t // 60):02}:{int(t % 60):02}"
 
@@ -157,22 +157,22 @@ class BotAI(DistanceCalculation):
 
     @property
     def game_info(self) -> GameInfo:
-        """See game_info.py"""
+        """ See game_info.py """
         return self._game_info
 
     @property
     def game_data(self) -> GameData:
-        """See game_data.py"""
+        """ See game_data.py """
         return self._game_data
 
     @property
     def client(self) -> Client:
-        """See client.py"""
+        """ See client.py """
         return self._client
 
     @property
     def larva_count(self):
-        """Replacement for self.state.common.larva_count https://github.com/Blizzard/s2client-proto/blob/d3d18392f9d7c646067d447df0c936a8ca57d587/s2clientprotocol/sc2api.proto#L614"""
+        """ Replacement for self.state.common.larva_count https://github.com/Blizzard/s2client-proto/blob/d3d18392f9d7c646067d447df0c936a8ca57d587/s2clientprotocol/sc2api.proto#L614 """
         warnings.warn(
             "self.larva_count will be removed soon, please use len(self.larva) or self.larva.amount instead",
             DeprecationWarning,
@@ -261,7 +261,7 @@ class BotAI(DistanceCalculation):
 
     @property_cache_once_per_frame
     def expansion_locations_list(self) -> List[Point2]:
-        """Returns a list of expansion positions, not sorted in any way."""
+        """ Returns a list of expansion positions, not sorted in any way. """
         assert (
             self._expansion_positions_list
         ), f"self._find_expansion_locations() has not been run yet, so accessing the list of expansion locations is pointless."
@@ -290,7 +290,7 @@ class BotAI(DistanceCalculation):
     # Deprecated
     @property_cache_once_per_frame
     def expansion_locations(self) -> Dict[Point2, Units]:
-        """Same as the function above."""
+        """ Same as the function above. """
         assert (
             self._expansion_positions_list
         ), f"self._find_expansion_locations() has not been run yet, so accessing the list of expansion locations is pointless."
@@ -302,7 +302,7 @@ class BotAI(DistanceCalculation):
         return self.expansion_locations_dict
 
     def _find_expansion_locations(self):
-        """Ran once at the start of the game to calculate expansion locations."""
+        """ Ran once at the start of the game to calculate expansion locations. """
         # Idea: create a group for every resource, then merge these groups if
         # any resource in a group is closer than a threshold to any resource of another group
 
@@ -311,8 +311,7 @@ class BotAI(DistanceCalculation):
         geysers: Units = self.vespene_geyser
         # Create a group for every resource
         resource_groups: List[List[Unit]] = [
-            [resource]
-            for resource in self.resources
+            [resource] for resource in self.resources
             if resource.name != "MineralField450"  # dont use low mineral count patches
         ]
         # Loop the merging process as long as we change something
@@ -335,8 +334,7 @@ class BotAI(DistanceCalculation):
         # Distance offsets we apply to center of each resource group to find expansion position
         offset_range = 7
         offsets = [
-            (x, y)
-            for x, y in itertools.product(range(-offset_range, offset_range + 1), repeat=2)
+            (x, y) for x, y in itertools.product(range(-offset_range, offset_range + 1), repeat=2)
             if 4 < math.hypot(x, y) <= 8
         ]
         # Dict we want to return
@@ -352,8 +350,7 @@ class BotAI(DistanceCalculation):
             possible_points = (Point2((offset[0] + center_x, offset[1] + center_y)) for offset in offsets)
             # Filter out points that are too near
             possible_points = (
-                point
-                for point in possible_points
+                point for point in possible_points
                 # Check if point can be built on
                 if self._game_info.placement_grid[point.rounded] == 1
                 # Check if all resources have enough space to point
@@ -454,9 +451,7 @@ class BotAI(DistanceCalculation):
             # All expansions are used up or mined out
             logger.warning("Trying to expand_now() but bot is out of locations to expand to")
             return
-        await self.build(
-            building, near=location, max_distance=max_distance, random_alternative=False, placement_step=1
-        )
+        await self.build(building, near=location, max_distance=max_distance, random_alternative=False, placement_step=1)
 
     async def get_next_expansion(self) -> Optional[Point2]:
         """Find next expansion location."""
@@ -516,20 +511,21 @@ class BotAI(DistanceCalculation):
                 # get all workers that target the gas extraction site
                 # or are on their way back from it
                 local_workers = self.workers.filter(
-                    lambda unit: unit.order_target == mining_place.tag
-                    or (unit.is_carrying_vespene and unit.order_target == bases.closest_to(mining_place).tag)
+                    lambda unit: unit.order_target == mining_place.tag or
+                    (unit.is_carrying_vespene and unit.order_target == bases.closest_to(mining_place).tag)
                 )
             else:
                 # get tags of minerals around expansion
                 local_minerals_tags = {
-                    mineral.tag for mineral in self.mineral_field if mineral.distance_to(mining_place) <= 8
+                    mineral.tag
+                    for mineral in self.mineral_field if mineral.distance_to(mining_place) <= 8
                 }
                 # get all target tags a worker can have
                 # tags of the minerals he could mine at that base
                 # get workers that work at that gather site
                 local_workers = self.workers.filter(
-                    lambda unit: unit.order_target in local_minerals_tags
-                    or (unit.is_carrying_minerals and unit.order_target == mining_place.tag)
+                    lambda unit: unit.order_target in local_minerals_tags or
+                    (unit.is_carrying_minerals and unit.order_target == mining_place.tag)
                 )
             # too many workers
             if difference > 0:
@@ -544,8 +540,7 @@ class BotAI(DistanceCalculation):
         # and need to send them to the closest patch
         if len(worker_pool) > len(deficit_mining_places):
             all_minerals_near_base = [
-                mineral
-                for mineral in self.mineral_field
+                mineral for mineral in self.mineral_field
                 if any(mineral.distance_to(base) <= 8 for base in self.townhalls.ready)
             ]
         # distribute every worker in the pool
@@ -773,23 +768,19 @@ class BotAI(DistanceCalculation):
             ability_target = self._game_data.abilities[ability_id.value]._proto.target
             # Check if target is in range (or is a self cast like stimpack)
             if (
-                ability_target == 1
-                or ability_target == Target.PointOrNone.value
-                and isinstance(target, Point2)
+                ability_target == 1 or ability_target == Target.PointOrNone.value and isinstance(target, Point2)
                 and unit.distance_to(target) <= unit.radius + target.radius + cast_range
             ):  # cant replace 1 with "Target.None.value" because ".None" doesnt seem to be a valid enum name
                 return True
             # Check if able to use ability on a unit
             elif (
-                ability_target in {Target.Unit.value, Target.PointOrUnit.value}
-                and isinstance(target, Unit)
+                ability_target in {Target.Unit.value, Target.PointOrUnit.value} and isinstance(target, Unit)
                 and unit.distance_to(target) <= unit.radius + target.radius + cast_range
             ):
                 return True
             # Check if able to use ability on a position
             elif (
-                ability_target in {Target.Point.value, Target.PointOrUnit.value}
-                and isinstance(target, Point2)
+                ability_target in {Target.Point.value, Target.PointOrUnit.value} and isinstance(target, Point2)
                 and unit.distance_to(target) <= unit.radius + cast_range
             ):
                 return True
@@ -814,9 +805,7 @@ class BotAI(DistanceCalculation):
         if workers:
             for worker in workers.sorted_by_distance_to(pos).prefer_idle:
                 if (
-                    worker not in self.unit_tags_received_action
-                    and not worker.orders
-                    or len(worker.orders) == 1
+                    worker not in self.unit_tags_received_action and not worker.orders or len(worker.orders) == 1
                     and worker.orders[0].ability.id in {AbilityId.MOVE, AbilityId.HARVEST_GATHER}
                 ):
                     return worker
@@ -824,15 +813,14 @@ class BotAI(DistanceCalculation):
             return workers.random if force else None
 
     async def can_place_single(self, building: Union[AbilityId, UnitTypeId], position: Point2) -> bool:
-        """Checks the placement for only one position."""
+        """ Checks the placement for only one position. """
         if isinstance(building, UnitTypeId):
             creation_ability = self._game_data.units[building.value].creation_ability.id
             return (await self._client._query_building_placement_fast(creation_ability, [position]))[0]
         return (await self._client._query_building_placement_fast(building, [position]))[0]
 
-    async def can_place(
-        self, building: Union[AbilityData, AbilityId, UnitTypeId], positions: List[Point2]
-    ) -> List[bool]:
+    async def can_place(self, building: Union[AbilityData, AbilityId, UnitTypeId],
+                        positions: List[Point2]) -> List[bool]:
         """Tests if a building can be placed in the given locations.
 
         Example::
@@ -902,9 +890,9 @@ class BotAI(DistanceCalculation):
         if isinstance(building, UnitTypeId):
             building = self._game_data.units[building.value].creation_ability.id
 
-        if await self.can_place_single(building, near) and (
-            not addon_place or await self.can_place_single(UnitTypeId.SUPPLYDEPOT, near.offset((2.5, -0.5)))
-        ):
+        if await self.can_place_single(
+            building, near
+        ) and (not addon_place or await self.can_place_single(UnitTypeId.SUPPLYDEPOT, near.offset((2.5, -0.5)))):
             return near
 
         if max_distance == 0:
@@ -912,12 +900,11 @@ class BotAI(DistanceCalculation):
 
         for distance in range(placement_step, max_distance, placement_step):
             possible_positions = [
-                Point2(p).offset(near).to2
-                for p in (
-                    [(dx, -distance) for dx in range(-distance, distance + 1, placement_step)]
-                    + [(dx, distance) for dx in range(-distance, distance + 1, placement_step)]
-                    + [(-distance, dy) for dy in range(-distance, distance + 1, placement_step)]
-                    + [(distance, dy) for dy in range(-distance, distance + 1, placement_step)]
+                Point2(p).offset(near).to2 for p in (
+                    [(dx, -distance) for dx in range(-distance, distance + 1, placement_step)] +
+                    [(dx, distance) for dx in range(-distance, distance + 1, placement_step)] +
+                    [(-distance, dy) for dy in range(-distance, distance + 1, placement_step)] +
+                    [(distance, dy) for dy in range(-distance, distance + 1, placement_step)]
                 )
             ]
             res = await self._client._query_building_placement_fast(building, possible_positions)
@@ -1026,15 +1013,16 @@ class BotAI(DistanceCalculation):
             structure_type_value = structure_type.value
         assert structure_type_value, f"structure_type can not be 0 or NOTAUNIT, but was: {structure_type_value}"
         equiv_values: Set[int] = {structure_type_value} | {
-            s_type.value for s_type in EQUIVALENTS_FOR_TECH_PROGRESS.get(structure_type, set())
+            s_type.value
+            for s_type in EQUIVALENTS_FOR_TECH_PROGRESS.get(structure_type, set())
         }
         # SUPPLYDEPOTDROP is not in self._game_data.units, so bot_ai should not check the build progress via creation ability (worker abilities)
         if structure_type_value not in self._game_data.units:
             return max([s.build_progress for s in self.structures if s._proto.unit_type in equiv_values], default=0)
         creation_ability: AbilityData = self._game_data.units[structure_type_value].creation_ability
         max_value = max(
-            [s.build_progress for s in self.structures if s._proto.unit_type in equiv_values]
-            + [self._abilities_all_units[1].get(creation_ability, 0)],
+            [s.build_progress for s in self.structures if s._proto.unit_type in equiv_values] +
+            [self._abilities_all_units[1].get(creation_ability, 0)],
             default=0,
         )
         return max_value
@@ -1099,7 +1087,7 @@ class BotAI(DistanceCalculation):
 
     @property_cache_once_per_frame_no_copy
     def _worker_orders(self) -> Counter:
-        """This function is used internally, do not use! It is to store all worker abilities."""
+        """ This function is used internally, do not use! It is to store all worker abilities. """
         abilities_amount = Counter()
         structures_in_production: Set[Union[Point2, int]] = set()
         for structure in self.structures:
@@ -1112,10 +1100,8 @@ class BotAI(DistanceCalculation):
                 # or resuming construction (isinstance(order.target, int))
                 is_int = isinstance(order.target, int)
                 if (
-                    is_int
-                    and order.target in structures_in_production
-                    or not is_int
-                    and Point2.from_proto(order.target) in structures_in_production
+                    is_int and order.target in structures_in_production
+                    or not is_int and Point2.from_proto(order.target) in structures_in_production
                 ):
                     continue
                 abilities_amount[order.ability] += 1
@@ -1150,11 +1136,9 @@ class BotAI(DistanceCalculation):
         return self.structures.filter(
             lambda structure: structure.build_progress < 1
             # Redundant check?
-            and structure.type_id in TERRAN_STRUCTURES_REQUIRE_SCV
-            and structure.position not in worker_targets
-            and structure.tag not in worker_targets
-            and structure.tag in self._structures_previous_map
-            and self._structures_previous_map[structure.tag].build_progress == structure.build_progress
+            and structure.type_id in TERRAN_STRUCTURES_REQUIRE_SCV and structure.position not in worker_targets and
+            structure.tag not in worker_targets and structure.tag in self._structures_previous_map and self.
+            _structures_previous_map[structure.tag].build_progress == structure.build_progress
         )
 
     async def build(
@@ -1200,7 +1184,11 @@ class BotAI(DistanceCalculation):
         return True
 
     def train(
-        self, unit_type: UnitTypeId, amount: int = 1, closest_to: Point2 = None, train_only_idle_buildings: bool = True
+        self,
+        unit_type: UnitTypeId,
+        amount: int = 1,
+        closest_to: Point2 = None,
+        train_only_idle_buildings: bool = True
     ) -> int:
         """Trains a specified number of units. Trains only one if amount is not specified.
         Warning: currently has issues with warp gate warp ins
@@ -1266,8 +1254,8 @@ class BotAI(DistanceCalculation):
         elif can_have_addons:
             # This should sort the structures in ascending order: first structures with reactor, then naked, then with techlab
             train_structures = train_structures.sorted(
-                key=lambda structure: -1 * (structure.add_on_tag in self.reactor_tags)
-                + 1 * (structure.add_on_tag in self.techlab_tags)
+                key=lambda structure: -1 * (structure.add_on_tag in self.reactor_tags) + 1 *
+                (structure.add_on_tag in self.techlab_tags)
             )
 
         structure: Unit
@@ -1559,12 +1547,9 @@ class BotAI(DistanceCalculation):
         """Tests if a 2 dimensional point is within the map boundaries of the pixelmaps.
         :param pos:"""
         return (
-            self._game_info.playable_area.x
-            <= pos[0]
-            < self._game_info.playable_area.x + self.game_info.playable_area.width
-            and self._game_info.playable_area.y
-            <= pos[1]
-            < self._game_info.playable_area.y + self.game_info.playable_area.height
+            self._game_info.playable_area.x <= pos[0] <
+            self._game_info.playable_area.x + self.game_info.playable_area.width and self._game_info.playable_area.y <=
+            pos[1] < self._game_info.playable_area.y + self.game_info.playable_area.height
         )
 
     # For the functions below, make sure you are inside the boundaries of the map size.
@@ -1669,7 +1654,8 @@ class BotAI(DistanceCalculation):
         self._structures_previous_map: Dict[int, Unit] = {structure.tag: structure for structure in self.structures}
         self._enemy_units_previous_map: Dict[int, Unit] = {unit.tag: unit for unit in self.enemy_units}
         self._enemy_structures_previous_map: Dict[int, Unit] = {
-            structure.tag: structure for structure in self.enemy_structures
+            structure.tag: structure
+            for structure in self.enemy_structures
         }
         self._all_units_previous_map: Dict[int, Unit] = {unit.tag: unit for unit in self.all_units}
 
@@ -1799,7 +1785,7 @@ class BotAI(DistanceCalculation):
             _ = self._cdist
 
     async def _after_step(self) -> int:
-        """Executed by main.py after each on_step function."""
+        """ Executed by main.py after each on_step function. """
         # Keep track of the bot on_step duration
         self._time_after_step: float = time.perf_counter()
         step_duration = self._time_after_step - self._time_before_step
@@ -1885,10 +1871,8 @@ class BotAI(DistanceCalculation):
                     or structure.shield < previous_frame_structure.shield
                 ):
                     damage_amount = (
-                        previous_frame_structure.health
-                        - structure.health
-                        + previous_frame_structure.shield
-                        - structure.shield
+                        previous_frame_structure.health - structure.health + previous_frame_structure.shield -
+                        structure.shield
                     )
                     await self.on_unit_took_damage(structure, damage_amount)
                 # Check if a structure changed its type

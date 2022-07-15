@@ -25,9 +25,9 @@ class BackBehavior(CommandUtils):
     async def on_step(self, iteration: int):
         self.frame = iteration * self.bot_ai.client.game_step
         myunits = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-            and (not self.unit_types or unit.type_id in self.unit_types)
-        )
+            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
+                not self.unit_types or unit.type_id in self.unit_types)
+            )
         if not self.bot_ai.enemy_units.empty:
             for unit in myunits:
                 tag = unit.tag
@@ -36,7 +36,8 @@ class BackBehavior(CommandUtils):
                 if unit.weapon_cooldown > self.maxcool[tag]:
                     self.maxcool[tag] = unit.weapon_cooldown
                 target = self.bot_ai.enemy_units.closest_to(unit)
-                if abs(range_vs(target, unit) - range_vs(unit, target)) < 0.5:  # equal range
+                if abs(range_vs(target, unit) - range_vs(unit, target)) < 0.5: # equal range
                     if unit.weapon_cooldown >= self.maxcool[tag] / 2:
                         goal = unit.position.towards(target.position, -1)
-                        self.unit_interface.set_command(unit, MoveCommand(goal, "back"))
+                        self.unit_interface.set_command(unit, MoveCommand(goal, 'back'))
+

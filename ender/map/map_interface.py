@@ -5,6 +5,7 @@ from sc2.bot_ai import BotAI
 
 
 class IMapInterface(ABC):
+
     @abstractmethod
     def unit_map(self) -> InfluenceMap:
         raise NotImplementedError()
@@ -16,6 +17,7 @@ class IMapInterface(ABC):
 
 # WIP: This should keep all map information. We should only process maps once per loop
 class MapInterface(IMapInterface):
+
     def setup(self, bot_ai: BotAI):
         self._bot_ai = bot_ai
 

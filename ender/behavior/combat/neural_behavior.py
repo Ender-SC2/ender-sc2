@@ -23,12 +23,12 @@ class NeuralBehavior(CommandUtils):
     async def on_step(self, iteration: int):
         self.frame = iteration * self.bot_ai.client.game_step
         myunits = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-            and (not self.unit_types or unit.type_id in self.unit_types)
-        )
-        logger.info("-------- " + str(self.frame))
+            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
+                not self.unit_types or unit.type_id in self.unit_types)
+            )
+        logger.info('-------- ' + str(self.frame))
         for unt in self.bot_ai.units:
-            logger.info("my unit " + str(unt.tag) + " eng " + str(unt.energy))
+            logger.info('my unit ' + str(unt.tag) + ' eng ' + str(unt.energy))
         if not self.bot_ai.enemy_units.empty:
             for unit in myunits:
                 if unit.energy >= 100:
@@ -42,3 +42,4 @@ class NeuralBehavior(CommandUtils):
                                 target = ene
                     if target:
                         unit(AbilityId.NEURALPARASITE_NEURALPARASITE, target)
+

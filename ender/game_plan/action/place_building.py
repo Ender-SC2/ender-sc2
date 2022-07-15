@@ -13,9 +13,8 @@ from sc2.position import Point2
 class PlaceBuilding(IAction):
     common: Common
 
-    def __init__(
-        self, unit_type: UnitTypeId, building_positioning: Positioning, amount: int = 1, on_base: Point2 = None
-    ):
+    def __init__(self, unit_type: UnitTypeId, building_positioning: Positioning, amount: int = 1,
+                 on_base: Point2 = None):
         super().__init__()
         self.unit_type = unit_type
         self.building_positioning = building_positioning

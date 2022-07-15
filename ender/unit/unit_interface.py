@@ -10,6 +10,7 @@ from sc2.unit import Unit
 
 # TODO: Extract UnitInterface from common to make it easier to test
 class IUnitInterface(ABC):
+
     @abstractmethod
     def set_command(self, unit: Unit, command: IUnitCommand):
         raise NotImplementedError()
@@ -44,6 +45,7 @@ class IUnitInterface(ABC):
 
 
 class UnitInterface(IUnitInterface):
+
     def __init__(self):
         self._previousCommands: dict[Unit, list[IUnitCommand]] = {}
         self._commands: dict[Unit, list[IUnitCommand]] = {}

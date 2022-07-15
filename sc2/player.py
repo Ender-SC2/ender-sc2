@@ -120,7 +120,6 @@ class BotProcess(AbstractPlayer):
     e.g. to call a bot capable of running on the bot ladders:
         BotProcess(os.getcwd(), "python run.py", Race.Terran, "INnoVation")
     """
-
     def __init__(
         self,
         path: Union[str, Path],
@@ -153,9 +152,11 @@ class BotProcess(AbstractPlayer):
             return f"Bot {self.name}({self.race.name} from {self.launch_list})"
         return f"Bot({self.race.name} from {self.launch_list})"
 
-    def cmd_line(
-        self, sc2port: Union[int, str], matchport: Union[int, str], hostaddress: str, realtime: bool = False
-    ) -> List[str]:
+    def cmd_line(self,
+                 sc2port: Union[int, str],
+                 matchport: Union[int, str],
+                 hostaddress: str,
+                 realtime: bool = False) -> List[str]:
         """
 
         :param sc2port: the port that the launched sc2 instance listens to
