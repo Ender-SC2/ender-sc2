@@ -2,7 +2,7 @@
 line-length = 119
 exclude = '''
 /(
-  | \.git
+   \.git
   | \.venv
   | \sc2
   | \data
