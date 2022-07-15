@@ -1,15 +1,14 @@
 # neural_behavior.py
 
 from typing import List, Optional
+
 from loguru import logger
 
 from ender.job import Job
 from ender.utils.command_utils import CommandUtils
 from ender.utils.point_utils import distance
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2
 from sc2.ids.ability_id import AbilityId
-from ender.utils.unit_utils import range_vs
+from sc2.ids.unit_typeid import UnitTypeId
 
 
 class NeuralBehavior(CommandUtils):

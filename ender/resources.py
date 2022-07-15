@@ -1,9 +1,9 @@
 # resources.py, Ender
 
 from enum import Enum, auto
+
 from loguru import logger
 
-import sc2
 from ender.job import Job
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId

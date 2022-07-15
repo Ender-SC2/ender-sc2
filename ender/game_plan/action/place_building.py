@@ -5,7 +5,6 @@ from loguru import logger
 from ender.common import Common
 from ender.game_plan.action.action import IAction
 from ender.game_plan.action.positioning import Positioning
-from ender.job import Job
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 

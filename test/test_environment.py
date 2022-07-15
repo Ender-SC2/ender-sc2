@@ -26,4 +26,4 @@ class TestEnvironment:
                 realtime=False,
             )
         except ConnectionResetError:
-            logger.debug(f"Exception")
+            logger.debug("Exception")

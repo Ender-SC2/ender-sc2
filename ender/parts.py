@@ -1,18 +1,17 @@
 # parts.py, Ender
 
 import os
+
 from loguru import logger
 
 from ender.common import Common
 from ender.utils.type_utils import get_version
 from sc2.data import Race
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2
 
 
 class Parts(Common):
 
-    bot_name = f"Ender by MerkMore and Ratosh"
+    bot_name = "Ender by MerkMore and Ratosh"
 
     __did_step0 = False
     #

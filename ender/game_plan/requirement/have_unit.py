@@ -1,6 +1,9 @@
+from typing import Optional
+
 from ender.common import Common
 from ender.game_plan.requirement.requirement import Requirement
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 
 
 class HaveUnit(Requirement):

@@ -4,14 +4,13 @@
 # from sc2 import Race, Difficulty
 # from sc2.player import Bot, Computer
 # import random
-import sc2, sys
+import sc2
+import sys
+# Load bot
+from Main import Ender
 from __init__ import run_ladder_game
 from sc2.data import Race, Difficulty
 from sc2.player import Bot, Computer
-import random
-
-# Load bot
-from Main import Ender
 
 bot = Bot(Race.Zerg, Ender())
 

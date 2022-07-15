@@ -4,7 +4,6 @@ from loguru import logger
 
 from ender.common import Common
 from sc2.ids.unit_typeid import UnitTypeId
-import sc2
 
 
 class Endstep(Common):
