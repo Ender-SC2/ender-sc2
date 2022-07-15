@@ -13,6 +13,9 @@ jobs:
       - name: Install dev tools
         run: |
           pip install -r requirements.dev.txt
+      - name: Run black check
+        run: |
+          black --check .
       - name: If needed, commit black changes to the pull request
         if: failure()
         run: |
