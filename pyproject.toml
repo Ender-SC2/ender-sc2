@@ -4,8 +4,7 @@ exclude = '''
 /(
    \.git
   | \.venv
-  | \sc2
-  | \data
-  | __pycache__
+  | sc2
+  | data
 )/
 '''
