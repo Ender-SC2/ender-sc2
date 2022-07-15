@@ -6,6 +6,7 @@
 # import random
 import sc2
 import sys
+
 # Load bot
 from Main import Ender
 from __init__ import run_ladder_game

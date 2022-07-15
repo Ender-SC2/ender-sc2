@@ -23,14 +23,14 @@ ability_damage_type: Dict[AbilityId, float] = {}
 
 
 def _init_ability(
-        ability: AbilityId,
-        caster: UnitTypeId,
-        range: float,
-        cooldown: float,
-        radius: float,
-        duration: float,
-        damage: float,
-        damage_type: AbilityDamageType,
+    ability: AbilityId,
+    caster: UnitTypeId,
+    range: float,
+    cooldown: float,
+    radius: float,
+    duration: float,
+    damage: float,
+    damage_type: AbilityDamageType,
 ):
     ability_caster[ability] = caster
     ability_range[ability] = range
