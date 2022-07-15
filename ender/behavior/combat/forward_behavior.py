@@ -11,6 +11,7 @@ from ender.utils.unit_utils import range_vs
 # on having less range
 # also if the opponent cannot attack
 
+
 class ForwardBehavior(CommandUtils):
     unit_types: Optional[List[UnitTypeId]]
     jobs: Optional[List[Job]]
@@ -21,23 +22,23 @@ class ForwardBehavior(CommandUtils):
 
     async def on_step(self, iteration: int):
         self.frame = iteration * self.bot_ai.client.game_step
-        myunits = self.bot_ai.units.filter(lambda unit:
-            (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-            and (not self.unit_types or unit.type_id in self.unit_types))
+        myunits = self.bot_ai.units.filter(
+            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
+            and (not self.unit_types or unit.type_id in self.unit_types)
+        )
 
         for unit in myunits:
-            enemies = self.bot_ai.enemy_units.filter (
-                lambda ene: distance(ene.position, unit.position) < 8 )
+            enemies = self.bot_ai.enemy_units.filter(lambda ene: distance(ene.position, unit.position) < 8)
             if len(enemies) > 0:
                 if unit.weapon_cooldown > self.bot_ai.client.game_step:
                     target = enemies.closest_to(unit)
-                    if 0 < range_vs(unit, target) < range_vs(target, unit): # I have less range
-                        if abs(range_vs(unit, target) - range_vs(target, unit)) >= 0.5: # unequal range
+                    if 0 < range_vs(unit, target) < range_vs(target, unit):  # I have less range
+                        if abs(range_vs(unit, target) - range_vs(target, unit)) >= 0.5:  # unequal range
                             touchdist = distance(unit.position, target.position) - (unit.radius + target.radius)
                             if touchdist > 0:
                                 step = min(1, touchdist)
                                 goal = unit.position.towards(target.position, step)
-                                self.unit_interface.set_command(unit, MoveCommand(goal, 'forward'))
+                                self.unit_interface.set_command(unit, MoveCommand(goal, "forward"))
                     else:
                         # dont block collegues while shooting a building
                         rangedist = 99999
@@ -46,10 +47,7 @@ class ForwardBehavior(CommandUtils):
                             rangedist = min(rd, rangedist)
                         if rangedist > 0:
                             touchdist = distance(unit.position, target.position) - (unit.radius + target.radius)
-                            step = min(touchdist, rangedist) 
+                            step = min(touchdist, rangedist)
                             step = min(1, step)
                             goal = unit.position.towards(target.position, step)
-                            self.unit_interface.set_command(unit, MoveCommand(goal, 'forward'))
-
-
-
+                            self.unit_interface.set_command(unit, MoveCommand(goal, "forward"))

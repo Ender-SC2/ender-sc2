@@ -14,11 +14,11 @@ class Resources(Tech):
     __did_step0 = False
     # a claim is needed to make a LAIR, as it needs money and a hatchery not making a queen.
     # claimtype = (typ,resources,importance,expiration)
-    claims = [] # of claimtype. Typ will be unique.
-    orderdelay = [] # of claimtype. The order has been given but did not arrive yet.
-    groupclaim = None # things, in make_plan but not started, hold a claim at importance 700.
-    example = UnitTypeId.SCV # SCV if you want no example logged
-    resource_now_tags = {} # for resources that are a unit, tags are stored this frame. Not geysers
+    claims = []  # of claimtype. Typ will be unique.
+    orderdelay = []  # of claimtype. The order has been given but did not arrive yet.
+    groupclaim = None  # things, in make_plan but not started, hold a claim at importance 700.
+    example = UnitTypeId.SCV  # SCV if you want no example logged
+    resource_now_tags = {}  # for resources that are a unit, tags are stored this frame. Not geysers
 
     def __step0(self):
         self.init_resources()
@@ -59,11 +59,12 @@ class Resources(Tech):
         SPIRES = auto()
         ULTRALISKCAVERNS = auto()
         OVERSEER50S = auto()
-    zero_resources  = dict((res,0) for res in Resource) # always .copy()
-    claimed = [] # of (typ, resources, importance, expiration)
-    resource_cost = {} # per typ: resource
-    resource_now_amount = {} # in step init. Per resource, the amount.
-    resource_of_buildingtype = {} # match for upgrade buildings
+
+    zero_resources = dict((res, 0) for res in Resource)  # always .copy()
+    claimed = []  # of (typ, resources, importance, expiration)
+    resource_cost = {}  # per typ: resource
+    resource_now_amount = {}  # in step init. Per resource, the amount.
+    resource_of_buildingtype = {}  # match for upgrade buildings
 
     def init_resources(self):
         self.init_resource_of_buildingtype()
@@ -152,7 +153,7 @@ class Resources(Tech):
             if self.job_of_unit(unt) == Job.DEFENDATTACK:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
                     self.resource_now_tags[self.Resource.ZERGLINGS].add(unt.tag)
-        for unt in self.units(UnitTypeId.SWARMHOSTMP).idle: # here cooldown 43 sec?
+        for unt in self.units(UnitTypeId.SWARMHOSTMP).idle:  # here cooldown 43 sec?
             if self.frame >= self.listenframe_of_unit[unt.tag]:
                 if unt.tag in self.cooldown_sh:
                     if self.frame >= self.cooldown_sh[unt.tag]:
@@ -185,7 +186,7 @@ class Resources(Tech):
         self.resource_now_amount[self.Resource.EXPOS] = len(self.freeexpos)
         self.resource_now_amount[self.Resource.GEYSERS] = len(self.freegeysers)
 
-    def resourcetags(self, typ): # -> set of tags
+    def resourcetags(self, typ):  # -> set of tags
         tagsset = set()
         typresources = self.resource_cost[typ]
         for res in self.Resource:
@@ -228,22 +229,22 @@ class Resources(Tech):
         # in claims?
         inclaims = False
         claimindex = 0
-        for (ix,hclaim) in enumerate(self.claims):
+        for (ix, hclaim) in enumerate(self.claims):
             (htyp, hresource, himportance, hexpiration) = hclaim
             if htyp == typ:
                 inclaims = True
                 claimindex = ix
         if inclaims:
             # claims with importance above mine
-            vipclaimed = self.zero_resources.copy() 
+            vipclaimed = self.zero_resources.copy()
             for hclaim in self.claims:
-                (htyp,hresources,himportance,hexpiration) = hclaim
+                (htyp, hresources, himportance, hexpiration) = hclaim
                 if himportance > importance:
                     for res in self.Resource:
                         vipclaimed[res] += hresources[res]
             # to pay now
             for hclaim in self.orderdelay:
-                (htyp,hresources,himportance,hexpiration) = hclaim
+                (htyp, hresources, himportance, hexpiration) = hclaim
                 for res in self.Resource:
                     vipclaimed[res] += hresources[res]
             # groupclaim at importance 700
@@ -255,28 +256,28 @@ class Resources(Tech):
             buildnow = True
             if self.tech_requirement_progress(typ) < 1:
                 if typ == self.example:
-                    logger.info('example lacking tech')
+                    logger.info("example lacking tech")
                 buildnow = False
             for res in self.Resource:
                 myres = resources[res]
                 if myres > 0:
                     vipres = vipclaimed[res]
                     nowres = self.resource_now_amount[res]
-                    if (nowres < vipres + myres):
+                    if nowres < vipres + myres:
                         if typ == self.example:
-                            logger.info('example lacking ' + res.name)
+                            logger.info("example lacking " + res.name)
                         buildnow = False
             #
             if buildnow:
                 if typ == self.example:
-                    logger.info('example will build')
+                    logger.info("example will build")
                 del self.claims[claimindex]
                 short = self.frame + self.seconds
                 long = self.frame + self.minutes
                 if typ in self.all_structuretypes:
-                    self.orderdelay.append((typ,resources,importance,long))
+                    self.orderdelay.append((typ, resources, importance, long))
                 else:
-                    self.orderdelay.append((typ,resources,importance,short))
+                    self.orderdelay.append((typ, resources, importance, short))
                 return True
             else:
                 return False
@@ -284,15 +285,15 @@ class Resources(Tech):
             return False
 
     def unclaim_resources(self, typ):
-        logger.info('Making a ' + typ.name)
+        logger.info("Making a " + typ.name)
         lex = 9999999
         expiration = self.frame + 5
         for hclaim in self.orderdelay:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             if (htyp == typ) and (expiration < hexpiration < lex):
                 lex = hexpiration
                 old_claim = hclaim
-                new_claim = (htyp,hresources,himportance,expiration) 
+                new_claim = (htyp, hresources, himportance, expiration)
         if lex < 9999999:
             self.orderdelay[self.orderdelay.index(old_claim)] = new_claim
 
@@ -300,22 +301,22 @@ class Resources(Tech):
         # use if you want to check whether you want to claim
         amfree = self.resource_now_amount[res]
         # claims (with importance atleast mine)
-        vipclaimed = 0 
+        vipclaimed = 0
         for hclaim in self.claims:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             if himportance >= importance:
                 vipclaimed += hresources[res]
         amfree -= vipclaimed
         # to pay now
         spent = 0
         for hclaim in self.orderdelay:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             spent += hresources[res]
         amfree -= spent
         # groupclaim
         if importance < 700:
             amfree -= self.groupclaim[res]
-        return (amfree > 0)
+        return amfree > 0
 
     def mineral_gap(self, typ) -> int:
         # typ should be in claims
@@ -323,83 +324,82 @@ class Resources(Tech):
         importance = 99999
         need = True
         for hclaim in self.claims:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             if htyp == typ:
                 importance = himportance
-                need = (hresources[res] > 0)
+                need = hresources[res] > 0
         if not need:
             return 0
         amfree = self.resource_now_amount[res]
         # claims (with importance atleast mine)
-        vipclaimed = 0 
+        vipclaimed = 0
         for hclaim in self.claims:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             if himportance >= importance:
                 vipclaimed += hresources[res]
         amfree -= vipclaimed
         # to pay now
         spent = 0
         for hclaim in self.orderdelay:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             spent += hresources[res]
         amfree -= spent
         # groupclaim
         if importance < 700:
             amfree -= self.groupclaim[res]
-        return - amfree
-    
+        return -amfree
+
     def vespene_gap(self, typ) -> int:
         # typ should be in claims
         res = self.Resource.VESPENE
         importance = 99999
         need = True
         for hclaim in self.claims:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             if htyp == typ:
                 importance = himportance
-                need = (hresources[res] > 0)
+                need = hresources[res] > 0
         if not need:
             return 0
         amfree = self.resource_now_amount[res]
         # claims (with importance atleast mine)
-        vipclaimed = 0 
+        vipclaimed = 0
         for hclaim in self.claims:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             if himportance >= importance:
                 vipclaimed += hresources[res]
         amfree -= vipclaimed
         # to pay now
         spent = 0
         for hclaim in self.orderdelay:
-            (htyp,hresources,himportance,hexpiration) = hclaim
+            (htyp, hresources, himportance, hexpiration) = hclaim
             spent += hresources[res]
         amfree -= spent
         # groupclaim
         if importance < 700:
             amfree -= self.groupclaim[res]
-        return - amfree
-    
-        
+        return -amfree
+
     async def claim_administration(self):
         # delete outdated info
         # often, expensive content.
         todel = []
-        show = 'claims: '
+        show = "claims: "
         for claim in self.claims:
-            (typ,resources,importance,expiration) = claim
-            show += typ.name + ' '
+            (typ, resources, importance, expiration) = claim
+            show += typ.name + " "
             if self.frame >= expiration:
                 todel.append(claim)
         for claim in todel:
-            del self.claims[self.claims.index(claim)] 
+            del self.claims[self.claims.index(claim)]
         todel = []
         for claim in self.orderdelay:
-            (typ,resources,importance,expiration) = claim
-            show += '(' + typ.name + ') '
+            (typ, resources, importance, expiration) = claim
+            show += "(" + typ.name + ") "
             if self.frame >= expiration:
                 todel.append(claim)
         for claim in todel:
-            del self.orderdelay[self.orderdelay.index(claim)] 
+            del self.orderdelay[self.orderdelay.index(claim)]
         # logger.info(show)
 
     def init_resource_of_buildingtype(self):
@@ -415,5 +415,3 @@ class Resources(Tech):
         self.resource_of_buildingtype[UnitTypeId.SPAWNINGPOOL] = self.Resource.SPAWNINGPOOLS
         self.resource_of_buildingtype[UnitTypeId.SPIRE] = self.Resource.SPIRES
         self.resource_of_buildingtype[UnitTypeId.ULTRALISKCAVERN] = self.Resource.ULTRALISKCAVERNS
-
-

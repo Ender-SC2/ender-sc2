@@ -9,6 +9,7 @@ from sc2.unit import Unit
 @dataclass(frozen=True)
 class AttackCommand(IUnitCommand):
     """Class for keeping track of an attack command."""
+
     target: Union[Unit, Point2]
     origin: Optional[str] = field(compare=False)
 

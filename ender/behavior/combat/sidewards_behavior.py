@@ -23,13 +23,12 @@ class SidewardsBehavior(CommandUtils):
     async def on_step(self, iteration: int):
         self.frame = iteration * self.bot_ai.client.game_step
         myunits = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
-                    not self.unit_types or unit.type_id in self.unit_types)
+            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
+            and (not self.unit_types or unit.type_id in self.unit_types)
         )
         if len(myunits) >= 2:
             mygrouppos = myunits.center
-            enemies = self.bot_ai.enemy_units.filter(
-                lambda ene: distance(ene.position, mygrouppos) < 15)
+            enemies = self.bot_ai.enemy_units.filter(lambda ene: distance(ene.position, mygrouppos) < 15)
             if len(enemies) > 0:
                 health = 0
                 for unit in myunits:
@@ -49,6 +48,6 @@ class SidewardsBehavior(CommandUtils):
                             oppo = enemies.closest_to(unit)
                             spread = unit.position.towards(mygrouppos, -2)
                             position = self.next_position(oppo).towards(spread, avgdist + self.back)
-                            self.unit_interface.set_command(unit, MoveCommand(position, 'Sidewards'))
+                            self.unit_interface.set_command(unit, MoveCommand(position, "Sidewards"))
         self.back = min(-0.5, self.back - 0.02 * self.bot_ai.client.game_step)
         self.save_position()
