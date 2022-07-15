@@ -13,14 +13,23 @@ from sc2.ids.unit_typeid import UnitTypeId
 # TODO: Support other spells;
 class SpellCastingBehavior(CommandUtils):
     supported_units: Dict[UnitTypeId, List[AbilityId]] = {UnitTypeId.RAVAGER: [AbilityId.EFFECT_CORROSIVEBILE]}
-    building_value: Dict[UnitTypeId, int] = {UnitTypeId.PHOTONCANNON: 20, UnitTypeId.MISSILETURRET: 20,
-                                             UnitTypeId.BUNKER: 20,
-                                             UnitTypeId.SPINECRAWLER: 20, UnitTypeId.SPORECRAWLER: 20,
-                                             UnitTypeId.PLANETARYFORTRESS: 20,
-                                             UnitTypeId.SHIELDBATTERY: 20, UnitTypeId.PYLON: 10}
-    unit_value: Dict[UnitTypeId, int] = {UnitTypeId.SIEGETANKSIEGED: 15, UnitTypeId.CARRIER: 10,
-                                         UnitTypeId.LIBERATORAG: 10,
-                                         UnitTypeId.MOTHERSHIP: 10, UnitTypeId.LURKERMPBURROWED: 10}
+    building_value: Dict[UnitTypeId, int] = {
+        UnitTypeId.PHOTONCANNON: 20,
+        UnitTypeId.MISSILETURRET: 20,
+        UnitTypeId.BUNKER: 20,
+        UnitTypeId.SPINECRAWLER: 20,
+        UnitTypeId.SPORECRAWLER: 20,
+        UnitTypeId.PLANETARYFORTRESS: 20,
+        UnitTypeId.SHIELDBATTERY: 20,
+        UnitTypeId.PYLON: 10,
+    }
+    unit_value: Dict[UnitTypeId, int] = {
+        UnitTypeId.SIEGETANKSIEGED: 15,
+        UnitTypeId.CARRIER: 10,
+        UnitTypeId.LIBERATORAG: 10,
+        UnitTypeId.MOTHERSHIP: 10,
+        UnitTypeId.LURKERMPBURROWED: 10,
+    }
 
     def __init__(self, unit_types: Optional[List[UnitTypeId]] = None, jobs: Optional[List[Job]] = None):
         self.unit_types: Optional[List[UnitTypeId]] = unit_types
@@ -29,10 +38,10 @@ class SpellCastingBehavior(CommandUtils):
 
     async def on_step(self, iteration: int):
         my_units = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and
-                         (not self.unit_types or unit.type_id in self.unit_types) and (
-                                 unit.type_id in self.supported_units) and
-                         (unit.tag not in self.spell_cooldown or self.spell_cooldown[unit.tag] < self.bot_ai.time)
+            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
+            and (not self.unit_types or unit.type_id in self.unit_types)
+            and (unit.type_id in self.supported_units)
+            and (unit.tag not in self.spell_cooldown or self.spell_cooldown[unit.tag] < self.bot_ai.time)
         )
         if my_units.empty:
             return

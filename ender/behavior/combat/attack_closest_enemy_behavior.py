@@ -18,10 +18,10 @@ class AttackClosestEnemyBehavior(CommandUtils):
     async def on_step(self, iteration: int):
         self.frame = iteration * self.bot_ai.client.game_step
         myunits = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs) and (
-                not self.unit_types or unit.type_id in self.unit_types)
-            )
+            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
+            and (not self.unit_types or unit.type_id in self.unit_types)
+        )
         if not self.bot_ai.enemy_units.empty:
             for unit in myunits:
                 goal = self.bot_ai.enemy_units.closest_to(unit)
-                self.unit_interface.set_command(unit, AttackCommand(goal, 'AttackClosestEnemy'))
+                self.unit_interface.set_command(unit, AttackCommand(goal, "AttackClosestEnemy"))

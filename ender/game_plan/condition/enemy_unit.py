@@ -9,7 +9,9 @@ from sc2.position import Point2
 class EnemyUnit(ICondition):
     bot_ai: BotAI
 
-    def __init__(self, unit_type: UnitTypeId, amount: int = 1, position: Optional[Point2] = None, distance: float = 11):
+    def __init__(
+        self, unit_type: UnitTypeId, amount: int = 1, position: Optional[Point2] = None, distance: float = 11
+    ):
         self.unit_type = unit_type
         self.amount = amount
         self.position = position

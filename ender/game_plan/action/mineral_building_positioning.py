@@ -7,7 +7,6 @@ from sc2.position import Point2
 
 
 class MineralLinePositioning(Positioning):
-
     def position(self, close_to: Optional[Point2]) -> Optional[Point2]:
         if not close_to:
             raise Exception("Mineral line positioning needs a reference")

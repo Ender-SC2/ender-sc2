@@ -19,9 +19,10 @@ from sc2.ids.upgrade_id import UpgradeId
 
 class Strategy(Tech):
     __did_step0 = False
-    needhatches = {} # opening delay until a certain amount of hatches
-    building_order = [] # opening buildings order explicit
+    needhatches = {}  # opening delay until a certain amount of hatches
+    building_order = []  # opening buildings order explicit
     structype_order = []
+
     class Gameplan(Enum):
         TWELVEPOOL = auto()
         ONEBASE = auto()
@@ -31,7 +32,7 @@ class Strategy(Tech):
         THREEBASE_NOGAS = auto()
         THREEBASE = auto()
         RAVATHREE = auto()
-        REACTIVE = auto() 
+        REACTIVE = auto()
         SWARM = auto()
         FOURBASE = auto()
         TO_LAIR = auto()
@@ -43,12 +44,21 @@ class Strategy(Tech):
         ENDGAME = auto()
         LINGWAVE = auto()
         ULTRAWAVE = auto()
-    openingplans = {Gameplan.TWELVEPOOL, Gameplan.ONEBASE_NOGAS, Gameplan.ONEBASE, Gameplan.TWOBASE_NOGAS, 
-                    Gameplan.TWOBASE, Gameplan.THREEBASE_NOGAS, Gameplan.THREEBASE, Gameplan.RAVATHREE}
+
+    openingplans = {
+        Gameplan.TWELVEPOOL,
+        Gameplan.ONEBASE_NOGAS,
+        Gameplan.ONEBASE,
+        Gameplan.TWOBASE_NOGAS,
+        Gameplan.TWOBASE,
+        Gameplan.THREEBASE_NOGAS,
+        Gameplan.THREEBASE,
+        Gameplan.RAVATHREE,
+    }
     gameplan = Gameplan.ENDGAME
     followup = Gameplan.ENDGAME
     last_wave_count = 0
-    zero_plan = {} # 0 for every unit, structure, or upgrade
+    zero_plan = {}  # 0 for every unit, structure, or upgrade
     result_plan = {}
     new_plan = None
     structures_at_hatches = 0
@@ -57,11 +67,15 @@ class Strategy(Tech):
 
     def __step0(self):
         #
-        self.new_plan = GamePlan([Step(Any([EnemyUnit(UnitTypeId.BANSHEE),
-                                           EnemyUnit(UnitTypeId.ORACLE),
-                                           EnemyUnit(UnitTypeId.MUTALISK)]),
-                                      PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())),
-                                  Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction())])
+        self.new_plan = GamePlan(
+            [
+                Step(
+                    Any([EnemyUnit(UnitTypeId.BANSHEE), EnemyUnit(UnitTypeId.ORACLE), EnemyUnit(UnitTypeId.MUTALISK)]),
+                    PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning()),
+                ),
+                Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
+            ]
+        )
         self.new_plan.setup(self)
         #
         self.init_zero_plan()
@@ -81,8 +95,8 @@ class Strategy(Tech):
         await Tech.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
-            logger.info('Tag:' + self.gameplan.name)
-            await self._client.chat_send('Tag:' + self.gameplan.name, team_only=False)
+            logger.info("Tag:" + self.gameplan.name)
+            await self._client.chat_send("Tag:" + self.gameplan.name, team_only=False)
             self.__did_step0 = True
         #
         if self.wave_count != self.last_wave_count:
@@ -108,14 +122,13 @@ class Strategy(Tech):
             if plan == self.Gameplan.TO_HIVE:
                 if len(self.structures(UnitTypeId.HIVE)) > 0:
                     plan = self.Gameplan.ENDGAME
-            logger.info('Transitioning to ' + plan.name)
-            await self._client.chat_send('Transitioning to ' + plan.name, team_only=False)
+            logger.info("Transitioning to " + plan.name)
+            await self._client.chat_send("Transitioning to " + plan.name, team_only=False)
             self.set_gameplan(plan)
         #
         self.new_plan.execute()
         #
         await self.react()
-
 
     def set_gameplan(self, gameplan):
         self.gameplan = gameplan
@@ -128,15 +141,15 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = 1
             self.result_plan[UnitTypeId.ZERGLING] = 12
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.opening.append(('supply',12, UnitTypeId.SPAWNINGPOOL, 1))
+            self.opening.append(("supply", 12, UnitTypeId.SPAWNINGPOOL, 1))
             self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE_NOGAS:
             self.structures_at_hatches = 1
             self.result_plan[UnitTypeId.HATCHERY] = 2
             self.result_plan[UnitTypeId.ZERGLING] = 12
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.opening.append(('supply',16, UnitTypeId.SPAWNINGPOOL, 1))
-            self.opening.append(('supply',20, UnitTypeId.HATCHERY, 2))
+            self.opening.append(("supply", 16, UnitTypeId.SPAWNINGPOOL, 1))
+            self.opening.append(("supply", 20, UnitTypeId.HATCHERY, 2))
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.ONEBASE:
             self.structures_at_hatches = 1
@@ -145,7 +158,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ZERGLING] = 2
             self.result_plan[UnitTypeId.ROACH] = 10
             self.result_plan[UnitTypeId.DRONE] = 16 * 1 + 3 * self.result_plan[UnitTypeId.EXTRACTOR] + 1
-            self.opening.append(('supply',22, UnitTypeId.HATCHERY, 2))
+            self.opening.append(("supply", 22, UnitTypeId.HATCHERY, 2))
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE_NOGAS:
             self.structures_at_hatches = 2
@@ -153,7 +166,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.EXTRACTOR] = 0
             self.result_plan[UnitTypeId.ZERGLING] = 45
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.opening.append(('supply',25, UnitTypeId.HATCHERY, 3))
+            self.opening.append(("supply", 25, UnitTypeId.HATCHERY, 3))
             self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE:
             self.structures_at_hatches = 2
@@ -162,7 +175,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ZERGLING] = 12
             self.result_plan[UnitTypeId.ROACH] = 16
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.opening.append(('supply',25, UnitTypeId.HATCHERY, 3))
+            self.opening.append(("supply", 25, UnitTypeId.HATCHERY, 3))
             self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.THREEBASE_NOGAS:
             self.structures_at_hatches = 3
@@ -170,7 +183,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.EXTRACTOR] = 0
             self.result_plan[UnitTypeId.ZERGLING] = 65
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.opening.append(('supply',35, UnitTypeId.HATCHERY, 4))
+            self.opening.append(("supply", 35, UnitTypeId.HATCHERY, 4))
             self.followup = self.Gameplan.FOURBASE
         elif gameplan == self.Gameplan.THREEBASE:
             self.structures_at_hatches = 3
@@ -180,7 +193,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 10
             self.result_plan[UnitTypeId.ROACH] = 20
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.opening.append(('supply',75, UnitTypeId.HATCHERY, 4))
+            self.opening.append(("supply", 75, UnitTypeId.HATCHERY, 4))
             self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.RAVATHREE:
             self.structures_at_hatches = 3
@@ -189,7 +202,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ZERGLING] = 5
             self.result_plan[UnitTypeId.RAVAGER] = 16
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.opening.append(('supply',75, UnitTypeId.HATCHERY, 4))
+            self.opening.append(("supply", 75, UnitTypeId.HATCHERY, 4))
             self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.REACTIVE:
             self.structures_at_hatches = 5
@@ -200,11 +213,29 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ROACH] = 20
             self.result_plan[UnitTypeId.RAVAGER] = 20
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.building_order = [UnitTypeId.HATCHERY, UnitTypeId.HATCHERY, UnitTypeId.SPAWNINGPOOL, UnitTypeId.HATCHERY, 
-            UnitTypeId.HATCHERY, UnitTypeId.HATCHERY, UnitTypeId.ROACHWARREN, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR, 
-            UnitTypeId.HATCHERY, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR, 
-            UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR, UnitTypeId.BANELINGNEST,
-            UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTOR]
+            self.building_order = [
+                UnitTypeId.HATCHERY,
+                UnitTypeId.HATCHERY,
+                UnitTypeId.SPAWNINGPOOL,
+                UnitTypeId.HATCHERY,
+                UnitTypeId.HATCHERY,
+                UnitTypeId.HATCHERY,
+                UnitTypeId.ROACHWARREN,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.HATCHERY,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.BANELINGNEST,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
+            ]
             self.structype_order = []
             self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.FOURBASE:
@@ -322,12 +353,12 @@ class Strategy(Tech):
         self.add_morphers()
         self.tech_close()
         # debug
-        logger.info('wave_count = ' + str(self.wave_count))
-        logger.info('gameplan = ' + self.gameplan.name)
+        logger.info("wave_count = " + str(self.wave_count))
+        logger.info("gameplan = " + self.gameplan.name)
         lookat = set(self.result_plan.keys())
         for rava in lookat:
             if self.result_plan[rava] > 0:
-                logger.info('result_plan: ' + rava.name + ' ' + str(self.result_plan[rava]))
+                logger.info("result_plan: " + rava.name + " " + str(self.result_plan[rava]))
         #
         self.needhatches_restrict(self.structures_at_hatches)
         #
@@ -364,7 +395,7 @@ class Strategy(Tech):
                             seen = False
                             for thing in tech_chain:
                                 seen = seen or (thing == roach)
-                                if not seen: # before
+                                if not seen:  # before
                                     if self.result_plan[thing] < 1:
                                         self.result_plan[thing] = 1
                                         changed = True
@@ -396,7 +427,7 @@ class Strategy(Tech):
         self.structype_order.append(UnitTypeId.SPIRE)
         self.structype_order.append(UnitTypeId.INFESTATIONPIT)
         self.structype_order.append(UnitTypeId.NYDUSNETWORK)
-        #self.structype_order.append(UnitTypeId.NYDUSCANAL) not a required building
+        # self.structype_order.append(UnitTypeId.NYDUSCANAL) not a required building
         self.structype_order.append(UnitTypeId.HIVE)
         self.structype_order.append(UnitTypeId.GREATERSPIRE)
         self.structype_order.append(UnitTypeId.HYDRALISKDEN)
@@ -426,7 +457,7 @@ class Strategy(Tech):
         #
 
     async def react(self):
-        if self.function_listens('react', 50):
+        if self.function_listens("react", 50):
             if self.gameplan == self.Gameplan.REACTIVE:
                 # my started bases
                 mybases = 0
@@ -478,6 +509,6 @@ class Strategy(Tech):
                             plan = self.Gameplan.THREEBASE
                         elif mybases >= 4:
                             plan = self.Gameplan.FOURBASE
-                    logger.info('Downgrading to ' + plan.name)
-                    await self._client.chat_send('Downgrading to ' + plan.name, team_only=False)
+                    logger.info("Downgrading to " + plan.name)
+                    await self._client.chat_send("Downgrading to " + plan.name, team_only=False)
                     self.set_gameplan(plan)

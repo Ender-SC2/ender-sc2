@@ -81,28 +81,28 @@ class ObserverAI(DistanceCalculation):
 
     @property
     def time(self) -> float:
-        """ Returns time in seconds, assumes the game is played on 'faster' """
+        """Returns time in seconds, assumes the game is played on 'faster'"""
         return self.state.game_loop / 22.4  # / (1/1.4) * (1/16)
 
     @property
     def time_formatted(self) -> str:
-        """ Returns time as string in min:sec format """
+        """Returns time as string in min:sec format"""
         t = self.time
         return f"{int(t // 60):02}:{int(t % 60):02}"
 
     @property
     def game_info(self) -> GameInfo:
-        """ See game_info.py """
+        """See game_info.py"""
         return self._game_info
 
     @property
     def game_data(self) -> GameData:
-        """ See game_data.py """
+        """See game_data.py"""
         return self._game_data
 
     @property
     def client(self) -> Client:
-        """ See client.py """
+        """See client.py"""
         return self._client
 
     def alert(self, alert_code: Alert) -> bool:
@@ -228,8 +228,7 @@ class ObserverAI(DistanceCalculation):
         self._structures_previous_map: Dict[int, Unit] = {structure.tag: structure for structure in self.structures}
         self._enemy_units_previous_map: Dict[int, Unit] = {unit.tag: unit for unit in self.enemy_units}
         self._enemy_structures_previous_map: Dict[int, Unit] = {
-            structure.tag: structure
-            for structure in self.enemy_structures
+            structure.tag: structure for structure in self.enemy_structures
         }
         self._all_units_previous_map: Dict[int, Unit] = {unit.tag: unit for unit in self.all_units}
 
@@ -265,7 +264,7 @@ class ObserverAI(DistanceCalculation):
                 self.units.append(unit_obj)
 
     async def _after_step(self) -> int:
-        """ Executed by main.py after each on_step function. """
+        """Executed by main.py after each on_step function."""
         self.unit_tags_received_action.clear()
         # Commit debug queries
         await self._client._send_debug()
