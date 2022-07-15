@@ -33,7 +33,6 @@ from sc2.player import Bot, Computer
 
 
 class Ender(Attack, Creep, Making, Queens, Overlords, Mining, Parts, Endstep):
-
     def __init__(self):
         super().__init__()
 
@@ -55,8 +54,14 @@ class Ender(Attack, Creep, Making, Queens, Overlords, Mining, Parts, Endstep):
 # *********************************************************************************************************************
 def main():
     # Easy/Medium/Hard/VeryHard
-    all_maps = ['BlackburnAIE', 'CuriousMindsAIE', '2000AtmospheresAIE', 'GlitteringAshesAIE', 'HardwireAIE',
-                'BerlingradAIE']
+    all_maps = [
+        "BlackburnAIE",
+        "CuriousMindsAIE",
+        "2000AtmospheresAIE",
+        "GlitteringAshesAIE",
+        "HardwireAIE",
+        "BerlingradAIE",
+    ]
     map = random.choice(all_maps)
     # TO TEST use next line
     # map = '2000AtmospheresAIE'
@@ -64,10 +69,11 @@ def main():
     # TO TEST use next line
     # opponentspecies = Race.Terran
     # Easy/Medium/Hard/VeryHard
-    run_game(sc2.maps.get(map), [
-        Bot(Race.Zerg, Ender()),
-        Computer(opponentspecies, Difficulty.VeryHard) # VeryHard Easy
-    ], realtime=False)
+    run_game(
+        sc2.maps.get(map),
+        [Bot(Race.Zerg, Ender()), Computer(opponentspecies, Difficulty.VeryHard)],  # VeryHard Easy
+        realtime=False,
+    )
 
 
 if __name__ == "__main__":

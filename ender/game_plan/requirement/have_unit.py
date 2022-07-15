@@ -4,7 +4,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 
 class HaveUnit(Requirement):
-    def __init__(self, unit_type: UnitTypeId, amount: int = 1, position: Optional[Point2] = None, distance: float = 11):
+    def __init__(
+        self, unit_type: UnitTypeId, amount: int = 1, position: Optional[Point2] = None, distance: float = 11
+    ):
         self.common = None
         self.unit_type = unit_type
         self.amount = amount

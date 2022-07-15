@@ -42,14 +42,8 @@ class DefensiveSporeTest(TestBase):
         }
         wanted_unit = possible_units[self.common.enemy_race]
 
-        if (
-            self.common.enemy_units.of_type(wanted_unit)
-            .closer_than(11, self.common.ourmain)
-            .empty
-        ):
-            await self.common.client.debug_create_unit(
-                [[wanted_unit, 1, self.common.ourmain, closest_unit.owner_id]]
-            )
+        if self.common.enemy_units.of_type(wanted_unit).closer_than(11, self.common.ourmain).empty:
+            await self.common.client.debug_create_unit([[wanted_unit, 1, self.common.ourmain, closest_unit.owner_id]])
 
     def check(self) -> bool:
         return self.passed
