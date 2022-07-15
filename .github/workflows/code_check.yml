@@ -26,3 +26,5 @@ jobs:
           git checkout $GITHUB_HEAD_REF
           git commit -am "Fix: Code Format with Black"
           git push
+      - name: Run flake8
+        run: flake8

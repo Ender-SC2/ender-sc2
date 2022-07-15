@@ -3,8 +3,6 @@
 import random
 from typing import Optional
 
-from loguru import logger
-
 from ender.job import Job
 from ender.map_if import Map_if
 from ender.utils.point_utils import distance

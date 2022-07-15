@@ -1,7 +1,5 @@
 # command_utils.py
 
-from math import sqrt
-
 from ender.behavior.behavior import IBehavior
 from sc2.position import Point2
 

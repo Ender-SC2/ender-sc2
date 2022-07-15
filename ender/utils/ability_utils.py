@@ -4,15 +4,15 @@ from typing import Dict, List
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 
-# Can an ability be casted by multiple unit types?
-ability_caster: Dict[AbilityId, UnitTypeId] = {}
-caster_abilities: Dict[UnitTypeId, List[AbilityId]] = {}
-
 
 class AbilityDamageType(Enum):
     PERSISTENT = auto()
     ON_IMPACT = auto()
 
+
+# Can an ability be casted by multiple unit types?
+ability_caster: Dict[AbilityId, UnitTypeId] = {}
+caster_abilities: Dict[UnitTypeId, List[AbilityId]] = {}
 
 ability_range: Dict[AbilityId, float] = {}
 ability_cooldown: Dict[AbilityId, float] = {}
