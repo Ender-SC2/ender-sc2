@@ -13,8 +13,8 @@ from sc2.ids.unit_typeid import UnitTypeId
 class Queens(Common):
 
     __did_step0 = False
-    nextinject = {}  # per hatch to prevent overINJECTER
-    treating = {}  # per patient the next treating moment
+    nextinject = {} # per hatch to prevent overINJECTER
+    treating = {} # per patient the next treating moment
 
     def __step0(self):
         pass
@@ -29,7 +29,7 @@ class Queens(Common):
         await self.transfuse()
         await self.admin_queen_of_hall()
 
-    def choose_inject(self, pos) -> bool:
+    def choose_inject(self,pos) -> bool:
         # for a queen at pos
         want = False
         itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(pos)
@@ -46,13 +46,13 @@ class Queens(Common):
                 else:
                     want = True
         return want
-
+        
     async def queeninject(self):
-        if self.function_listens("queeninject", 11):
+        if self.function_listens('queeninject', 11):
             # get some inject queens
             for unt in self.units(UnitTypeId.QUEEN).idle:
                 if self.job_of_unit(unt) == Job.UNCLEAR:
-                    if unt.energy >= 23:  # creep pickup is at 27, nurse at 19
+                    if unt.energy >= 23: # creep pickup is at 27, nurse at 19
                         if self.frame >= self.listenframe_of_unit[unt.tag]:
                             if self.choose_inject(unt.position):
                                 pos = unt.position
@@ -64,8 +64,8 @@ class Queens(Common):
                 if self.job_of_unit(unt) == Job.INJECTER:
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
-                        itsspot = itshatch.position.towards(self.map_center, 4)
-                        dist = distance(unt.position, itsspot)
+                        itsspot = itshatch.position.towards(self.map_center,4)
+                        dist = distance(unt.position,itsspot)
                         if dist > 4:
                             unt.move(itsspot)
                             self.listenframe_of_unit[unt.tag] = self.frame + 5
@@ -75,22 +75,17 @@ class Queens(Common):
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         if unt.energy >= 25:
                             itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
-                            unt(AbilityId.EFFECT_INJECTLARVA, itshatch)
+                            unt(AbilityId.EFFECT_INJECTLARVA,itshatch)
                             self.set_job_of_unit(unt, Job.UNCLEAR)
                             self.listenframe_of_unit[unt.tag] = self.frame + 100
-
+        
     async def transfuse(self):
-        if self.function_listens("transfusion", self.seconds):
+        if self.function_listens('transfusion', self.seconds):
             nurses = self.job_count(Job.NURSE)
             patients = 0
             for unt in self.units:
                 if self.job_of_unit(unt) == Job.WOUNDED:
-                    if unt.type_id not in {
-                        UnitTypeId.ZERGLING,
-                        UnitTypeId.ROACH,
-                        UnitTypeId.ROACHBURROWED,
-                        UnitTypeId.OVERLORD,
-                    }:
+                    if unt.type_id not in {UnitTypeId.ZERGLING, UnitTypeId.ROACH, UnitTypeId.ROACHBURROWED, UnitTypeId.OVERLORD}:
                         patients += 1
             # new nurses
             for unt in self.units(UnitTypeId.QUEEN):
@@ -132,14 +127,14 @@ class Queens(Common):
                                                 if self.frame < self.treating[other.tag]:
                                                     may_treat_it = False
                                             if may_treat_it:
-                                                dist = distance(unt.position, other.position)
+                                                dist = distance(unt.position,other.position)
                                                 if dist < 7:
-                                                    unt(AbilityId.TRANSFUSION_TRANSFUSION, other)
+                                                    unt(AbilityId.TRANSFUSION_TRANSFUSION,other)
                                                     self.listenframe_of_unit[tag] = self.frame + 5
                                                     self.treating[other.tag] = self.frame + 7 * self.seconds
-
+                        
     async def admin_queen_of_hall(self):
-        if self.function_listens("admin_queen_of_hall", 1.3 * self.seconds):
+        if self.function_listens('admin_queen_of_hall', 1.3 * self.seconds):
             for halltag in self.queen_of_hall:
                 tag = self.queen_of_hall[halltag]
                 if tag == -1:

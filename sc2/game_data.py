@@ -89,29 +89,29 @@ class AbilityData:
 
     @property
     def id(self) -> AbilityId:
-        """Returns the generic remap ID. See sc2/dicts/generic_redirect_abilities.py"""
+        """ Returns the generic remap ID. See sc2/dicts/generic_redirect_abilities.py """
         if self._proto.remaps_to_ability_id:
             return AbilityId(self._proto.remaps_to_ability_id)
         return AbilityId(self._proto.ability_id)
 
     @property
     def exact_id(self) -> AbilityId:
-        """Returns the exact ID of the ability"""
+        """ Returns the exact ID of the ability """
         return AbilityId(self._proto.ability_id)
 
     @property
     def link_name(self) -> str:
-        """For Stimpack this returns 'BarracksTechLabResearch'"""
+        """ For Stimpack this returns 'BarracksTechLabResearch' """
         return self._proto.link_name
 
     @property
     def button_name(self) -> str:
-        """For Stimpack this returns 'Stimpack'"""
+        """ For Stimpack this returns 'Stimpack' """
         return self._proto.button_name
 
     @property
     def friendly_name(self) -> str:
-        """For Stimpack this returns 'Research Stimpack'"""
+        """ For Stimpack this returns 'Research Stimpack' """
         return self._proto.friendly_name
 
     @property
@@ -161,7 +161,7 @@ class UnitTypeData:
 
     @property
     def footprint_radius(self) -> Optional[float]:
-        """See unit.py footprint_radius"""
+        """ See unit.py footprint_radius """
         if self.creation_ability is None:
             return None
         return self.creation_ability._proto.footprint_radius
@@ -184,12 +184,12 @@ class UnitTypeData:
 
     @property
     def cargo_size(self) -> int:
-        """How much cargo this unit uses up in cargo_space"""
+        """ How much cargo this unit uses up in cargo_space """
         return self._proto.cargo_size
 
     @property
     def tech_requirement(self) -> Optional[UnitTypeId]:
-        """Tech-building requirement of buildings - may work for units but unreliably"""
+        """ Tech-building requirement of buildings - may work for units but unreliably """
         if self._proto.tech_requirement == 0:
             return None
         if self._proto.tech_requirement not in self._game_data.units:
@@ -209,7 +209,7 @@ class UnitTypeData:
 
     @property
     def unit_alias(self) -> Optional[UnitTypeId]:
-        """Building type equality, e.g. FlyingOrbitalCommand is the same as OrbitalCommand"""
+        """ Building type equality, e.g. FlyingOrbitalCommand is the same as OrbitalCommand """
         if self._proto.unit_alias == 0:
             return None
         if self._proto.unit_alias not in self._game_data.units:
@@ -227,7 +227,7 @@ class UnitTypeData:
 
     @property
     def cost_zerg_corrected(self) -> Cost:
-        """This returns 25 for extractor and 200 for spawning pool instead of 75 and 250 respectively"""
+        """ This returns 25 for extractor and 200 for spawning pool instead of 75 and 250 respectively """
         if self.race == Race.Zerg and Attribute.Structure.value in self.attributes:
             # a = self._game_data.units(UnitTypeId.ZERGLING)
             # print(a)
@@ -238,7 +238,7 @@ class UnitTypeData:
 
     @property
     def morph_cost(self) -> Optional[Cost]:
-        """This returns 150 minerals for OrbitalCommand instead of 550"""
+        """ This returns 150 minerals for OrbitalCommand instead of 550 """
         # Morphing units
         supply_cost = self._proto.food_required
         if supply_cost > 0 and self.id in UNIT_TRAINED_FROM and len(UNIT_TRAINED_FROM[self.id]) == 1:
@@ -306,7 +306,6 @@ class Cost:
     The cost of an action, a structure, a unit or a research upgrade.
     The time is given in frames (22.4 frames per game second).
     """
-
     def __init__(self, minerals: int, vespene: int, time: float = None):
         """
         :param minerals:

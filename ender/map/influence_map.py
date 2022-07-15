@@ -58,50 +58,38 @@ class InfluenceMap:
         result = None
         value = minimum
         for distance in range(0, local_radius):
-            possible_positions = set(
-                [
-                    p.offset(local_center)
-                    for p in (
-                        [InfluenceMapPoint2(dx, -distance) for dx in range(-distance, distance + 1)]
-                        + [InfluenceMapPoint2(dx, distance) for dx in range(-distance, distance + 1)]
-                        + [InfluenceMapPoint2(-distance, dy) for dy in range(-distance, distance + 1)]
-                        + [InfluenceMapPoint2(distance, dy) for dy in range(-distance, distance + 1)]
-                    )
-                ]
-            )
+            possible_positions = set([
+                p.offset(local_center) for p in (
+                        [InfluenceMapPoint2(dx, -distance) for dx in range(-distance, distance + 1)] +
+                        [InfluenceMapPoint2(dx, distance) for dx in range(-distance, distance + 1)] +
+                        [InfluenceMapPoint2(-distance, dy) for dy in range(-distance, distance + 1)] +
+                        [InfluenceMapPoint2(distance, dy) for dy in range(-distance, distance + 1)]
+                )
+            ])
             for position in possible_positions:
-                if (
-                    self._in_bounds(position)
-                    and value < self._map[position.x][position.y]
-                    and local_center.in_range(local_radius, position)
-                ):
+                if self._in_bounds(position) and \
+                        value < self._map[position.x][position.y] and \
+                        local_center.in_range(local_radius, position):
                     result = self._local_to_global(position)
                     value = self._map[position.x][position.y]
         return result
 
-    def get_closest_point(
-        self, center: Point2, dodge_radius: float, radius: float, minimum: float
-    ) -> Optional[Point2]:
+    def get_closest_point(self, center: Point2, dodge_radius: float, radius: float, minimum: float) -> Optional[Point2]:
         local_radius = self._radius_to_local(radius)
         local_center = self._point_to_local(center)
         for distance in range(0, local_radius):
-            possible_positions = set(
-                [
-                    p.offset(local_center)
-                    for p in (
-                        [InfluenceMapPoint2(dx, -distance) for dx in range(-distance, distance + 1)]
-                        + [InfluenceMapPoint2(dx, distance) for dx in range(-distance, distance + 1)]
-                        + [InfluenceMapPoint2(-distance, dy) for dy in range(-distance, distance + 1)]
-                        + [InfluenceMapPoint2(distance, dy) for dy in range(-distance, distance + 1)]
-                    )
-                ]
-            )
+            possible_positions = set([
+                p.offset(local_center) for p in (
+                        [InfluenceMapPoint2(dx, -distance) for dx in range(-distance, distance + 1)] +
+                        [InfluenceMapPoint2(dx, distance) for dx in range(-distance, distance + 1)] +
+                        [InfluenceMapPoint2(-distance, dy) for dy in range(-distance, distance + 1)] +
+                        [InfluenceMapPoint2(distance, dy) for dy in range(-distance, distance + 1)]
+                )
+            ])
             for position in possible_positions:
-                if (
-                    self._in_bounds(position)
-                    and minimum < self._map[position.x][position.y]
-                    and local_center.in_range(local_radius, position)
-                ):
+                if self._in_bounds(position) and \
+                        minimum < self._map[position.x][position.y] and \
+                        local_center.in_range(local_radius, position):
                     if local_center != position:
                         result = self._local_to_global(position)
                         return result.towards(center, -dodge_radius)

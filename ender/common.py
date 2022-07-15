@@ -22,135 +22,63 @@ class Common(BotAI, IUnitInterface):
     _unit_interface: IUnitInterface = UnitInterface()
 
     # constants after step0:
-    nowhere = Point2((1, 1))
+    nowhere = Point2((1,1))
     notag = -1
-    game_step = 4  # the amount of frames between program-step-runs
+    game_step = 4 # the amount of frames between program-step-runs
     __did_step0 = False
     enemymain = nowhere
     ourmain = nowhere
     seconds = 22.4
     minutes = seconds * 60
-    all_halltypes = {
-        UnitTypeId.COMMANDCENTER,
-        UnitTypeId.ORBITALCOMMAND,
-        UnitTypeId.PLANETARYFORTRESS,
-        UnitTypeId.HATCHERY,
-        UnitTypeId.LAIR,
-        UnitTypeId.HIVE,
-        UnitTypeId.NEXUS,
-    }
-    all_tumortypes = {UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN}
-    all_changelings = {
-        UnitTypeId.CHANGELING,
-        UnitTypeId.CHANGELINGMARINE,
-        UnitTypeId.CHANGELINGMARINESHIELD,
-        UnitTypeId.CHANGELINGZEALOT,
-        UnitTypeId.CHANGELINGZERGLING,
-        UnitTypeId.CHANGELINGZERGLINGWINGS,
-    }
-    all_armytypes = all_changelings | {
-        UnitTypeId.QUEEN,
-        UnitTypeId.ROACH,
-        UnitTypeId.MUTALISK,
-        UnitTypeId.ZERGLING,
-        UnitTypeId.OVERSEER,
-        UnitTypeId.CORRUPTOR,
-        UnitTypeId.BROODLORD,
-        UnitTypeId.INFESTOR,
-        UnitTypeId.BROODLING,
-        UnitTypeId.HYDRALISK,
-        UnitTypeId.LURKERMP,
-        UnitTypeId.OVERLORDTRANSPORT,
-        UnitTypeId.VIPER,
-        UnitTypeId.BANELING,
-        UnitTypeId.ULTRALISK,
-        UnitTypeId.LOCUSTMP,
-        UnitTypeId.LOCUSTMPFLYING,
-        UnitTypeId.OVERSEERSIEGEMODE,
-        UnitTypeId.RAVAGER,
-        UnitTypeId.SWARMHOSTMP,
-    }
-    all_burrowtypes = {
-        UnitTypeId.LURKERMPBURROWED,
-        UnitTypeId.ZERGLINGBURROWED,
-        UnitTypeId.BANELINGBURROWED,
-        UnitTypeId.ULTRALISKBURROWED,
-        UnitTypeId.DRONEBURROWED,
-        UnitTypeId.HYDRALISKBURROWED,
-        UnitTypeId.INFESTORBURROWED,
-        UnitTypeId.QUEENBURROWED,
-        UnitTypeId.RAVAGERBURROWED,
-        UnitTypeId.SWARMHOSTBURROWEDMP,
-    }
-    all_num_upgrades = {
-        UpgradeId.ZERGMISSILEWEAPONSLEVEL1,
-        UpgradeId.ZERGMELEEWEAPONSLEVEL1,
-        UpgradeId.ZERGGROUNDARMORSLEVEL1,
-        UpgradeId.ZERGMISSILEWEAPONSLEVEL2,
-        UpgradeId.ZERGMELEEWEAPONSLEVEL2,
-        UpgradeId.ZERGGROUNDARMORSLEVEL2,
-        UpgradeId.ZERGMISSILEWEAPONSLEVEL3,
-        UpgradeId.ZERGMELEEWEAPONSLEVEL3,
-        UpgradeId.ZERGGROUNDARMORSLEVEL3,
-        UpgradeId.ZERGFLYERARMORSLEVEL1,
-        UpgradeId.ZERGFLYERARMORSLEVEL2,
-        UpgradeId.ZERGFLYERARMORSLEVEL3,
-        UpgradeId.ZERGFLYERWEAPONSLEVEL1,
-        UpgradeId.ZERGFLYERWEAPONSLEVEL2,
-        UpgradeId.ZERGFLYERWEAPONSLEVEL3,
-    }
-    all_ind_upgrades = {
-        UpgradeId.OVERLORDSPEED,
-        UpgradeId.BURROW,
-        UpgradeId.ZERGLINGMOVEMENTSPEED,
-        UpgradeId.ZERGLINGATTACKSPEED,
-        UpgradeId.CHITINOUSPLATING,
-        UpgradeId.LURKERRANGE,
-        UpgradeId.CENTRIFICALHOOKS,
-        UpgradeId.EVOLVEGROOVEDSPINES,
-        UpgradeId.EVOLVEMUSCULARAUGMENTS,
-        UpgradeId.NEURALPARASITE,
-        UpgradeId.GLIALRECONSTITUTION,
-    }
+    all_halltypes = {UnitTypeId.COMMANDCENTER,UnitTypeId.ORBITALCOMMAND,UnitTypeId.PLANETARYFORTRESS,
+                     UnitTypeId.HATCHERY,UnitTypeId.LAIR,UnitTypeId.HIVE,UnitTypeId.NEXUS}
+    all_tumortypes = {UnitTypeId.CREEPTUMORBURROWED,UnitTypeId.CREEPTUMOR,UnitTypeId.CREEPTUMORQUEEN}
+    all_changelings = {UnitTypeId.CHANGELING, UnitTypeId.CHANGELINGMARINE, UnitTypeId.CHANGELINGMARINESHIELD,
+                       UnitTypeId.CHANGELINGZEALOT, UnitTypeId.CHANGELINGZERGLING,
+                       UnitTypeId.CHANGELINGZERGLINGWINGS}
+    all_armytypes = all_changelings | {UnitTypeId.QUEEN, UnitTypeId.ROACH, UnitTypeId.MUTALISK, UnitTypeId.ZERGLING,
+                     UnitTypeId.OVERSEER, UnitTypeId.CORRUPTOR, UnitTypeId.BROODLORD, UnitTypeId.INFESTOR,
+                     UnitTypeId.BROODLING, UnitTypeId.HYDRALISK, UnitTypeId.LURKERMP,
+                     UnitTypeId.OVERLORDTRANSPORT, UnitTypeId.VIPER, UnitTypeId.BANELING, UnitTypeId.ULTRALISK,
+                    UnitTypeId.LOCUSTMP, UnitTypeId.LOCUSTMPFLYING, UnitTypeId.OVERSEERSIEGEMODE,
+                    UnitTypeId.RAVAGER, UnitTypeId.SWARMHOSTMP}
+    all_burrowtypes = {UnitTypeId.LURKERMPBURROWED, UnitTypeId.ZERGLINGBURROWED, UnitTypeId.BANELINGBURROWED,
+                       UnitTypeId.ULTRALISKBURROWED, UnitTypeId.DRONEBURROWED, UnitTypeId.HYDRALISKBURROWED,
+                       UnitTypeId.INFESTORBURROWED, UnitTypeId.QUEENBURROWED, UnitTypeId.RAVAGERBURROWED,
+                       UnitTypeId.SWARMHOSTBURROWEDMP}
+    all_num_upgrades = {UpgradeId.ZERGMISSILEWEAPONSLEVEL1, UpgradeId.ZERGMELEEWEAPONSLEVEL1,
+                        UpgradeId.ZERGGROUNDARMORSLEVEL1,
+                        UpgradeId.ZERGMISSILEWEAPONSLEVEL2, UpgradeId.ZERGMELEEWEAPONSLEVEL2,
+                        UpgradeId.ZERGGROUNDARMORSLEVEL2,
+                        UpgradeId.ZERGMISSILEWEAPONSLEVEL3, UpgradeId.ZERGMELEEWEAPONSLEVEL3,
+                        UpgradeId.ZERGGROUNDARMORSLEVEL3,
+                        UpgradeId.ZERGFLYERARMORSLEVEL1, UpgradeId.ZERGFLYERARMORSLEVEL2,
+                        UpgradeId.ZERGFLYERARMORSLEVEL3, UpgradeId.ZERGFLYERWEAPONSLEVEL1,
+                        UpgradeId.ZERGFLYERWEAPONSLEVEL2, UpgradeId.ZERGFLYERWEAPONSLEVEL3}
+    all_ind_upgrades = {UpgradeId.OVERLORDSPEED,
+                        UpgradeId.BURROW,
+                        UpgradeId.ZERGLINGMOVEMENTSPEED,
+                        UpgradeId.ZERGLINGATTACKSPEED,
+                        UpgradeId.CHITINOUSPLATING,
+                        UpgradeId.LURKERRANGE,
+                        UpgradeId.CENTRIFICALHOOKS,
+                        UpgradeId.EVOLVEGROOVEDSPINES,
+                        UpgradeId.EVOLVEMUSCULARAUGMENTS,
+                        UpgradeId.NEURALPARASITE,
+                        UpgradeId.GLIALRECONSTITUTION}
     all_upgrades = all_num_upgrades | all_ind_upgrades
-    # all means: known to this bot
-    all_eggtypes = {
-        UnitTypeId.EGG,
-        UnitTypeId.BROODLORDCOCOON,
-        UnitTypeId.RAVAGERCOCOON,
-        UnitTypeId.BANELINGCOCOON,
-        UnitTypeId.TRANSPORTOVERLORDCOCOON,
-        UnitTypeId.OVERLORDCOCOON,
-        UnitTypeId.LURKERMPEGG,
-    }
-    all_unittypes = (
-        all_armytypes | all_burrowtypes | all_eggtypes | {UnitTypeId.DRONE, UnitTypeId.LARVA, UnitTypeId.OVERLORD}
-    )
-    all_sporetypes = {
-        UnitTypeId.SPORECRAWLER,
-        UnitTypeId.SPINECRAWLER,
-        UnitTypeId.SPORECRAWLERUPROOTED,
-        UnitTypeId.SPINECRAWLERUPROOTED,
-    }
-    all_normalstructuretypes = {
-        UnitTypeId.HATCHERY,
-        UnitTypeId.SPAWNINGPOOL,
-        UnitTypeId.EXTRACTOR,
-        UnitTypeId.EXTRACTORRICH,
-        UnitTypeId.EVOLUTIONCHAMBER,
-        UnitTypeId.ROACHWARREN,
-        UnitTypeId.LAIR,
-        UnitTypeId.SPIRE,
-        UnitTypeId.HIVE,
-        UnitTypeId.INFESTATIONPIT,
-        UnitTypeId.GREATERSPIRE,
-        UnitTypeId.HYDRALISKDEN,
-        UnitTypeId.LURKERDENMP,
-        UnitTypeId.BANELINGNEST,
-        UnitTypeId.ULTRALISKCAVERN,
-        UnitTypeId.NYDUSCANAL,
-        UnitTypeId.NYDUSNETWORK,
-    }
+                    # all means: known to this bot
+    all_eggtypes = {UnitTypeId.EGG, UnitTypeId.BROODLORDCOCOON, UnitTypeId.RAVAGERCOCOON, UnitTypeId.BANELINGCOCOON,
+                    UnitTypeId.TRANSPORTOVERLORDCOCOON, UnitTypeId.OVERLORDCOCOON, UnitTypeId.LURKERMPEGG}
+    all_unittypes = all_armytypes | all_burrowtypes | all_eggtypes | {UnitTypeId.DRONE, UnitTypeId.LARVA,
+                     UnitTypeId.OVERLORD}
+    all_sporetypes = {UnitTypeId.SPORECRAWLER, UnitTypeId.SPINECRAWLER, UnitTypeId.SPORECRAWLERUPROOTED,
+                      UnitTypeId.SPINECRAWLERUPROOTED}
+    all_normalstructuretypes = \
+        {UnitTypeId.HATCHERY, UnitTypeId.SPAWNINGPOOL, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTORRICH,
+         UnitTypeId.EVOLUTIONCHAMBER, UnitTypeId.ROACHWARREN,UnitTypeId.LAIR, UnitTypeId.SPIRE, UnitTypeId.HIVE,
+         UnitTypeId.INFESTATIONPIT, UnitTypeId.GREATERSPIRE, UnitTypeId.HYDRALISKDEN, UnitTypeId.LURKERDENMP,
+         UnitTypeId.BANELINGNEST, UnitTypeId.ULTRALISKCAVERN, UnitTypeId.NYDUSCANAL, UnitTypeId.NYDUSNETWORK}
     all_structuretypes = all_tumortypes | all_sporetypes | all_normalstructuretypes
     all_types = all_upgrades | all_structuretypes | all_unittypes
     all_workertypes = {UnitTypeId.DRONE, UnitTypeId.SCV, UnitTypeId.PROBE, UnitTypeId.MULE}
@@ -171,21 +99,21 @@ class Common(BotAI, IUnitInterface):
     did_map_onstep = False
     did_tech_onstep = False
     iteration = 0
-    frame = 0  # will have even numbers if game_step=2
-    nbases = 1  # own halls > 80% ready
-    nenemybases = 1  # enemy halls seen (started)
-    enemy_struc_mem = {}  # structures out of sight still are there (expected). Using postag to make position unique.
-    enemy_struc_mem_hash = 0  # to react on changes
-    enemy_unit_mem = {}  # enemy units, about each second, per tag: (type, last seen place)
+    frame = 0 # will have even numbers if game_step=2
+    nbases = 1 # own halls > 80% ready
+    nenemybases = 1 # enemy halls seen (started)
+    enemy_struc_mem = {} # structures out of sight still are there (expected). Using postag to make position unique.
+    enemy_struc_mem_hash = 0 # to react on changes
+    enemy_unit_mem = {} # enemy units, about each second, per tag: (type, last seen place) 
     eum_frame = 0
-    structures_hash = 0  # to react on changes
+    structures_hash = 0 # to react on changes
     freeexpos = []
     freegeysers = []
-    living = set()  # all tags of own units and structures
-    last_living = set()  # last programrun
+    living = set() # all tags of own units and structures
+    last_living = set() # last programrun
     last_health = {}
     hospital = None
-    extractors = []  # extractors not empty
+    extractors = [] # extractors not empty
     drones_supply_used = 12
     queens_supply_used = 0
     army_supply_used = 0
@@ -194,36 +122,36 @@ class Common(BotAI, IUnitInterface):
     supplycap_army = 90
     #
     # variables:
-    listenframe_of_unit = {}  # frame the command will have arrived
-    listenframe_of_structure = {}  # frame the command will have arrived
-    listenframe_of_function = {}  # frame the command will have arrived
-    limbo = {}  # per tag of a disappeared unit: the frame to forget it
-    wave_count = 0  # report from attack to strategy
-    bigattacking = False  # report from attack
-    supplytricking = False  # report from making
-    next_expansion = None  # report from making to attack (block)
-    current_expandings = {}  # report from making to attack (block)
-    to_root = set()  # sporespinecrawlers uprooted to be picked up by 'making'.
+    listenframe_of_unit = {} # frame the command will have arrived
+    listenframe_of_structure = {} # frame the command will have arrived
+    listenframe_of_function = {} # frame the command will have arrived
+    limbo = {} # per tag of a disappeared unit: the frame to forget it
+    wave_count = 0 # report from attack to strategy
+    bigattacking = False # report from attack
+    supplytricking = False # report from making
+    next_expansion = None # report from making to attack (block)
+    current_expandings = {} # report from making to attack (block)
+    to_root = set() # sporespinecrawlers uprooted to be picked up by 'making'.
     resign = False
     queen_of_hall = {}
-    cooldown_sh = {}  # per swarmhost tag the moment it can make locusts.
+    cooldown_sh = {} # per swarmhost tag the moment it can make locusts.
     #
     __did_step0 = False
-    _last_structures_len = 0  # internal speedup
-    _last_enemy_struc_mem_len = 0  # internal speedup
-    emergency = set()  # A thing in emergency will build with 2000 importance. Set of (typ, pos)
+    _last_structures_len = 0 # internal speedup
+    _last_enemy_struc_mem_len = 0 # internal speedup
+    emergency = set() # A thing in emergency will build with 2000 importance. Set of (typ, pos)
 
     async def __step0(self):
         self.enemymain = self.enemy_start_locations[0].position
         self.ourmain = self.start_location
         postag = self.postag_of_pos(self.enemymain)
-        self.enemy_struc_mem[postag] = (UnitTypeId.COMMANDCENTER, self.enemymain)
+        self.enemy_struc_mem[postag] = (UnitTypeId.COMMANDCENTER,self.enemymain)
         self.map_center = self.game_info.map_center
         self.map_left = self.game_info.playable_area.x
-        self.map_right = self.game_info.playable_area.width + self.game_info.playable_area.x
+        self.map_right = self.game_info.playable_area.width+self.game_info.playable_area.x
         self.map_bottom = self.game_info.playable_area.y
-        self.map_top = self.game_info.playable_area.height + self.game_info.playable_area.y
-        self.hospital = self.ourmain.towards(self.map_center, -7)
+        self.map_top = self.game_info.playable_area.height+self.game_info.playable_area.y
+        self.hospital = self.ourmain.towards(self.map_center,-7)
 
     async def on_start(self):
         self._client.game_step = self.game_step
@@ -239,11 +167,11 @@ class Common(BotAI, IUnitInterface):
             # frame
             self.game_step = self._client.game_step
             self.frame = self.iteration * self.game_step
-            logger.info("---------------- " + str(self.frame) + " -------------------")
+            logger.info('---------------- ' + str(self.frame) + ' -------------------' )
             # nbases
             self.nbases = 0
             for typ in self.all_halltypes:
-                for stru in self.structures(typ):
+                for stru in (self.structures(typ)):
                     if stru.build_progress >= 0.8:
                         self.nbases += 1
             # living
@@ -254,7 +182,7 @@ class Common(BotAI, IUnitInterface):
             for typ in self.all_structuretypes:
                 if typ not in self.all_tumortypes:
                     for stru in self.structures(typ):
-                        self.living.add(stru.tag)
+                            self.living.add(stru.tag)
             for ovi in self.units(UnitTypeId.OVERLORDTRANSPORT):
                 for pastag in ovi.passengers_tags:
                     self.living.add(pastag)
@@ -275,9 +203,9 @@ class Common(BotAI, IUnitInterface):
                             self.listenframe_of_structure[stru.tag] = 0
             # enemy_struc_mem
             for stru in self.enemy_structures:
-                if not stru.is_flying:  # moving, like BARRACKSFLYING
-                    if stru.type_id not in {UnitTypeId.SPINECRAWLERUPROOTED, UnitTypeId.SPORECRAWLERUPROOTED}:
-                        if stru.type_id not in self.all_tumortypes:  # too much
+                if not stru.is_flying: # moving, like BARRACKSFLYING
+                    if stru.type_id not in {UnitTypeId.SPINECRAWLERUPROOTED,UnitTypeId.SPORECRAWLERUPROOTED}:
+                        if stru.type_id not in self.all_tumortypes: # too much
                             postag = self.postag_of_pos(stru.position)
                             self.enemy_struc_mem[postag] = (stru.type_id, stru.position)
             todel = set()
@@ -287,7 +215,7 @@ class Common(BotAI, IUnitInterface):
                 if self.is_visible(pos):
                     seen = False
                     for ene in self.enemy_structures:
-                        if ene.position == pos:
+                        if (ene.position == pos):
                             seen = True
                     if not seen:
                         todel.add(postag)
@@ -326,9 +254,8 @@ class Common(BotAI, IUnitInterface):
             self.freegeysers = []
             typ = UnitTypeId.EXTRACTOR
             alt = UnitTypeId.EXTRACTORRICH
-            goodgeysers = [
-                gey for gey in self.vespene_geyser if any(gey.distance_to(base) <= 12 for base in self.townhalls.ready)
-            ]
+            goodgeysers = [gey for gey in self.vespene_geyser
+                            if any(gey.distance_to(base) <= 12 for base in self.townhalls.ready)]
             for geyser in goodgeysers:
                 free = True
                 for stru in self.structures(typ):
@@ -350,7 +277,7 @@ class Common(BotAI, IUnitInterface):
                 free = True
                 for typ in self.all_halltypes:
                     for stru in self.structures(typ):
-                        if distance(stru.position, pos) < 3:
+                        if distance(stru.position,pos) < 3:
                             free = False
                 for postag in self.enemy_struc_mem:
                     (enetyp, enepos) = self.enemy_struc_mem[postag]
@@ -363,7 +290,7 @@ class Common(BotAI, IUnitInterface):
             # disappeared unit tags are in limbo for 60 frames
             for tag in self.last_living:
                 if tag not in self.living:
-                    self.limbo[tag] = self.frame + 60
+                   self.limbo[tag] = self.frame + 60
             # cleanup limbo
             todel = set()
             for tag in self.limbo:
@@ -375,12 +302,8 @@ class Common(BotAI, IUnitInterface):
             if self.frame % 11 == 10:
                 geysers_nonemp = self.vespene_geyser.filter(lambda gey: gey.has_vespene)
                 geysers_nonemp_pos = [gey.position for gey in geysers_nonemp]
-                self.extractors = self.structures(UnitTypeId.EXTRACTOR).ready.filter(
-                    lambda gb: gb.position in geysers_nonemp_pos
-                )
-                self.extractors |= self.structures(UnitTypeId.EXTRACTORRICH).ready.filter(
-                    lambda gb: gb.position in geysers_nonemp_pos
-                )
+                self.extractors = self.structures(UnitTypeId.EXTRACTOR).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
+                self.extractors |= self.structures(UnitTypeId.EXTRACTORRICH).ready.filter(lambda gb: gb.position in geysers_nonemp_pos)
             # drones_supply_used
             self.drones_supply_used = len(self.units(UnitTypeId.DRONE))
             for tag in self.limbo:
@@ -409,7 +332,7 @@ class Common(BotAI, IUnitInterface):
             air_range = unit.air_range
         return max(ground_range, air_range)
 
-    def function_listens(self, name, delay) -> bool:
+    def function_listens(self, name,delay) -> bool:
         # forces 'delay' frames between function calls.
         # init
         if name not in self.listenframe_of_function:
@@ -448,10 +371,11 @@ class Common(BotAI, IUnitInterface):
     def job_count(self, job: Job) -> int:
         # do not call often
         count = 0
-        for unt in self.units:  # needed to prevent dead unit info
+        for unt in self.units: # needed to prevent dead unit info
             if self.job_of_unit(unt) == job:
                 count += 1
         return count
 
-    def postag_of_pos(self, pos) -> int:
+    def postag_of_pos(self, pos) -> int:    
         return round(400 * pos.x + 2 * pos.y)
+

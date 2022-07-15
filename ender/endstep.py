@@ -31,7 +31,7 @@ class Endstep(Common):
         self.last_living = self.living
         #
         await self.may_resign()
-
+        
     async def may_resign(self):
         # some criteria
         if len(self.units(UnitTypeId.DRONE)) < 4:
@@ -40,13 +40,14 @@ class Endstep(Common):
         health = 0
         for hatch in self.structures(UnitTypeId.HATCHERY):
             health = max(hatch.health, health)
-        if health < 500:  # max / 3
+        if health < 500: # max / 3
             self.resign = True
         # resign handling
         if self.resign:
             if self.resign_frame == 999999:
-                await self._client.chat_send("Resigning, gg", team_only=False)
+                await self._client.chat_send('Resigning, gg', team_only=False)
                 logger.info("Resigning, gg")
                 self.resign_frame = self.frame + 6 * self.seconds
             if self.frame > self.resign_frame:
                 await self._client.quit()
+
