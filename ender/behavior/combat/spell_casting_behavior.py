@@ -13,7 +13,8 @@ from sc2.ids.unit_typeid import UnitTypeId
 # TODO: Support other spells;
 class SpellCastingBehavior(CommandUtils):
     supported_units: Dict[UnitTypeId, List[AbilityId]] = {UnitTypeId.RAVAGER: [AbilityId.EFFECT_CORROSIVEBILE]}
-    building_value: Dict[UnitTypeId, int] = {
+    DEFAULT_STRUCTURE_VALUE: 5
+    SPECIAL_STRUCTURE_VALUE: Dict[UnitTypeId, int] = {
         UnitTypeId.PHOTONCANNON: 20,
         UnitTypeId.MISSILETURRET: 20,
         UnitTypeId.BUNKER: 20,
@@ -23,7 +24,8 @@ class SpellCastingBehavior(CommandUtils):
         UnitTypeId.SHIELDBATTERY: 20,
         UnitTypeId.PYLON: 10,
     }
-    unit_value: Dict[UnitTypeId, int] = {
+    DEFAULT_UNIT_VALUE = 1
+    SPECIAL_UNIT_VALUE: Dict[UnitTypeId, int] = {
         UnitTypeId.SIEGETANKSIEGED: 15,
         UnitTypeId.CARRIER: 10,
         UnitTypeId.LIBERATORAG: 10,
@@ -63,13 +65,13 @@ class SpellCastingBehavior(CommandUtils):
     def create_influence_map(self) -> InfluenceMap:
         influence_map = InfluenceMap(ability_radius[AbilityId.EFFECT_CORROSIVEBILE])
         for enemy in self.bot_ai.enemy_units:
-            if enemy.type_id in self.building_value:
-                weight = self.building_value[enemy.type_id]
-            elif enemy.type_id in self.unit_value:
-                weight = self.unit_value[enemy.type_id]
+            if enemy.type_id in self.SPECIAL_STRUCTURE_VALUE:
+                weight = self.SPECIAL_STRUCTURE_VALUE[enemy.type_id]
+            elif enemy.type_id in self.SPECIAL_UNIT_VALUE:
+                weight = self.SPECIAL_UNIT_VALUE[enemy.type_id]
             elif enemy.is_structure:
-                weight = 5
+                weight = self.DEFAULT_STRUCTURE_VALUE
             else:
-                weight = 1
+                weight = self.DEFAULT_UNIT_VALUE
             influence_map.add_point(enemy.position, enemy.radius, weight)
         return influence_map
