@@ -85,19 +85,19 @@ class Parts(Common):
                         self.botnames[code] = human
                 # chat
                 logger.info(self.bot_name)
-                await self._client.chat_send(self.bot_name, team_only=False)
+                await self.client.chat_send(self.bot_name, team_only=False)
                 code = self.opponent[0:8]
                 if code in self.botnames:
                     human = self.botnames[code]
                 else:
                     human = code
                 logger.info("Good luck and have fun, " + human)
-                await self._client.chat_send("Good luck and have fun, " + human, team_only=False)
+                await self.client.chat_send("Good luck and have fun, " + human, team_only=False)
                 logger.info("Tag:" + code)
-                await self._client.chat_send("Tag:" + code, team_only=False)
+                await self.client.chat_send("Tag:" + code, team_only=False)
                 version = get_version()
                 logger.info("Tag:" + version)
-                await self._client.chat_send("Tag:" + version, team_only=False)
+                await self.client.chat_send("Tag:" + version, team_only=False)
 
     def family(self, mapname):
         mapfamily = ""

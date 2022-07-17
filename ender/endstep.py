@@ -44,8 +44,8 @@ class Endstep(Common):
         # resign handling
         if self.resign:
             if self.resign_frame == 999999:
-                await self._client.chat_send("Resigning, gg", team_only=False)
+                await self.client.chat_send("Resigning, gg", team_only=False)
                 logger.info("Resigning, gg")
                 self.resign_frame = self.frame + 6 * self.seconds
             if self.frame > self.resign_frame:
-                await self._client.quit()
+                await self.client.quit()
