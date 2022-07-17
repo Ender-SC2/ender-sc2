@@ -1,10 +1,10 @@
 # attack.py, Ender
 
 import random
+from math import cos, sin, pi
 from typing import List
 
 from loguru import logger
-from math import sqrt, cos, sin, pi, acos
 
 from ender.behavior import IBehavior
 from ender.behavior.combat import (
@@ -15,17 +15,16 @@ from ender.behavior.combat import (
     SidewardsBehavior,
 )
 from ender.job import Job
+from ender.map_if import Map_if
+from ender.tech import Tech
 from ender.utils.point_utils import distance
-from sc2.constants import TARGET_AIR, TARGET_GROUND
+from sc2.constants import TARGET_AIR
+from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
-from sc2.ids.buff_id import BuffId
 from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
-from sc2.data import Race
-from ender.map_if import Map_if
-from ender.tech import Tech
 
 
 class Attack(Map_if, Tech):
@@ -102,6 +101,7 @@ class Attack(Map_if, Tech):
     succer = {}  # viper loading
     succed = {}  # viper loading
     drawn = {}  # viper abducted
+
     #
     def __step0(self):
         #
@@ -127,6 +127,9 @@ class Attack(Map_if, Tech):
         self.want_enemy_nat_block = random.random() < 0.5
 
     async def on_step(self, iteration: int):
+        enemy_worth = 0
+        for unit in self.enemy_units:
+            enemy_worth += self.worth(unit.type_id)
         await Map_if.on_step(self, iteration)
         await Tech.on_step(self, iteration)
         if not self.__did_step0:
@@ -459,7 +462,6 @@ class Attack(Map_if, Tech):
     async def infest(self):
         if self.function_listens("infest", 10):
             for unt in self.units(UnitTypeId.INFESTOR):
-                tag = unt.tag
                 pos = unt.position
                 fungal = AbilityId.FUNGALGROWTH_FUNGALGROWTH
                 # fungal
@@ -801,14 +803,14 @@ class Attack(Map_if, Tech):
                         pos = self.enemynatural
                         for unt in self.units(UnitTypeId.DRONE):
                             tag = unt.tag
-                            if self.job_of_unittag(tag) == Job.MIMMINER:
-                                if not self.enemy_nat_blocked:
-                                    self.enemy_nat_blocked = True
-                                    # connect
-                                    self.pos_of_blocker[tag] = pos
-                                    self.blocker_of_pos[pos] = tag
-                                    self.set_job_of_unit(unt, Job.BLOCKER)
-                                    self.start_block_circle(96, tag, pos)
+                            if self.job_of_unittag(tag) == Job.MIMMINER and not unt.is_carrying_resource:
+                                self.enemy_nat_blocked = True
+                                # connect
+                                self.pos_of_blocker[tag] = pos
+                                self.blocker_of_pos[pos] = tag
+                                self.set_job_of_unit(unt, Job.BLOCKER)
+                                self.start_block_circle(96, tag, pos)
+                                break
             # recruit zerglings
             if self.nbases >= 3:  # 3 finished bases
                 for unt in self.units(UnitTypeId.ZERGLING):
