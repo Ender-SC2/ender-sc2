@@ -1,7 +1,5 @@
 # common.py, Ender
 
-from typing import List
-
 from loguru import logger
 
 from ender.job import Job
@@ -9,9 +7,9 @@ from ender.unit.unit_command import IUnitCommand
 from ender.unit.unit_interface import IUnitInterface, UnitInterface
 from ender.utils.point_utils import distance
 from sc2.bot_ai import BotAI  # parent class we inherit from
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.ids.ability_id import AbilityId
 from sc2.position import Point2
 from sc2.unit import Unit
 
@@ -451,12 +449,7 @@ class Common(BotAI, IUnitInterface):
 
     # SHOULD MOVE TO UNIT_INTERFACE. TEMPORARILY HERE TO RUN.
     def job_count(self, job: Job) -> int:
-        # do not call often
-        count = 0
-        for unt in self.units:  # needed to prevent dead unit info
-            if self.job_of_unit(unt) == job:
-                count += 1
-        return count
+        return self._unit_interface.job_count(job)
 
     # COMMON UTILITIES
     def postag_of_pos(self, pos) -> int:

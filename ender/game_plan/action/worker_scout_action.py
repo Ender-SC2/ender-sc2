@@ -57,11 +57,11 @@ class WorkerScoutAction(IAction):
         worker.move(self.next_point())
 
     def get_worker(self) -> Optional[Unit]:
-        worker = self.common.units.by_tag(self.worker_tag)
+        worker = self.common.units.find_by_tag(self.worker_tag)
         if not worker:
             self.state = WorkerScoutState.DONE
             return None
-        return self.common.units.by_tag(self.worker_tag)
+        return worker
 
     def scouting_main(self):
         worker = self.get_worker()

@@ -342,8 +342,7 @@ class Tech(Common):
     # utility
     def worth(self, typ) -> int:
         worth = 0
-        if typ not in {UnitTypeId.MULE, UnitTypeId.AUTOTURRET, UnitTypeId.LARVA, UnitTypeId.BROODLING}:
-            if typ not in (self.all_eggtypes | self.all_changelings):
-                cost = self.calculate_cost(typ)
-                worth = 2 * cost.minerals + 3 * cost.vespene
+        if typ in self.game_data.units:
+            cost = self.game_data.units[typ].cost
+            worth = cost.minerals + 1.6875 * cost.vespene
         return worth

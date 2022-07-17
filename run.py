@@ -4,14 +4,13 @@
 # from sc2 import Race, Difficulty
 # from sc2.player import Bot, Computer
 # import random
-import sc2
 import sys
 
 # Load bot
 from Main import Ender
 from __init__ import run_ladder_game
-from sc2.data import Race, Difficulty
-from sc2.player import Bot, Computer
+from sc2.data import Race
+from sc2.player import Bot
 
 bot = Bot(Race.Zerg, Ender())
 
@@ -22,17 +21,3 @@ if __name__ == "__main__":
         print("Starting ladder game...")
         result, opponentid = run_ladder_game(bot)
         print(f"{result} against opponent {opponentid}")
-    else:
-        # Local game
-        print("Starting local game...")
-        # map_name = "(2)16-BitLE"
-        sc2.run_game(
-            sc2.maps.get(map_name),
-            [
-                # Human(Race.Terran),
-                bot,
-                Computer(Race.Random, Difficulty.VeryHard),  # CheatInsane VeryHard
-            ],
-            realtime=False,
-            save_replay_as="Example.SC2Replay",
-        )
