@@ -226,7 +226,7 @@ class Making(Map_if, Resources, Strategy):
                 self.unclaim_resources(typ)
 
     def now_make_a(self, typ):
-        # within the protocoll, just after check_resources
+        # within the protocol, just after check_resources
         wasmaking = self.started(typ)
         self.i_am_making_a.add((typ, self.frame, wasmaking))
         self.makecommand(typ)
@@ -525,7 +525,7 @@ class Making(Map_if, Resources, Strategy):
                     await self.build_structure("evo3", it)
 
     async def build_structure(self, name, typ):
-        patience = 2 * self.seconds
+        patience = self.seconds
         if self.supplytricking:
             patience = 5
         if self.function_listens("build_structure_" + name, patience):

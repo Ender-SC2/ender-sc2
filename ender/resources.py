@@ -94,7 +94,7 @@ class Resources(Tech):
                 if typ == UnitTypeId.DRONE:
                     resources[self.Resource.SUPPLY] = 1
                 if typ in self.all_armytypes:
-                    resources[self.Resource.SUPPLY] = self.calculate_supply_cost(typ)
+                    resources[self.Resource.SUPPLY] = self.calculate_supply_cost(typ)  # morph supply cost
                 if typ in self.all_upgrades:
                     resource = self.resource_of_buildingtype[creator]
                     resources[resource] = 1

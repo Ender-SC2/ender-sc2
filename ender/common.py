@@ -1,5 +1,7 @@
 # common.py, Ender
 
+from typing import List
+
 from loguru import logger
 
 from ender.job import Job
@@ -7,9 +9,9 @@ from ender.unit.unit_command import IUnitCommand
 from ender.unit.unit_interface import IUnitInterface, UnitInterface
 from ender.utils.point_utils import distance
 from sc2.bot_ai import BotAI  # parent class we inherit from
-from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.ids.ability_id import AbilityId
 from sc2.position import Point2
 from sc2.unit import Unit
 
@@ -190,6 +192,7 @@ class Common(BotAI, IUnitInterface):
     supplycap_drones = 90
     supplycap_queens = 20
     supplycap_army = 90
+    lairtech = False
     #
     # variables:
     listenframe_of_unit = {}  # frame the command will have arrived
@@ -367,6 +370,8 @@ class Common(BotAI, IUnitInterface):
             for tag in self.limbo:
                 if self.limbo[tag] < self.frame:
                     todel.add(tag)
+                if tag in self.living:
+                    todel.add(tag)
             for tag in todel:
                 del self.limbo[tag]
             # extractors
@@ -397,6 +402,8 @@ class Common(BotAI, IUnitInterface):
                             self.queens_supply_used += 2
             # army_supply_used
             self.army_supply_used = self.supply_used - (self.drones_supply_used + self.queens_supply_used)
+            # lairtech
+            self.lairtech = len(self.structures(UnitTypeId.LAIR).ready) + len(self.structures(UnitTypeId.HIVE)) > 0
 
     def range_vs(self, unit: Unit, target: Unit) -> float:
         ground_range = 0
@@ -451,5 +458,9 @@ class Common(BotAI, IUnitInterface):
                 count += 1
         return count
 
+    # COMMON UTILITIES
     def postag_of_pos(self, pos) -> int:
         return round(400 * pos.x + 2 * pos.y)
+
+    def blue_half(self, tag) -> bool:
+        return abs(tag) % 10 in {0, 3, 5, 6, 9}  # half of them

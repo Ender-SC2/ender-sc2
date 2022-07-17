@@ -2,19 +2,19 @@
 
 import random
 from enum import Enum, auto
-
 from loguru import logger
 
 from ender.game_plan import GamePlan
 from ender.game_plan import Step
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
-from ender.game_plan.action.worker_scout_action import WorkerScoutAction
-from ender.game_plan.condition import HaveUnit
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.enemy_unit import EnemyUnit
+from ender.game_plan.action.worker_scout_action import WorkerScoutAction
+from ender.game_plan.condition import HaveUnit
 from ender.tech import Tech
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 
 
 class Strategy(Tech):
@@ -36,11 +36,13 @@ class Strategy(Tech):
         SWARM = auto()
         FOURBASE = auto()
         TO_LAIR = auto()
+        # with lair:
         TO_SPIRE = auto()
         MUTAS = auto()
         LINGBANEMUTA = auto()
         FIVEBASE = auto()
         TO_HIVE = auto()
+        # with hive:
         ENDGAME = auto()
         LINGWAVE = auto()
         ULTRAWAVE = auto()
@@ -54,6 +56,7 @@ class Strategy(Tech):
         Gameplan.THREEBASE_NOGAS,
         Gameplan.THREEBASE,
         Gameplan.RAVATHREE,
+        Gameplan.REACTIVE,
     }
     gameplan = Gameplan.ENDGAME
     followup = Gameplan.ENDGAME
@@ -239,12 +242,14 @@ class Strategy(Tech):
             self.structype_order = []
             self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.FOURBASE:
+            # wants to reach max
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 6
-            self.result_plan[UnitTypeId.EXTRACTOR] = 7
+            self.result_plan[UnitTypeId.EXTRACTOR] = 8
             self.result_plan[UnitTypeId.ZERGLING] = 10
             self.result_plan[UnitTypeId.BANELING] = 20
-            self.result_plan[UnitTypeId.ROACH] = 20
+            self.result_plan[UnitTypeId.ROACH] = 30
+            self.result_plan[UnitTypeId.RAVAGER] = 10
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.TO_LAIR:
@@ -254,6 +259,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
             self.result_plan[UnitTypeId.BANELING] = 10
             self.result_plan[UnitTypeId.ROACH] = 20
+            self.result_plan[UnitTypeId.RAVAGER] = 10
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.TO_SPIRE
             if random.random() * 2 < 1:
@@ -265,6 +271,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = 5
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
             self.result_plan[UnitTypeId.SWARMHOSTMP] = 20
+            self.result_plan[UnitTypeId.BANELING] = 2
+            self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.TO_SPIRE:
@@ -275,6 +283,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 10
             self.result_plan[UnitTypeId.ROACH] = 10
             self.result_plan[UnitTypeId.RAVAGER] = 5
+            self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
+            self.iffadd_result(UnitTypeId.LURKERDENMP, UnitTypeId.LURKER, 2)
             self.result_plan[UnitTypeId.SPIRE] = 1
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.MUTAS
@@ -284,8 +294,10 @@ class Strategy(Tech):
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 4
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
-            self.result_plan[UnitTypeId.ZERGLING] = 20
+            self.result_plan[UnitTypeId.ZERGLING] = 18
             self.result_plan[UnitTypeId.MUTALISK] = 20
+            self.result_plan[UnitTypeId.BANELING] = 2
+            self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.LINGBANEMUTA:
@@ -295,6 +307,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ZERGLING] = 20
             self.result_plan[UnitTypeId.BANELING] = 20
             self.result_plan[UnitTypeId.MUTALISK] = 20
+            self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.FIVEBASE:
@@ -306,6 +319,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ROACH] = 10
             self.result_plan[UnitTypeId.RAVAGER] = 5
             self.result_plan[UnitTypeId.HYDRALISK] = 20
+            self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.TO_HIVE:
@@ -319,6 +333,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.RAVAGER] = 6
             self.result_plan[UnitTypeId.HYDRALISK] = 16
             self.result_plan[UnitTypeId.INFESTOR] = 3
+            self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.ENDGAME:
@@ -464,6 +479,8 @@ class Strategy(Tech):
                 for halltype in self.all_halltypes:
                     for stru in self.structures(halltype):
                         mybases += 1
+                mydronedbases = len(self.units(UnitTypeId.DRONE)) // 14
+                mybases = min(mydronedbases, mybases)
                 # danger
                 danger = False
                 for halltype in self.all_halltypes:

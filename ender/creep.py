@@ -2,6 +2,7 @@
 
 import random
 from typing import Optional
+from loguru import logger
 
 from ender.job import Job
 from ender.map_if import Map_if
@@ -286,7 +287,7 @@ class Creep(Map_if):
     async def creepdrop(self):
         # overlords etc drop creep if standing still
         if self.function_listens("creepdrop", 10):
-            if len(self.structures(UnitTypeId.LAIR)) > 0:
+            if self.lairtech:
                 for typ in {
                     UnitTypeId.OVERLORD,
                     UnitTypeId.OVERLORDTRANSPORT,
@@ -294,6 +295,10 @@ class Creep(Map_if):
                     UnitTypeId.OVERSEER,
                 }:
                     for lord in self.units(typ).idle:  # stopped
+                        # slow debug query:
+                        # abilities = (await self.get_available_abilities([lord]))[0]
+                        # if AbilityId.BEHAVIOR_GENERATECREEPON in abilities:
+                        #    logger.info(typ.name + ' needs creepdrop!')
                         tag = lord.tag
                         if self.frame >= self.listenframe_of_unit[tag]:
                             if tag in self.creepdropping:
@@ -311,7 +316,7 @@ class Creep(Map_if):
                                 self.creepdropping[tag] = typ.name
 
     async def do_creeplord(self):
-        if len(self.structures(UnitTypeId.LAIR)) > 0:
+        if self.lairtech:
             # creeplords alive and job
             todel = set()
             for tag in self.creeplords:

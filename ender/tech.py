@@ -18,6 +18,7 @@ class Tech(Common):
     # larva morphs are omitted
     ind_upgrade_use = {}  # the unittype that benefits from this upgrade most.
     speed = {}  # in griddist/sec
+    supply_of_unittype = {}  # total supply e.g. ravager 3
 
     def __step0(self):
         self.tech_chains.append(
@@ -232,6 +233,53 @@ class Tech(Common):
         self.ind_upgrade_use[UpgradeId.NEURALPARASITE] = UnitTypeId.INFESTOR
         self.ind_upgrade_use[UpgradeId.GLIALRECONSTITUTION] = UnitTypeId.ROACH
         #
+        self.supply_of_unittype[UnitTypeId.CHANGELING] = 0
+        self.supply_of_unittype[UnitTypeId.CHANGELINGMARINE] = 0
+        self.supply_of_unittype[UnitTypeId.CHANGELINGMARINESHIELD] = 0
+        self.supply_of_unittype[UnitTypeId.CHANGELINGZEALOT] = 0
+        self.supply_of_unittype[UnitTypeId.CHANGELINGZERGLING] = 0
+        self.supply_of_unittype[UnitTypeId.CHANGELINGZERGLINGWINGS] = 0
+        self.supply_of_unittype[UnitTypeId.QUEEN] = 2
+        self.supply_of_unittype[UnitTypeId.ROACH] = 2
+        self.supply_of_unittype[UnitTypeId.MUTALISK] = 2
+        self.supply_of_unittype[UnitTypeId.ZERGLING] = 0.5
+        self.supply_of_unittype[UnitTypeId.OVERSEER] = 0
+        self.supply_of_unittype[UnitTypeId.CORRUPTOR] = 2
+        self.supply_of_unittype[UnitTypeId.BROODLORD] = 4
+        self.supply_of_unittype[UnitTypeId.INFESTOR] = 2
+        self.supply_of_unittype[UnitTypeId.BROODLING] = 0
+        self.supply_of_unittype[UnitTypeId.HYDRALISK] = 2
+        self.supply_of_unittype[UnitTypeId.LURKERMP] = 3
+        self.supply_of_unittype[UnitTypeId.OVERLORDTRANSPORT] = 0
+        self.supply_of_unittype[UnitTypeId.VIPER] = 3
+        self.supply_of_unittype[UnitTypeId.BANELING] = 0.5
+        self.supply_of_unittype[UnitTypeId.ULTRALISK] = 6
+        self.supply_of_unittype[UnitTypeId.LOCUSTMP] = 0
+        self.supply_of_unittype[UnitTypeId.LOCUSTMPFLYING] = 0
+        self.supply_of_unittype[UnitTypeId.OVERSEERSIEGEMODE] = 0
+        self.supply_of_unittype[UnitTypeId.RAVAGER] = 0
+        self.supply_of_unittype[UnitTypeId.SWARMHOSTMP] = 3
+        self.supply_of_unittype[UnitTypeId.LURKERMPBURROWED] = 3
+        self.supply_of_unittype[UnitTypeId.ZERGLINGBURROWED] = 0.5
+        self.supply_of_unittype[UnitTypeId.BANELINGBURROWED] = 0.5
+        self.supply_of_unittype[UnitTypeId.ULTRALISKBURROWED] = 6
+        self.supply_of_unittype[UnitTypeId.DRONEBURROWED] = 1
+        self.supply_of_unittype[UnitTypeId.HYDRALISKBURROWED] = 2
+        self.supply_of_unittype[UnitTypeId.INFESTORBURROWED] = 2
+        self.supply_of_unittype[UnitTypeId.QUEENBURROWED] = 2
+        self.supply_of_unittype[UnitTypeId.RAVAGERBURROWED] = 3
+        self.supply_of_unittype[UnitTypeId.SWARMHOSTBURROWEDMP] = 3
+        self.supply_of_unittype[UnitTypeId.EGG] = 2  # can have other values
+        self.supply_of_unittype[UnitTypeId.BROODLORDCOCOON] = 4
+        self.supply_of_unittype[UnitTypeId.RAVAGERCOCOON] = 3
+        self.supply_of_unittype[UnitTypeId.BANELINGCOCOON] = 0.5
+        self.supply_of_unittype[UnitTypeId.TRANSPORTOVERLORDCOCOON] = 0
+        self.supply_of_unittype[UnitTypeId.OVERLORDCOCOON] = 0
+        self.supply_of_unittype[UnitTypeId.LURKERMPEGG] = 3
+        self.supply_of_unittype[UnitTypeId.DRONE] = 1
+        self.supply_of_unittype[UnitTypeId.LARVA] = 0
+        self.supply_of_unittype[UnitTypeId.OVERLORD] = 0
+        #
         # speed values copied from Liquipedia, dist per second
         self.speed[UnitTypeId.LARVA] = 0.79
         self.speed[UnitTypeId.OVERLORD] = 0.902
@@ -294,7 +342,7 @@ class Tech(Common):
     # utility
     def worth(self, typ) -> int:
         worth = 0
-        if typ not in {UnitTypeId.MULE, UnitTypeId.AUTOTURRET, UnitTypeId.LARVA}:
+        if typ not in {UnitTypeId.MULE, UnitTypeId.AUTOTURRET, UnitTypeId.LARVA, UnitTypeId.BROODLING}:
             if typ not in (self.all_eggtypes | self.all_changelings):
                 cost = self.calculate_cost(typ)
                 worth = 2 * cost.minerals + 3 * cost.vespene
