@@ -99,7 +99,7 @@ class Strategy(Tech):
         if not self.__did_step0:
             self.__step0()
             logger.info("Tag:" + self.gameplan.name)
-            await self._client.chat_send("Tag:" + self.gameplan.name, team_only=False)
+            await self.client.chat_send("Tag:" + self.gameplan.name, team_only=False)
             self.__did_step0 = True
         #
         if self.wave_count != self.last_wave_count:
@@ -125,9 +125,12 @@ class Strategy(Tech):
             if plan == self.Gameplan.TO_HIVE:
                 if len(self.structures(UnitTypeId.HIVE)) > 0:
                     plan = self.Gameplan.ENDGAME
-            logger.info("Transitioning to " + plan.name)
-            await self._client.chat_send("Transitioning to " + plan.name, team_only=False)
-            self.set_gameplan(plan)
+            if plan:
+                logger.info("Transitioning to " + plan.name)
+                await self.client.chat_send("Transitioning to " + plan.name, team_only=False)
+                self.set_gameplan(plan)
+            else:
+                logger.warning("Fail to find a plan")
         #
         self.new_plan.execute()
         #
@@ -509,6 +512,7 @@ class Strategy(Tech):
                 if ene_worth >= my_worth + 1000:
                     danger = True
                 if danger:
+                    plan = None
                     # choose plan
                     if self.vespene == 0:
                         if mybases == 1:
@@ -526,6 +530,9 @@ class Strategy(Tech):
                             plan = self.Gameplan.THREEBASE
                         elif mybases >= 4:
                             plan = self.Gameplan.FOURBASE
-                    logger.info("Downgrading to " + plan.name)
-                    await self._client.chat_send("Downgrading to " + plan.name, team_only=False)
-                    self.set_gameplan(plan)
+                    if plan:
+                        logger.info("Downgrading to " + plan.name)
+                        await self.client.chat_send("Downgrading to " + plan.name, team_only=False)
+                        self.set_gameplan(plan)
+                    else:
+                        logger.warning(f"Fail to find a downgrade plan: Bases ({mybases})")

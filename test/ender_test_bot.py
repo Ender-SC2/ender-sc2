@@ -25,7 +25,7 @@ class EnderTestBot(BotAI):
         self.stop_triggered = False
 
     async def on_start(self):
-        self._client.game_step = 4
+        self.client.game_step = 4
 
     async def on_step(self, iteration: int):
         if not self.setup:

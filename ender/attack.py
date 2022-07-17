@@ -127,9 +127,6 @@ class Attack(Map_if, Tech):
         self.want_enemy_nat_block = random.random() < 0.5
 
     async def on_step(self, iteration: int):
-        enemy_worth = 0
-        for unit in self.enemy_units:
-            enemy_worth += self.worth(unit.type_id)
         await Map_if.on_step(self, iteration)
         await Tech.on_step(self, iteration)
         if not self.__did_step0:
@@ -317,7 +314,7 @@ class Attack(Map_if, Tech):
                         logger.info("bigattack end will be = " + str(self.bigattack_end))
                     else:  # not want trade
                         logger.info("SKIPPING BIGATTACK!")
-                        await self._client.chat_send("skipping attack", team_only=False)
+                        await self.client.chat_send("skipping attack", team_only=False)
                         self.bigattack_moment = self.frame
                         self.bigattack_end = self.frame + 30 * self.seconds
                         logger.info("earliest bigattack moment will be " + str(self.frame + self.minutes))
