@@ -394,7 +394,7 @@ class Attack(Map_if, Tech):
                     for typ in {UnitTypeId.ZERGLING, UnitTypeId.ROACH}:
                         for unt in self.units(typ).idle:
                             tag = unt.tag
-                            if self.job_of_unit(unt) != Job.BERSERKER:
+                            if self.job_of_unit(unt) not in {Job.BERSERKER, Job.HOLY}:
                                 if tomake > 0:
                                     tomake -= 1
                                     self.set_job_of_unittag(tag, Job.BERSERKER)
@@ -924,6 +924,7 @@ class Attack(Map_if, Tech):
                             Job.TIRED,
                             Job.WOUNDED,
                             Job.BERSERKER,
+                            Job.HOLY,
                             Job.BLOCKER,
                             Job.TRANSPORTER,
                         ]:
@@ -958,6 +959,7 @@ class Attack(Map_if, Tech):
                     if unt.health < 0.7 * self.last_health[unt.tag]:
                         if self.job_of_unit(unt) not in [
                             Job.BERSERKER,
+                            Job.HOLY,
                             Job.NURSE,
                             Job.WOUNDED,
                             Job.SCRATCHED,
