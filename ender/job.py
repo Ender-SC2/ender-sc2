@@ -13,6 +13,7 @@ class Job(Enum):
     GASMINER = auto()
     BLOCKER = auto()  # hangs around an expansion spot
     BERSERKER = auto()  # fights to death
+    HOLY = auto()  # do not touch
     SLAVE = auto()  # follows a broodlord
     WOUNDED = auto()
     SCRATCHED = auto()

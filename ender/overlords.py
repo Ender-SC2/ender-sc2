@@ -305,7 +305,7 @@ class Overlords(Common):
                                                 del self.trip_phase[trip]
                                                 todel.add(trip)
                                                 if unt.type_id == UnitTypeId.LURKERMP:
-                                                    self.set_job_of_unittag(pastag, Job.BERSERKER)
+                                                    self.set_job_of_unittag(pastag, Job.HOLY)
                                                     unt(AbilityId.BURROWDOWN_LURKER)
                                                     self.listenframe_of_unit[pastag] = self.frame + 4 * self.seconds
                                                     self.set_job_of_unittag(lortag, Job.UNCLEAR)
@@ -318,7 +318,9 @@ class Overlords(Common):
                                                     self.listenframe_of_unit[lortag] = self.frame + self.seconds
                                                     self.freespine_couples.add((pastag, lortag))
                                                 elif unt.type_id == UnitTypeId.BANELING:
-                                                    self.set_job_of_unittag(pastag, Job.BERSERKER)
+                                                    self.set_job_of_unittag(pastag, Job.HOLY)
+                                                    if random.random() < 0.5:
+                                                        unt(AbilityId.BURROWDOWN_BANELING)
                                                     self.listenframe_of_unit[pastag] = self.frame + self.seconds
                                                     self.set_job_of_unittag(lortag, Job.UNCLEAR)
                                                     lor.move(self.ourmain)

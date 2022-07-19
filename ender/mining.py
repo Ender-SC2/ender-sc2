@@ -616,8 +616,7 @@ class Mining(Common):
                         if typ in self.all_halltypes:
                             goal = pos
                     unt.attack(goal)
-                    self.set_job_of_unit(unt, Job.BERSERKER)
-                    # drone berserkers are separate from army berserkers
+                    self.set_job_of_unit(unt, Job.HOLY)
             if unemployed < 2:
                 if volunteers > 0:
                     unt = a_volunteer
