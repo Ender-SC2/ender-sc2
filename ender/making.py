@@ -261,7 +261,7 @@ class Making(Map_if, Resources, Strategy):
                             justone = hall
                 justone.train(typ)
                 self.listenframe_of_structure[justone.tag] = self.frame + 5
-                self.queen_of_hall[justone.tag] = -1
+                self.queen_of_hall[justone.tag] = self.notag
             elif len(self.structures(crea).ready.idle) > 0:
                 # best at a distance
                 bestdist = -1

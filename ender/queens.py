@@ -15,6 +15,7 @@ class Queens(Common):
     nextinject = {}  # per hatch to prevent overINJECTER
     treating = {}  # per patient the next treating moment
     mineralside = {}  # per expopos
+    # queen_of_hall is in common.py
 
     def __step0(self):
         self.init_mineralside()
@@ -140,16 +141,26 @@ class Queens(Common):
 
     async def admin_queen_of_hall(self):
         if self.function_listens("admin_queen_of_hall", 1.3 * self.seconds):
+            todel = set()
             for halltag in self.queen_of_hall:
+                if halltag not in self.living:
+                    todel.add(halltag)
                 tag = self.queen_of_hall[halltag]
-                if tag == -1:
+                if tag == self.notag:
+                    # hall has been assigned a queen that is not yet born
                     for halltype in self.all_halltypes:
                         for hall in self.structures(halltype):
                             if hall.tag == halltag:
                                 for que in self.units(UnitTypeId.QUEEN):
                                     if distance(que.position, hall.position) < 10:
                                         if self.job_of_unit(que) != Job.NURSE:
-                                            self.queen_of_hall[halltag] = que.tag
+                                            if que.tag not in self.queen_of_hall.values():
+                                                self.queen_of_hall[halltag] = que.tag
+                else:  # tag is the queen attached to this hall
+                    if tag not in self.living:
+                        todel.add(halltag)
+            for halltag in todel:
+                del self.queen_of_hall[halltag]
 
     def init_mineralside(self):
         self.mineralside = {}
