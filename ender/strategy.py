@@ -156,7 +156,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 16, UnitTypeId.SPAWNINGPOOL, 1))
             self.opening.append(("supply", 20, UnitTypeId.HATCHERY, 2))
-            self.followup = self.Gameplan.THREEBASE
+            self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE:
             self.structures_at_hatches = 1
             self.result_plan[UnitTypeId.HATCHERY] = 2
