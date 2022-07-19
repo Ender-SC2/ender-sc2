@@ -1,6 +1,4 @@
-# queens.py, Merkbot, Zerg sandbox bot
-# 20 may 2022
-# moved queencreep(self) to creep.py
+# queens.py, Ender
 
 from ender.common import Common
 from ender.job import Job
@@ -8,6 +6,7 @@ from ender.utils.point_utils import distance
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 
 
 class Queens(Common):
@@ -15,9 +14,10 @@ class Queens(Common):
     __did_step0 = False
     nextinject = {}  # per hatch to prevent overINJECTER
     treating = {}  # per patient the next treating moment
+    mineralside = {}  # per expopos
 
     def __step0(self):
-        pass
+        self.init_mineralside()
 
     async def on_step(self, iteration: int):
         await Common.on_step(self, iteration)
@@ -64,7 +64,7 @@ class Queens(Common):
                 if self.job_of_unit(unt) == Job.INJECTER:
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
-                        itsspot = itshatch.position.towards(self.map_center, 4)
+                        itsspot = self.get_mineralside(itshatch.position)
                         dist = distance(unt.position, itsspot)
                         if dist > 4:
                             unt.move(itsspot)
@@ -150,3 +150,18 @@ class Queens(Common):
                                     if distance(que.position, hall.position) < 10:
                                         if self.job_of_unit(que) != Job.NURSE:
                                             self.queen_of_hall[halltag] = que.tag
+
+    def init_mineralside(self):
+        self.mineralside = {}
+        for expo in self.expansion_locations_list:
+            side = self.map_center
+            minerals = self.mineral_field.closer_than(8, expo)
+            if minerals:
+                side = minerals.center
+            self.mineralside[expo] = expo.towards(side, 4)
+
+    def get_mineralside(self, expos: Point2) -> Point2:
+        if expos in self.mineralside:
+            return self.mineralside[expos]
+        else:
+            return expos.towards(self.map_center, 4)
