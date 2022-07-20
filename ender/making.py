@@ -499,9 +499,11 @@ class Making(Map_if, Resources, Strategy):
                 else:
                     importance = self.importance["army"] + self.subimportance[typ]
                 # increase importance if in make_plan
-                if (self.make_plan[typ] > 0) \
-                    or ((typ == UnitTypeId.QUEEN) and self.auto_homequeen) \
-                    or ((typ == UnitTypeId.QUEEN) and self.auto_groupqueen):
+                if (
+                    (self.make_plan[typ] > 0)
+                    or ((typ == UnitTypeId.QUEEN) and self.auto_homequeen)
+                    or ((typ == UnitTypeId.QUEEN) and self.auto_groupqueen)
+                ):
                     importance += 1000
                 for (emerg_typ, emerg_pos) in self.emergency:
                     if emerg_typ == typ:

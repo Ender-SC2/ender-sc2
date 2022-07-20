@@ -233,7 +233,6 @@ class Attack(Map_if, Tech):
                     if unt.energy == 200:
                         self.set_job_of_unit(unt, Job.UNCLEAR)
 
-
     async def set_big_attack(self):
         if self.function_listens("set_big_attack", 33):
             # goal

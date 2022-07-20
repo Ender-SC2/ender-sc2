@@ -14,7 +14,7 @@ class Queens(Common):
     __did_step0 = False
     nextinject = {}  # per hatch to prevent overINJECTER
     treating = {}  # per patient the next treating moment
-    mineralside = {} # per expopos
+    mineralside = {}  # per expopos
     # queen_of_hall is in common.py
 
     def __step0(self):
@@ -148,7 +148,7 @@ class Queens(Common):
                     todel.add(halltag)
                 tag = self.queen_of_hall[halltag]
                 if tag == self.notag:
-                    pass # queen is not yet born
+                    pass  # queen is not yet born
                 else:
                     if tag not in self.living:
                         todel.add(halltag)
@@ -164,7 +164,7 @@ class Queens(Common):
                                 halltag == hall.tag
                                 canmatch = False
                                 if halltag in self.queen_of_hall:
-                                    if self.queen_of_hall[halltag] == self.notag: # not yet born
+                                    if self.queen_of_hall[halltag] == self.notag:  # not yet born
                                         canmatch = True
                                 else:
                                     canmatch = True
@@ -180,7 +180,7 @@ class Queens(Common):
             for halltag in self.queen_of_hall:
                 canmatch = False
                 if halltag in self.queen_of_hall:
-                    if self.queen_of_hall[halltag] == self.notag: # not yet born
+                    if self.queen_of_hall[halltag] == self.notag:  # not yet born
                         canmatch = True
                 else:
                     canmatch = True
