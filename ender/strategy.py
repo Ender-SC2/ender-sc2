@@ -66,7 +66,7 @@ class Strategy(Tech):
     new_plan = None
     structures_at_hatches = 0
     auto_upgrade = True
-    auto_queen = True
+    auto_homequeen = True
 
     def __step0(self):
         #
@@ -101,6 +101,8 @@ class Strategy(Tech):
             logger.info("Tag:" + self.gameplan.name)
             await self.client.chat_send("Tag:" + self.gameplan.name, team_only=False)
             self.__did_step0 = True
+        #
+        await self.check_agression()
         #
         if self.wave_count != self.last_wave_count:
             self.last_wave_count = self.wave_count
@@ -474,44 +476,49 @@ class Strategy(Tech):
         self.needhatches[UnitTypeId.ULTRALISKCAVERN] = 6
         #
 
+    async def check_agression(self):
+        if self.function_listens("check_agression", 25):
+            self.agression = False
+            for halltype in self.all_halltypes:
+                for stru in self.structures(halltype):
+                    if stru.tag in self.last_health:
+                        if stru.health < self.last_health[stru.tag]:
+                            self.agression = True
+            if self.nenemybases == 1:
+                if self.frame > 2.5 * self.minutes:
+                    self.agression = True
+            if self.nenemybases == 2:
+                if self.frame > 5 * self.minutes:
+                    self.agression = True
+            ene_worth = 0
+            for tag in self.enemy_unit_mem:
+                (typ, pos) = self.enemy_unit_mem[tag]
+                if typ not in self.all_workertypes:
+                    if typ not in {UnitTypeId.QUEEN, UnitTypeId.OVERLORD}:
+                        ene_worth += self.worth(typ)
+            my_worth = 0
+            for unt in self.units:
+                typ = unt.type_id
+                if typ in self.all_armytypes:
+                    if typ not in {UnitTypeId.QUEEN, UnitTypeId.OVERLORD}:
+                        my_worth += self.worth(typ)
+            if ene_worth >= my_worth + 1000:
+                self.agression = True
+            #
+            self.auto_groupqueen = self.agression
+            #
+
     async def react(self):
         if self.function_listens("react", 50):
             if self.gameplan == self.Gameplan.REACTIVE:
-                # my started bases
-                mybases = 0
-                for halltype in self.all_halltypes:
-                    for stru in self.structures(halltype):
-                        mybases += 1
-                mydronedbases = len(self.units(UnitTypeId.DRONE)) // 14
-                mybases = min(mydronedbases, mybases)
-                # danger
-                danger = False
-                for halltype in self.all_halltypes:
-                    for stru in self.structures(halltype):
-                        if stru.tag in self.last_health:
-                            if stru.health < self.last_health[stru.tag]:
-                                danger = True
-                if self.nenemybases == 1:
-                    if self.frame > 2.5 * self.minutes:
-                        danger = True
-                if self.nenemybases == 2:
-                    if self.frame > 5 * self.minutes:
-                        danger = True
-                ene_worth = 0
-                for tag in self.enemy_unit_mem:
-                    (typ, pos) = self.enemy_unit_mem[tag]
-                    if typ not in self.all_workertypes:
-                        if typ not in {UnitTypeId.QUEEN, UnitTypeId.OVERLORD}:
-                            ene_worth += self.worth(typ)
-                my_worth = 0
-                for unt in self.units:
-                    typ = unt.type_id
-                    if typ in self.all_armytypes:
-                        if typ not in {UnitTypeId.QUEEN, UnitTypeId.OVERLORD}:
-                            my_worth += self.worth(typ)
-                if ene_worth >= my_worth + 1000:
-                    danger = True
-                if danger:
+                if self.agression:
+                    # my started bases
+                    mybases = 0
+                    for halltype in self.all_halltypes:
+                        for stru in self.structures(halltype):
+                            mybases += 1
+                    mydronedbases = len(self.units(UnitTypeId.DRONE)) // 14
+                    mybases = min(mydronedbases, mybases)
                     plan = None
                     # choose plan
                     if self.vespene == 0:

@@ -206,19 +206,33 @@ class Attack(Map_if, Tech):
         if self.function_listens("defend", 20):
             if self.frame >= self.bigattack_end:
                 for typ in self.all_armytypes:
-                    if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}:  # too slow
+                    if typ not in {UnitTypeId.OVERSEERSIEGEMODE}:  # too slow
                         for unt in self.units(typ).idle:
                             tag = unt.tag
-                            if self.frame >= self.listenframe_of_unit[tag]:
-                                # recruit
-                                if self.job_of_unit(unt) == Job.UNCLEAR:
-                                    self.set_job_of_unit(unt, Job.DEFENDATTACK)
-                                # act
-                                if self.job_of_unit(unt) == Job.DEFENDATTACK:
-                                    self.attackgoal[tag] = self.defendgoal
-                                    if distance(unt.position, self.defendgoal) > 8:
-                                        unt.attack(self.defendgoal)
-                                        self.listenframe_of_unit[tag] = self.frame + 5
+                            canrecruit = True
+                            if typ == UnitTypeId.QUEEN:
+                                if tag in self.queen_of_hall.values():
+                                    canrecruit = False
+                                if unt.energy == 200:
+                                    # full energy queen better lay a tumor
+                                    canrecruit = False
+                            if canrecruit:
+                                if self.frame >= self.listenframe_of_unit[tag]:
+                                    # recruit
+                                    if self.job_of_unit(unt) == Job.UNCLEAR:
+                                        self.set_job_of_unit(unt, Job.DEFENDATTACK)
+                                    # act
+                                    if self.job_of_unit(unt) == Job.DEFENDATTACK:
+                                        self.attackgoal[tag] = self.defendgoal
+                                        if distance(unt.position, self.defendgoal) > 8:
+                                            unt.attack(self.defendgoal)
+                                            self.listenframe_of_unit[tag] = self.frame + 5
+            # dismiss full energy queens
+            for unt in self.units(UnitTypeId.QUEEN):
+                if self.job_of_unit(unt) == Job.DEFENDATTACK:
+                    if unt.energy == 200:
+                        self.set_job_of_unit(unt, Job.UNCLEAR)
+
 
     async def set_big_attack(self):
         if self.function_listens("set_big_attack", 33):
@@ -255,10 +269,6 @@ class Attack(Map_if, Tech):
                         if 5 * having < 4 * tomake:
                             now = False
                             logger.info("not enough " + typ.name)
-                # waiting long
-                if self.frame > self.bigattack_end + 10 * self.minutes:
-                    now = True
-                    logger.info("ten minute rule")
                 # full army
                 logger.info("armysupply " + str(self.army_supply_used) + " of " + str(self.supplycap_army))
                 if (self.army_supply_used >= self.supplycap_army - 5) or (self.supply_used >= 190):
@@ -282,6 +292,10 @@ class Attack(Map_if, Tech):
                 if self.supplytricking:
                     logger.info("wait for supplytrick")
                     now = False
+                # waiting long
+                if self.frame > self.bigattack_end + 10 * self.minutes:
+                    now = True
+                    logger.info("ten minute rule")
                 #
                 if now:
                     self.wave_count += 1

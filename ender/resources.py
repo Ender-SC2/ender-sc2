@@ -166,11 +166,18 @@ class Resources(Tech):
             for stru in self.structures(building).ready.idle:
                 if self.frame >= self.listenframe_of_structure[stru.tag]:
                     self.resource_now_tags[resource].add(stru.tag)
-        for halltype in self.all_halltypes:
-            for stru in self.structures(halltype).ready.idle:
-                if stru.tag not in self.queen_of_hall:
+        # QUEENHATCHERIES depends on auto_groupqueen
+        if self.auto_groupqueen:
+            for halltype in self.all_halltypes:
+                for stru in self.structures(halltype).ready.idle:
                     if self.frame >= self.listenframe_of_structure[stru.tag]:
                         self.resource_now_tags[self.Resource.QUEENHATCHERIES].add(stru.tag)
+        else:
+            for halltype in self.all_halltypes:
+                for stru in self.structures(halltype).ready.idle:
+                    if stru.tag not in self.queen_of_hall:
+                        if self.frame >= self.listenframe_of_structure[stru.tag]:
+                            self.resource_now_tags[self.Resource.QUEENHATCHERIES].add(stru.tag)
         for ovi in self.units(UnitTypeId.OVERSEER):
             if self.frame >= self.listenframe_of_unit[ovi.tag]:
                 if ovi.energy >= 50:
