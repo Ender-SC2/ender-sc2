@@ -115,7 +115,7 @@ class Queens(Common):
             # heal
             for unt in self.units(UnitTypeId.QUEEN):
                 tag = unt.tag
-                if self.job_of_unit(unt) in [Job.NURSE, Job.UNCLEAR, Job.BIGATTACK]:
+                if self.job_of_unit(unt) in [Job.NURSE, Job.UNCLEAR, Job.DEFENDATTACK]:
                     if unt.energy >= 50:
                         if self.has_creep(unt.position):
                             for other in self.units:
@@ -141,26 +141,66 @@ class Queens(Common):
 
     async def admin_queen_of_hall(self):
         if self.function_listens("admin_queen_of_hall", 1.3 * self.seconds):
+            # hall or queen is dead
             todel = set()
             for halltag in self.queen_of_hall:
                 if halltag not in self.living:
                     todel.add(halltag)
                 tag = self.queen_of_hall[halltag]
                 if tag == self.notag:
-                    # hall has been assigned a queen that is not yet born
-                    for halltype in self.all_halltypes:
-                        for hall in self.structures(halltype):
-                            if hall.tag == halltag:
-                                for que in self.units(UnitTypeId.QUEEN):
-                                    if distance(que.position, hall.position) < 10:
-                                        if self.job_of_unit(que) != Job.NURSE:
-                                            if que.tag not in self.queen_of_hall.values():
-                                                self.queen_of_hall[halltag] = que.tag
-                else:  # tag is the queen attached to this hall
+                    pass  # queen is not yet born
+                else:
                     if tag not in self.living:
                         todel.add(halltag)
             for halltag in todel:
                 del self.queen_of_hall[halltag]
+            # assign new queen to the closest free hall
+            for que in self.units(UnitTypeId.QUEEN):
+                if self.job_of_unit(que) == Job.UNCLEAR:
+                    if que.tag not in self.queen_of_hall.values():
+                        bestdist = 20
+                        for halltype in self.all_halltypes:
+                            for hall in self.structures(halltype):
+                                halltag == hall.tag
+                                canmatch = False
+                                if halltag in self.queen_of_hall:
+                                    if self.queen_of_hall[halltag] == self.notag:  # not yet born
+                                        canmatch = True
+                                else:
+                                    canmatch = True
+                                if canmatch:
+                                    dist = distance(que.position, hall.position)
+                                    if dist < bestdist:
+                                        bestdist = dist
+                                        besthall = hall
+                        if bestdist < 20:
+                            self.queen_of_hall[besthall.tag] = que.tag
+                            que.move(besthall.position)
+            # assign free hall to the closest free queen
+            for halltag in self.queen_of_hall:
+                canmatch = False
+                if halltag in self.queen_of_hall:
+                    if self.queen_of_hall[halltag] == self.notag:  # not yet born
+                        canmatch = True
+                else:
+                    canmatch = True
+                if canmatch:
+                    for halltype in self.all_halltypes:
+                        for hall in self.structures(halltype):
+                            if hall.tag == halltag:
+                                bestdist = 40
+                                for que in self.units(UnitTypeId.QUEEN):
+                                    if self.job_of_unit(que) != Job.NURSE:
+                                        if que.tag not in self.queen_of_hall.values():
+                                            dist = distance(que.position, hall.position)
+                                            if dist < bestdist:
+                                                bestdist = dist
+                                                bestqueen = que
+                                if bestdist < 40:
+                                    que = bestqueen
+                                    self.queen_of_hall[halltag] = que.tag
+                                    self.set_job_of_unit(que, Job.UNCLEAR)
+                                    que.move(hall.position)
 
     def init_mineralside(self):
         self.mineralside = {}

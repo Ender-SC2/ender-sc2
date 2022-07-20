@@ -62,7 +62,7 @@ class Making(Map_if, Resources, Strategy):
     prewalkers = set()  # expanding with a drone prewalking
     expiration_of_builder = {}  # it is a temporal job
     experience = []  # walktime for prewalkers
-    example = UnitTypeId.SPORECRAWLER  # for debugging, e.g. EXTRACTOR. To silence: SCV
+    example = UnitTypeId.QUEEN  # for debugging, e.g. EXTRACTOR. To silence: SCV
     # emergency in common.py
     # supplytricking in common.py
     supplytrick_phase = "no"
@@ -254,7 +254,7 @@ class Making(Map_if, Resources, Strategy):
                     justone.train(typ)
                     self.listenframe_of_unit[justone.tag] = self.frame + 5
             elif typ == UnitTypeId.QUEEN:
-                # queenhatchery, not just any hatchery.
+                # preferrably a queenhatchery, not just any hatchery.
                 for halltype in self.all_halltypes:
                     for hall in self.structures(halltype).ready.idle:
                         if hall.tag not in self.queen_of_hall:
@@ -499,7 +499,11 @@ class Making(Map_if, Resources, Strategy):
                 else:
                     importance = self.importance["army"] + self.subimportance[typ]
                 # increase importance if in make_plan
-                if (self.make_plan[typ] > 0) or ((typ == UnitTypeId.QUEEN) and self.auto_queen):
+                if (
+                    (self.make_plan[typ] > 0)
+                    or ((typ == UnitTypeId.QUEEN) and self.auto_homequeen)
+                    or ((typ == UnitTypeId.QUEEN) and self.auto_groupqueen)
+                ):
                     importance += 1000
                 for (emerg_typ, emerg_pos) in self.emergency:
                     if emerg_typ == typ:
@@ -733,7 +737,7 @@ class Making(Map_if, Resources, Strategy):
             return False
         #
         if unty == UnitTypeId.QUEEN:
-            if self.auto_queen:
+            if self.auto_homequeen and (not self.auto_groupqueen):
                 now = False
                 for typ in self.all_halltypes:
                     for base in self.structures(typ).ready.idle:

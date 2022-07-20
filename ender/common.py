@@ -204,8 +204,10 @@ class Common(BotAI, IUnitInterface):
     current_expandings = {}  # report from making to attack (block)
     to_root = set()  # sporespinecrawlers uprooted to be picked up by 'making'.
     resign = False
-    queen_of_hall = {}
+    queen_of_hall = {}  # a queen with tag in queen_of_hall.values() behaves different...
     cooldown_sh = {}  # per swarmhost tag the moment it can make locusts.
+    auto_groupqueen = False
+    agression = False  # panic
     #
     __did_step0 = False
     _last_structures_len = 0  # internal speedup

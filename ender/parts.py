@@ -6,6 +6,7 @@ from loguru import logger
 
 from ender.common import Common
 from ender.utils.type_utils import get_version
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.data import Race
 
 
@@ -36,7 +37,7 @@ class Parts(Common):
     async def show(self):
         logger.info("---------------- " + str(self.frame) + "--------------------")
         lines = []
-        for unt in self.units:
+        for unt in self.units():
             pos = unt.position
             job = self.job_of_unit(unt)
             ord = ""
