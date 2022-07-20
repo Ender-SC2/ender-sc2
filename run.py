@@ -1,9 +1,3 @@
-# Imports have to be in this order, leave this comment here to fall back to it if they get messed up
-# import sc2, sys
-# from __init__ import run_ladder_game
-# from sc2 import Race, Difficulty
-# from sc2.player import Bot, Computer
-# import random
 import sys
 
 # Load bot

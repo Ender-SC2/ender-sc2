@@ -552,7 +552,6 @@ class Making(Map_if, Resources, Strategy):
                     importance += 1000
                 for (emerg_typ, emerg_pos) in self.emergency:
                     if emerg_typ == typ:
-                        logger.info(f"{emerg_typ} at {emerg_pos}")
                         importance = 2000
                         break
                 self.claim_resources(typ, importance)
@@ -608,6 +607,7 @@ class Making(Map_if, Resources, Strategy):
                         emergency = False
                         for (emerg_typ, emerg_pos) in self.emergency:
                             if emerg_typ == typ:
+                                logger.info(f"{emerg_typ} at {emerg_pos}")
                                 pos = emerg_pos
                                 emergency = True
                                 break

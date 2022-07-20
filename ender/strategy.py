@@ -80,16 +80,13 @@ class Strategy(Tech):
                 Step(
                     Any(
                         [
+                            RememberCondition(All([BeforeTime(100), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])),
                             EnemyUnit(UnitTypeId.BANSHEE),
                             EnemyUnit(UnitTypeId.ORACLE),
                             EnemyUnit(UnitTypeId.MUTALISK),
                             EnemyUnit(UnitTypeId.DARKTEMPLAR),
                         ]
                     ),
-                    PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning()),
-                ),
-                Step(
-                    RememberCondition(All([BeforeTime(100), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])),
                     WaitUntil(200, PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())),
                 ),
                 Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),

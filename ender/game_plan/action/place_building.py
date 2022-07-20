@@ -36,8 +36,8 @@ class PlaceBuilding(IAction):
 
     def has_building(self):
         if not self.on_base:
-            return self.common.all_units.of_type(self.unit_type).amount >= self.amount
-        return self.common.all_units.of_type(self.unit_type).closer_than(11, self.on_base).amount >= self.amount
+            return self.common.structures.of_type(self.unit_type).amount >= self.amount
+        return self.common.structures.of_type(self.unit_type).closer_than(11, self.on_base).amount >= self.amount
 
     def get_position(self) -> Optional[Point2]:
         return self.building_positioning.position(self.on_base)
