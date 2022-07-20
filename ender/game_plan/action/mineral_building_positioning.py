@@ -14,5 +14,5 @@ class MineralLinePositioning(Positioning):
         if minerals.empty:
             logger.info(f"No mineral close to {close_to}")
         else:
-            return close_to.towards(self.common.mineral_field.closer_than(11, close_to).center, 6)
+            return close_to.towards(self.common.mineral_field.closer_than(11, close_to).center, 5)
         return None

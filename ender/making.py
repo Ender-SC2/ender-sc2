@@ -504,6 +504,7 @@ class Making(Map_if, Resources, Strategy):
                 for (emerg_typ, emerg_pos) in self.emergency:
                     if emerg_typ == typ:
                         importance = 2000
+                        break
                 self.claim_resources(typ, importance)
                 if self.check_resources(typ, importance):
                     self.now_make_a(typ)
@@ -551,7 +552,9 @@ class Making(Map_if, Resources, Strategy):
                     importance += 1000
                 for (emerg_typ, emerg_pos) in self.emergency:
                     if emerg_typ == typ:
+                        logger.info(f"{emerg_typ} at {emerg_pos}")
                         importance = 2000
+                        break
                 self.claim_resources(typ, importance)
                 if typ not in self.buildplan:
                     size = self.size_of_structure[typ]
@@ -602,9 +605,14 @@ class Making(Map_if, Resources, Strategy):
                             pos = gooddrone.position
                             self.set_job_of_unit(gooddrone, Job.UNCLEAR)
                         # emergency position
+                        emergency = False
                         for (emerg_typ, emerg_pos) in self.emergency:
                             if emerg_typ == typ:
                                 pos = emerg_pos
+                                emergency = True
+                                break
+                        if emergency:
+                            self.emergency.remove((typ, pos))
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
                         expiration = self.frame + self.minutes
