@@ -9,11 +9,16 @@ from ender.game_plan import GamePlan
 from ender.game_plan import Step
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
+from ender.game_plan.action.wait_until import WaitUntil
 from ender.game_plan.action.worker_scout_action import WorkerScoutAction
-from ender.game_plan.condition import HaveUnit
+from ender.game_plan.condition import HaveUnit, All
 from ender.game_plan.condition.any import Any
+from ender.game_plan.condition.before_time import BeforeTime
+from ender.game_plan.condition.enemy_structure import EnemyStructure
 from ender.game_plan.condition.enemy_unit import EnemyUnit
+from ender.game_plan.condition.remember_condition import RememberCondition
 from ender.tech import Tech
+from ender.utils.unit_utils import gas_extraction_structures
 from sc2.ids.unit_typeid import UnitTypeId
 
 
@@ -73,8 +78,16 @@ class Strategy(Tech):
         self.new_plan = GamePlan(
             [
                 Step(
-                    Any([EnemyUnit(UnitTypeId.BANSHEE), EnemyUnit(UnitTypeId.ORACLE), EnemyUnit(UnitTypeId.MUTALISK)]),
-                    PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning()),
+                    Any(
+                        [
+                            RememberCondition(All([BeforeTime(100), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])),
+                            EnemyUnit(UnitTypeId.BANSHEE),
+                            EnemyUnit(UnitTypeId.ORACLE),
+                            EnemyUnit(UnitTypeId.MUTALISK),
+                            EnemyUnit(UnitTypeId.DARKTEMPLAR),
+                        ]
+                    ),
+                    WaitUntil(200, PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())),
                 ),
                 Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]

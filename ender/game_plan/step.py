@@ -18,5 +18,5 @@ class Step:
 
     @abstractmethod
     def execute(self):
-        if self.condition and self.condition.check():
+        if not self.condition or self.condition.check():
             self.action.execute()
