@@ -22,6 +22,7 @@ class Map_if(Common):
         NOCREEP = auto()  # can build, walk, fly, not creep
         BUILT = auto()  # my or neutral or enemy building
         PLAN = auto()  # reserved, overwriting free
+        GAS = auto()  # geyser without building
 
     map = None
     plans = set()  # of (pos, size, expiration, oldcolor)
@@ -30,6 +31,7 @@ class Map_if(Common):
     enemy_drawings = set()  # of (pos, size, typ) to enable erasing if not in self.enemy_struc_mem
     _last_enemy_struc_mem_hash = 0  # to react on changes
     plan_timeout = 0
+    gaspositions = set()
     #
 
     def __step0(self):
@@ -122,7 +124,7 @@ class Map_if(Common):
             px = round(pos.x + tx - disx)
             for ty in range(0, size):
                 py = round(pos.y + ty - disy)
-                can = can and (self.read_map(px, py) == self.Mapcolor.BUILT)
+                can = can and (self.read_map(px, py) == self.Mapcolor.GAS)
         return can
 
     def map_nocreep(self, pos, size):
@@ -154,13 +156,14 @@ class Map_if(Common):
         # Call with half-pos when size is odd.
         disx = size / 2
         disy = size / 2
+        oldcolor = self.Mapcolor.GAS
         for tx in range(0, size):
             px = round(pos.x + tx - disx)
             for ty in range(0, size):
                 py = round(pos.y + ty - disy)
-                if self.map[px, py] == self.Mapcolor.BUILT:
+                if self.map[px, py] == oldcolor:
                     self.map[px, py] = self.Mapcolor.PLAN
-        self.plans.add((pos, size, self.frame + self.plan_timeout, self.Mapcolor.BUILT))
+        self.plans.add((pos, size, self.frame + self.plan_timeout, oldcolor))
 
     def map_can_build(self, pos, size) -> bool:
         # Call with half-pos when size is odd.
@@ -217,6 +220,17 @@ class Map_if(Common):
                 if self.map[px, py] == self.Mapcolor.BUILT:
                     self.map[px, py] = self.Mapcolor.FREE
 
+    def map_unbuild_gas(self, pos, size):
+        # Call with half-pos when size is odd.
+        disx = size / 2
+        disy = size / 2
+        for tx in range(0, size):
+            px = round(pos.x + tx - disx)
+            for ty in range(0, size):
+                py = round(pos.y + ty - disy)
+                if self.map[px, py] == self.Mapcolor.BUILT:
+                    self.map[px, py] = self.Mapcolor.GAS
+
     def read_map(self, px, py) -> Mapcolor:
         if (self.map_left <= px < self.map_right) and (self.map_bottom <= py < self.map_top):
             return self.map[px, py]
@@ -243,7 +257,8 @@ class Map_if(Common):
             self.map[round(mimpos.x - 1), round(mimpos.y - 0.5)] = self.Mapcolor.BUILT
             self.map[round(mimpos.x + 0), round(mimpos.y - 0.5)] = self.Mapcolor.BUILT
         for gas in self.vespene_geyser:
-            self._create_block(gas.position, (3, 3))
+            self._create_block_gas(gas.position, (3, 3))
+            self.gaspositions.add(gas.position)
         for tow in self.watchtowers:
             self._create_block(tow.position, (2, 2))
         for anyu in self.all_units:
@@ -327,6 +342,16 @@ class Map_if(Common):
                 py = round(pos.y + ty - disy)
                 self.map[px, py] = self.Mapcolor.BUILT
 
+    def _create_block_gas(self, pos, measure):
+        # Call with half-pos when measure is odd.
+        disx = measure[0] / 2
+        disy = measure[1] / 2
+        for tx in range(0, measure[0]):
+            px = round(pos.x + tx - disx)
+            for ty in range(0, measure[1]):
+                py = round(pos.y + ty - disy)
+                self.map[px, py] = self.Mapcolor.GAS
+
     async def map_administration(self):
         # delete outdated info
         if self.frame % 13 == 12:  # rarely
@@ -354,7 +379,10 @@ class Map_if(Common):
                 for cons in todel:
                     self.drawings.remove(cons)
                     (position, size, typ) = cons
-                    self.map_unbuild(position, size)
+                    if position in self.gaspositions:
+                        self.map_unbuild_gas(position, size)
+                    else:
+                        self.map_unbuild(position, size)
             if self.enemy_struc_mem_hash != self._last_enemy_struc_mem_hash:
                 self._last_enemy_struc_mem_hash = self.enemy_struc_mem_hash
                 todel = set()
@@ -370,7 +398,10 @@ class Map_if(Common):
                 for cons in todel:
                     self.enemy_drawings.remove(cons)
                     (position, size, typ) = cons
-                    self.map_unbuild(position, size)
+                    if position in self.gaspositions:
+                        self.map_unbuild_gas(position, size)
+                    else:
+                        self.map_unbuild(position, size)
                 # draw enemy buildings
                 for postag in self.enemy_struc_mem:
                     (typ, position) = self.enemy_struc_mem[postag]
