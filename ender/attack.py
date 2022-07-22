@@ -67,8 +67,6 @@ class Attack(Map_if, Tech):
     last_catch = {}  # for burrowed banelings
     burbanes = {}  # of positions where a own burrowed baneling is or was. Per tag: (pos, upframe)
     dontburrow = {}  # A baneling can have temporary don't-burrow status. Per tag: downframe.
-    pos_of_blocker = {}
-    blocker_of_pos = {}
     may_spawn = {}  # timer for swarmhosts
     sh_forward = {}  # direction for swarmhosts
     sh_goal = None  # direction for swarmhosts
@@ -95,8 +93,6 @@ class Attack(Map_if, Tech):
     circler_frames = {}  # per circlertag: amount of frames for one circle.
     circler_pos = {}
     circler_next_frame = 0  # common for all circlers
-    enemy_nat_blocked = False
-    want_enemy_nat_block = True
     enemynatural = None
     succer = {}  # viper loading
     succed = {}  # viper loading
@@ -124,7 +120,6 @@ class Attack(Map_if, Tech):
         #
         self.biletarget_no |= self.all_changelings
         #
-        self.want_enemy_nat_block = random.random() < 0.5
 
     async def on_step(self, iteration: int):
         await Map_if.on_step(self, iteration)
@@ -146,7 +141,6 @@ class Attack(Map_if, Tech):
         await self.vipers_slow()
         await self.set_sh_goal()
         await self.swarmhosts()
-        await self.blocker()
         await self.slaves()
         await self.wounded()
         await self.guards()
@@ -154,7 +148,6 @@ class Attack(Map_if, Tech):
         await self.do_dried()
         await self.dodge_biles()
         await self.bile()
-        await self.circle_blockers()
         await self.spies()
 
     def find_bigattackgoal(self):
@@ -757,124 +750,6 @@ class Attack(Map_if, Tech):
             point = Point2((cos(alfa), sin(alfa)))
             self.circle.append(point)
 
-    def start_block_circle(self, circleframes, tag, expopos):
-        self.circler_frames[tag] = circleframes
-        self.make_circle(circleframes)
-        self.circler_pos[tag] = []
-        radius = circleframes / 25  # should be wider than the actual walked circle. Speed?
-        for point in self.circle:
-            self.circler_pos[tag].append(Point2((expopos.x + radius * point.x, expopos.y + radius * point.y)))
-
-    async def circle_blockers(self):
-        # high apm
-        if len(self.circler_frames) > 0:
-            if self.frame >= self.circler_next_frame + 6:
-                for circler_type in {UnitTypeId.DRONE, UnitTypeId.ZERGLING}:
-                    for blo in self.units(circler_type):
-                        tag = blo.tag
-                        if tag in self.circler_frames:
-                            if self.job_of_unittag(tag) == Job.BLOCKER:
-                                circleframes = self.circler_frames[tag]
-                                blocker_pole = self.frame % circleframes
-                                goal = self.circler_pos[tag][blocker_pole]
-                                blo.move(goal)
-
-    async def blocker(self):
-        if self.function_listens("blocker", 31):
-            # zergling or job or freeexpo is gone
-            todel = set()
-            for tag in self.pos_of_blocker:
-                pos = self.pos_of_blocker[tag]
-                if pos not in self.freeexpos:
-                    todel.add((tag, pos))
-                if tag in self.living:
-                    job = self.job_of_unittag(tag)
-                    if job != Job.BLOCKER:
-                        # logger.info(job) # debug
-                        todel.add((tag, pos))
-                else:
-                    # logger.info('dead') # debug
-                    todel.add((tag, pos))
-            for (tag, pos) in todel:
-                del self.pos_of_blocker[tag]
-                del self.blocker_of_pos[pos]
-                if tag in self.circler_frames:
-                    del self.circler_frames[tag]
-                if self.job_of_unittag(tag) == Job.BLOCKER:
-                    self.set_job_of_unittag(tag, Job.UNCLEAR)
-            # recruit natblocker
-            if self.enemy_race == Race.Zerg:
-                startframe = 7
-            else:
-                startframe = 13 * self.seconds
-            if self.frame > startframe:
-                if self.want_enemy_nat_block:
-                    if not self.enemy_nat_blocked:
-                        pos = self.enemynatural
-                        for unt in self.units(UnitTypeId.DRONE):
-                            tag = unt.tag
-                            if self.job_of_unittag(tag) == Job.MIMMINER and not unt.is_carrying_resource:
-                                self.enemy_nat_blocked = True
-                                # connect
-                                self.pos_of_blocker[tag] = pos
-                                self.blocker_of_pos[pos] = tag
-                                self.set_job_of_unit(unt, Job.BLOCKER)
-                                self.start_block_circle(96, tag, pos)
-                                break
-            # recruit zerglings
-            if self.nbases >= 3:  # 3 finished bases
-                for unt in self.units(UnitTypeId.ZERGLING):
-                    tag = unt.tag
-                    job = self.job_of_unit(unt)
-                    if job in {Job.UNCLEAR, Job.DEFENDATTACK}:
-                        pos = self.nowhere
-                        dist = 99999
-                        for apos in self.freeexpos:
-                            adist = distance(apos, self.enemymain)
-                            if apos not in self.blocker_of_pos:
-                                if adist < dist:
-                                    dist = adist
-                                    pos = apos
-                        if dist < 99999:
-                            # connect
-                            self.pos_of_blocker[tag] = pos
-                            self.blocker_of_pos[pos] = tag
-                            self.set_job_of_unit(unt, Job.BLOCKER)
-                            self.start_block_circle(76, tag, pos)
-            # burrow
-            bur = AbilityId.BURROWDOWN_ZERGLING
-            if UpgradeId.BURROW in self.state.upgrades:
-                for unt in self.units(UnitTypeId.ZERGLING):
-                    tag = unt.tag
-                    if self.job_of_unit(unt) == Job.BLOCKER:
-                        pos = self.pos_of_blocker[tag]
-                        if pos not in self.current_expandings:
-                            if tag in self.circler_frames:
-                                del self.circler_frames[tag]
-                            burpoint = pos.towards(self.ourmain, 2)
-                            unt.move(burpoint)
-                            self.listenframe_of_unit[tag] = self.frame + 4 * self.seconds
-                            if distance(unt.position, burpoint) < 4:
-                                unt(bur, queue=True)
-            # unblock
-            bup = AbilityId.BURROWUP_ZERGLING
-            todel = set()
-            for pos in self.blocker_of_pos:
-                if pos in self.current_expandings:
-                    todel.add(pos)
-            for pos in todel:
-                tag = self.blocker_of_pos[pos]
-                del self.blocker_of_pos[pos]
-                del self.pos_of_blocker[tag]
-                if tag in self.circler_frames:
-                    del self.circler_frames[tag]
-                self.set_job_of_unittag(tag, Job.UNCLEAR)
-                for unt in self.units(UnitTypeId.ZERGLINGBURROWED):
-                    if unt.tag == tag:
-                        if self.frame >= self.listenframe_of_unit[tag]:
-                            unt(bup)
-                            self.listenframe_of_unit[tag] = self.frame + 3 * self.seconds
-
     async def slaves(self):
         if self.function_listens("slaves", 61):
             candidates = {
@@ -938,7 +813,6 @@ class Attack(Map_if, Tech):
                             Job.WOUNDED,
                             Job.BERSERKER,
                             Job.HOLY,
-                            Job.BLOCKER,
                             Job.TRANSPORTER,
                         ]:
                             if (typ != UnitTypeId.OVERLORDTRANSPORT) or (not self.blue_half(sla.tag)):
