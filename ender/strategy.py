@@ -229,7 +229,7 @@ class Strategy(Tech):
             self.opening.append(("supply", 75, UnitTypeId.HATCHERY, 4))
             self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.GREED:
-            self.greed_wish = True # to allow react away and back
+            self.greed_wish = True  # to allow react away and back
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 6
             self.result_plan[UnitTypeId.EXTRACTOR] = 12
@@ -561,10 +561,9 @@ class Strategy(Tech):
                             self.set_gameplan(plan)
                         else:
                             logger.warning(f"Fail to find a downgrade plan: Bases ({mybases})")
-                else: # non greed gameplan
+                else:  # non greed gameplan
                     if not self.agression:
                         plan = self.Gameplan.GREED
                         logger.info("Shifting to " + plan.name)
                         await self.client.chat_send("Shifting to " + plan.name, team_only=False)
                         self.set_gameplan(plan)
-
