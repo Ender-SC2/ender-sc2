@@ -200,8 +200,8 @@ class Common(BotAI, IUnitInterface):
     wave_count = 0  # report from attack to strategy
     bigattacking = False  # report from attack
     supplytricking = False  # report from making
-    next_expansion = None  # report from making to attack (block)
-    current_expandings = {}  # report from making to attack (block)
+    next_expansion = None  # report from making to attack
+    current_expandings = {}  # report from making to attack
     to_root = set()  # sporespinecrawlers uprooted to be picked up by 'making'.
     resign = False
     queen_of_hall = {}  # a queen with tag in queen_of_hall.values() behaves different...
