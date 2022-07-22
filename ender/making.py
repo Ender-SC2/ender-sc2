@@ -459,21 +459,23 @@ class Making(Map_if, Resources, Strategy):
         await self.build_structure("hatc", typ)
 
     async def make_overlords(self):
-        queens = len(self.units(UnitTypeId.QUEEN))
+        typ = UnitTypeId.OVERLORD
+        queens = min(len(self.units(UnitTypeId.QUEEN)), len(self.queen_of_hall))
         need_spare = 2 + 3 * (self.nbases - 1) + 2 * queens
         soon_supply = 0  # may be too high (for some seconds)
-        soon_supply += 6 * self.started(UnitTypeId.OVERLORD)
+        soon_supply += 8 * self.started(typ)
         for stru in self.structures(UnitTypeId.HATCHERY):
             if stru not in self.structures(UnitTypeId.HATCHERY).ready:
                 if stru.build_progress > 0.75:  # about 18 seconds
                     soon_supply += 6
         if (self.supply_left + soon_supply < need_spare) and (self.supply_cap + soon_supply < 220):
-            importance = self.importance["overlord"]
-            importance += 1000  # overlords are implicit in make_plan
-            typ = UnitTypeId.OVERLORD
-            self.claim_resources(typ, importance)
-            if self.check_resources(typ, importance):
-                self.now_make_a(typ)
+            if self.check_wannado_unit(typ):
+                importance = self.importance["overlord"]
+                importance += 1000  # overlords are implicit in make_plan
+                typ = UnitTypeId.OVERLORD
+                self.claim_resources(typ, importance)
+                if self.check_resources(typ, importance):
+                    self.now_make_a(typ)
 
     async def make_army_unit(self, typ):
         if self.function_listens("make_" + typ.name, 10):
@@ -764,7 +766,7 @@ class Making(Map_if, Resources, Strategy):
         if unty == UnitTypeId.OVERSEERSIEGEMODE:
             max_count = 5
         if unty == UnitTypeId.OVERLORD:
-            max_count = 35
+            max_count = 30
         if unty in {UnitTypeId.OVERSEER, UnitTypeId.OVERLORDTRANSPORT}:
             max_count = 15
         if not (self.atleast_started(unty) < max_count):
