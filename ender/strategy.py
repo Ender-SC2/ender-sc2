@@ -18,7 +18,7 @@ from ender.game_plan.condition.enemy_structure import EnemyStructure
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.game_plan.condition.remember_condition import RememberCondition
 from ender.tech import Tech
-from ender.utils.unit_utils import gas_extraction_structures
+from ender.utils.structure_utils import gas_extraction_structures
 from sc2.ids.unit_typeid import UnitTypeId
 
 

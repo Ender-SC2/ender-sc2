@@ -56,6 +56,15 @@ class Attack(Map_if, Tech):
         UnitTypeId.SENTRY,
         UnitTypeId.COLOSSUS,
     }
+    guard_structures = {
+        UnitTypeId.SPORECRAWLER,
+        UnitTypeId.PHOTONCANNON,
+        UnitTypeId.BUNKER,
+    }
+    guard_structures_safe = {
+        UnitTypeId.PYLON,
+        UnitTypeId.COMMANDCENTER,
+    }
     biletarget_no = {UnitTypeId.LARVA, UnitTypeId.EGG, UnitTypeId.AUTOTURRET, UnitTypeId.MULE}
     # bigattacking in common.py
     bigattack_moment = -99999
@@ -989,79 +998,88 @@ class Attack(Map_if, Tech):
                 need_target = set()
                 released_guard = False
                 # stray guards
-                for unt in self.units(UnitTypeId.DRONE).sorted(lambda worker: worker.shield_health_percentage):
-                    tag = unt.tag
-                    pos = unt.position
-                    if self.job_of_unit(unt) == Job.GUARD:
+                for worker in self.units(UnitTypeId.DRONE).sorted(lambda worker: worker.shield_health_percentage):
+                    tag = worker.tag
+                    pos = worker.position
+                    if self.job_of_unit(worker) == Job.GUARD:
                         tohome = 99999
                         for hall in self.structures(UnitTypeId.HATCHERY):
                             dist = distance(pos, hall.position)
                             tohome = min(dist, tohome)
                         if not released_guard:
                             released_guard = True
-                            unt.gather(defensive_mineral)
-                            self.set_job_of_unit(unt, Job.UNCLEAR)
-                        elif unt.weapon_cooldown > 8:
-                            unt.gather(defensive_mineral)
-                        elif unt.is_carrying_resource:
-                            unt.return_resource()
-                        elif tohome >= 10:
-                            unt.gather(defensive_mineral)
-                            self.set_job_of_unit(unt, Job.UNCLEAR)
+                            worker.gather(defensive_mineral)
+                            self.set_job_of_unit(worker, Job.UNCLEAR)
+                        elif worker.weapon_cooldown > 8:
+                            worker.gather(defensive_mineral)
+                        elif worker.is_carrying_resource:
+                            worker.return_resource()
+                        elif tohome >= 25:
+                            worker.gather(defensive_mineral)
+                            self.set_job_of_unit(worker, Job.UNCLEAR)
                         else:
-                            need_target.add(unt.tag)
-                # per hatchery
-                for hatchery in self.structures(UnitTypeId.HATCHERY):
-                    if hatchery.build_progress >= 0.5:
-                        an_attacker = None
-                        closest_dist = 9999
-                        attackers = 0
-                        for ene in self.enemy_units.not_flying:
-                            dist = distance(ene.position, hatchery.position)
-                            if dist < 10:
-                                attackers += 1
-                                if dist < closest_dist:
-                                    an_attacker = ene
-                                    closest_dist = dist
-                        defenders = set()
-                        for unt in self.units(UnitTypeId.DRONE):
-                            tag = unt.tag
-                            if self.job_of_unit(unt) == Job.GUARD:
-                                if distance(unt.position, hatchery.position) < 10:
-                                    defenders.add(tag)
-                                    if tag in need_target and an_attacker:
-                                        unt.attack(an_attacker.position)
-                        # drone guards
-                        attackers = max(0, attackers - int(self.supply_army))
-                        if attackers > 2:
-                            wish_defenders = attackers + 1
-                        else:
-                            wish_defenders = attackers
-                        if len(defenders) < wish_defenders:
-                            # Defenders should have the highest health
-                            for unt in self.units(UnitTypeId.DRONE).sorted(
-                                lambda worker: worker.shield_health_percentage, reverse=True
-                            ):
-                                if len(defenders) >= wish_defenders:
-                                    break
-                                tag = unt.tag
-                                if self.job_of_unit(unt) in [Job.MIMMINER, Job.GASMINER, Job.UNCLEAR]:
-                                    if distance(unt.position, hatchery.position) < 10:
-                                        self.set_job_of_unit(unt, Job.GUARD)
-                                        defenders.add(tag)
-                                        unt.attack(an_attacker)
-                        if len(defenders) > wish_defenders:
-                            # Release defenders with the lowest health first
-                            for unt in self.units(UnitTypeId.DRONE).sorted(
-                                lambda worker: worker.shield_health_percentage
-                            ):
-                                if len(defenders) <= wish_defenders:
-                                    break
-                                tag = unt.tag
-                                if tag in defenders:
-                                    defenders.remove(tag)
-                                    self.set_job_of_unit(unt, Job.UNCLEAR)
-                                    unt.gather(defensive_mineral)
+                            need_target.add(worker.tag)
+                attackers = self.enemy_units.not_flying.filter(lambda u: self.townhalls.closest_distance_to(u) < 30)
+                structures = self.enemy_structures.filter(
+                    lambda s: s.type_id in self.guard_structures
+                    and self.townhalls.closest_distance_to(s) < 30
+                    and s.build_progress < 0.95
+                    or s.type_id in self.guard_structures_safe
+                )
+
+                # drone guards
+                attacking_amount = max(0, len(attackers) - int(self.supply_army))
+
+                if attacking_amount > 2:
+                    wish_defenders = attacking_amount + 1
+                else:
+                    wish_defenders = attacking_amount
+                wish_defenders += len(structures) * 2
+                defenders = set()
+                for worker in self.workers.filter(lambda w: self.job_of_unit(w) == Job.GUARD):
+                    tag = worker.tag
+                    defenders.add(tag)
+                    if tag in need_target:
+                        if attackers:
+                            worker.attack(attackers.closest_to(worker).position)
+                        elif structures:
+                            worker.attack(structures.closest_to(worker))
+
+                while len(defenders) < wish_defenders:
+                    # Take defenders with high health
+                    workers = self.workers.filter(
+                        lambda filter_worker: self.job_of_unit(filter_worker)
+                        in [Job.MIMMINER, Job.GASMINER, Job.UNCLEAR]
+                    ).sorted(
+                        lambda sorter_worker: (
+                            sorter_worker.shield_health_percentage,
+                            -(attackers or structures).closest_distance_to(sorter_worker),
+                        ),
+                        reverse=True,
+                    )
+                    if workers:
+                        worker = workers.first
+                        tag = worker.tag
+                        self.set_job_of_unit(worker, Job.GUARD)
+                        defenders.add(tag)
+                        if attackers:
+                            worker.attack(attackers.closest_to(worker).position)
+                        elif structures:
+                            worker.attack(structures.closest_to(worker))
+                    else:
+                        break
+                while len(defenders) > wish_defenders:
+                    # Release defenders with the lowest health first
+                    workers = self.workers.filter(lambda filter_worker: filter_worker.tag in defenders).sorted(
+                        lambda sorter_worker: sorter_worker.shield_health_percentage
+                    )
+                    if workers:
+                        worker = workers.first
+                        defenders.remove(worker.tag)
+                        self.set_job_of_unit(worker, Job.UNCLEAR)
+                        worker.gather(defensive_mineral)
+                    else:
+                        break
 
     async def banes(self):
         bur = AbilityId.BURROWDOWN_BANELING
