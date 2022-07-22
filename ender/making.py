@@ -62,7 +62,7 @@ class Making(Map_if, Resources, Strategy):
     prewalkers = set()  # expanding with a drone prewalking
     expiration_of_builder = {}  # it is a temporal job
     experience = []  # walktime for prewalkers
-    example = UnitTypeId.QUEEN  # for debugging, e.g. EXTRACTOR. To silence: SCV
+    example = UnitTypeId.SCV  # for debugging, e.g. EXTRACTOR. To silence: SCV
     # emergency in common.py
     # supplytricking in common.py
     supplytrick_phase = "no"

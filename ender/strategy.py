@@ -27,6 +27,7 @@ class Strategy(Tech):
     needhatches = {}  # opening delay until a certain amount of hatches
     building_order = []  # opening buildings order explicit
     structype_order = []
+    greed_wish = False
 
     class Gameplan(Enum):
         TWELVEPOOL = auto()
@@ -37,7 +38,7 @@ class Strategy(Tech):
         THREEBASE_NOGAS = auto()
         THREEBASE = auto()
         RAVATHREE = auto()
-        REACTIVE = auto()
+        GREED = auto()
         SWARM = auto()
         FOURBASE = auto()
         TO_LAIR = auto()
@@ -61,7 +62,7 @@ class Strategy(Tech):
         Gameplan.THREEBASE_NOGAS,
         Gameplan.THREEBASE,
         Gameplan.RAVATHREE,
-        Gameplan.REACTIVE,
+        Gameplan.GREED,
     }
     gameplan = Gameplan.ENDGAME
     followup = Gameplan.ENDGAME
@@ -105,7 +106,7 @@ class Strategy(Tech):
             choice = random.choice(list(self.Gameplan))
         #
         # here you can fix a choice to debug an opening
-        choice = self.Gameplan.REACTIVE
+        choice = self.Gameplan.GREED
         self.set_gameplan(choice)
         #
 
@@ -227,7 +228,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 75, UnitTypeId.HATCHERY, 4))
             self.followup = self.Gameplan.TO_LAIR
-        elif gameplan == self.Gameplan.REACTIVE:
+        elif gameplan == self.Gameplan.GREED:
+            self.greed_wish = True  # to allow react away and back
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 6
             self.result_plan[UnitTypeId.EXTRACTOR] = 12
@@ -525,36 +527,43 @@ class Strategy(Tech):
 
     async def react(self):
         if self.function_listens("react", 50):
-            if self.gameplan == self.Gameplan.REACTIVE:
-                if self.agression:
-                    # my started bases
-                    mybases = 0
-                    for halltype in self.all_halltypes:
-                        for stru in self.structures(halltype):
-                            mybases += 1
-                    mydronedbases = len(self.units(UnitTypeId.DRONE)) // 14
-                    mybases = min(mydronedbases, mybases)
-                    plan = None
-                    # choose plan
-                    if self.vespene == 0:
-                        if mybases == 1:
-                            plan = self.Gameplan.ONEBASE_NOGAS
-                        elif mybases == 2:
-                            plan = self.Gameplan.TWOBASE_NOGAS
-                        elif mybases >= 3:
-                            plan = self.Gameplan.THREEBASE_NOGAS
-                    else:
-                        if mybases == 1:
-                            plan = self.Gameplan.ONEBASE
-                        elif mybases == 2:
-                            plan = self.Gameplan.TWOBASE
-                        elif mybases == 3:
-                            plan = self.Gameplan.THREEBASE
-                        elif mybases >= 4:
-                            plan = self.Gameplan.FOURBASE
-                    if plan:
-                        logger.info("Downgrading to " + plan.name)
-                        await self.client.chat_send("Downgrading to " + plan.name, team_only=False)
+            if self.greed_wish and (self.gameplan in self.openingplans):
+                if self.gameplan == self.Gameplan.GREED:
+                    if self.agression:
+                        # my started bases
+                        mybases = 0
+                        for halltype in self.all_halltypes:
+                            for stru in self.structures(halltype):
+                                mybases += 1
+                        mydronedbases = len(self.units(UnitTypeId.DRONE)) // 14
+                        mybases = min(mydronedbases, mybases)
+                        plan = None
+                        # choose plan
+                        if self.vespene == 0:
+                            if mybases == 1:
+                                plan = self.Gameplan.ONEBASE_NOGAS
+                            elif mybases == 2:
+                                plan = self.Gameplan.TWOBASE_NOGAS
+                            elif mybases >= 3:
+                                plan = self.Gameplan.THREEBASE_NOGAS
+                        else:
+                            if mybases == 1:
+                                plan = self.Gameplan.ONEBASE
+                            elif mybases == 2:
+                                plan = self.Gameplan.TWOBASE
+                            elif mybases == 3:
+                                plan = self.Gameplan.THREEBASE
+                            elif mybases >= 4:
+                                plan = self.Gameplan.FOURBASE
+                        if plan:
+                            logger.info("Shifting to " + plan.name)
+                            await self.client.chat_send("Shifting to " + plan.name, team_only=False)
+                            self.set_gameplan(plan)
+                        else:
+                            logger.warning(f"Fail to find a downgrade plan: Bases ({mybases})")
+                else:  # non greed gameplan
+                    if not self.agression:
+                        plan = self.Gameplan.GREED
+                        logger.info("Shifting to " + plan.name)
+                        await self.client.chat_send("Shifting to " + plan.name, team_only=False)
                         self.set_gameplan(plan)
-                    else:
-                        logger.warning(f"Fail to find a downgrade plan: Bases ({mybases})")
