@@ -19,6 +19,10 @@ def calculate_combat_value(bot_ai: BotAI, unit: Unit) -> float:
 
 
 gas_extraction_structures = [
-    UnitTypeId.REFINERY, UnitTypeId.REFINERYRICH, UnitTypeId.EXTRACTOR, UnitTypeId.EXTRACTORRICH,
-    UnitTypeId.ASSIMILATOR, UnitTypeId.ASSIMILATORRICH
+    UnitTypeId.REFINERY,
+    UnitTypeId.REFINERYRICH,
+    UnitTypeId.EXTRACTOR,
+    UnitTypeId.EXTRACTORRICH,
+    UnitTypeId.ASSIMILATOR,
+    UnitTypeId.ASSIMILATORRICH,
 ]

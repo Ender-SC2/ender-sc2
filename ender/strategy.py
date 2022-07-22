@@ -80,7 +80,9 @@ class Strategy(Tech):
                 Step(
                     Any(
                         [
-                            RememberCondition(All([BeforeTime(100), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])),
+                            RememberCondition(
+                                All([BeforeTime(100), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])
+                            ),
                             EnemyUnit(UnitTypeId.BANSHEE),
                             EnemyUnit(UnitTypeId.ORACLE),
                             EnemyUnit(UnitTypeId.MUTALISK),
