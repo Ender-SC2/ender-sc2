@@ -16,4 +16,3 @@ def range_vs(unit: Unit, target: Unit) -> float:
 def calculate_combat_value(bot_ai: BotAI, unit: Unit) -> float:
     unit_value = bot_ai.calculate_unit_value(unit.type_id)
     return unit.shield_health_percentage * (unit_value.minerals + unit_value.vespene)
-    
