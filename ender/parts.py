@@ -6,7 +6,6 @@ from loguru import logger
 
 from ender.common import Common
 from ender.utils.type_utils import get_version
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.data import Race
 
 

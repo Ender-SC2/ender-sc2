@@ -28,3 +28,4 @@ class Job(Enum):
     FREESPINE = auto()  # drone, overlordtransport, spinecrawler
     SPY = auto()  # changeling
     SCOUT = auto()
+    SACRIFICIAL_SCOUT = auto()

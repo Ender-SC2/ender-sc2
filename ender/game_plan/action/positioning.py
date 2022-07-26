@@ -1,11 +1,11 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Optional
 
 from ender.common import Common
 from sc2.position import Point2
 
 
-class Positioning:
+class Positioning(ABC):
     common: Common
 
     def setup(self, common: Common):

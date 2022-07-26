@@ -32,7 +32,7 @@ class WorkerScoutAction(IAction):
         self.circle_points: list[Point2] = self.create_circle_points(self.CIRCLE_STEPS)
         self.worker_tag: Optional[int] = None
         self.state: WorkerScoutState = WorkerScoutState.INITIAL
-        self.states: dict[WorkerScoutState, ()] = {
+        self.behaviors: dict[WorkerScoutState, ()] = {
             WorkerScoutState.INITIAL: self.start_scouting,
             WorkerScoutState.SCOUTING_MAIN: self.scouting_main,
             WorkerScoutState.SCOUTING_EXPANSIONS: self.scouting_expansions,
@@ -45,7 +45,8 @@ class WorkerScoutAction(IAction):
         self.common = common
 
     def execute(self):
-        self.states[self.state]()
+        self.behaviors[self.state]()
+        return self.state == WorkerScoutState.DONE
 
     def start_scouting(self):
         worker = self.common.workers.filter(
@@ -91,14 +92,13 @@ class WorkerScoutAction(IAction):
             logger.info(f"{self.common.enemymain} -> {closest[0]} | {closest[1]}")
             worker.move(closest[0])
             worker.move(closest[1], True)
+            worker.move(self.common.ourmain, True)
             self.state = WorkerScoutState.MOVING_BACK
 
     def moving_back(self):
         worker = self.get_worker()
         if worker:
-            logger.info(len(worker.orders))
             if worker.is_idle:
-                logger.info("MOVE BACK")
                 self.common.set_job_of_unittag(self.worker_tag, Job.UNCLEAR)
                 self.state = WorkerScoutState.DONE
 

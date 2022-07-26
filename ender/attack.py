@@ -19,7 +19,6 @@ from ender.map_if import Map_if
 from ender.tech import Tech
 from ender.utils.point_utils import distance
 from sc2.constants import TARGET_AIR
-from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId

@@ -1,6 +1,7 @@
 # Main.py, Ender
 
 import random
+from datetime import datetime
 
 import sc2
 from ender.attack import Attack
@@ -72,6 +73,7 @@ def main():
     run_game(
         sc2.maps.get(map),
         [Bot(Race.Zerg, Ender()), Computer(opponentspecies, Difficulty.VeryHard)],  # VeryHard Easy
+        save_replay_as=f"{datetime.utcnow().strftime('%Y%m%d')}.SC2Replay",
         realtime=False,
     )
 

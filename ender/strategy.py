@@ -5,13 +5,21 @@ from enum import Enum, auto
 
 from loguru import logger
 
-from ender.game_plan import GamePlan
-from ender.game_plan import Step
+from ender.game_plan.action.base_positioning import BasePositioning
+from ender.game_plan.action.extractor_positioning import ExtractorPositioning
+from ender.game_plan.action.parallel_action import ParallelAction
+from ender.game_plan.action.place_building import PlaceBuilding
+from ender.game_plan.action.overlord_scout_base import OverlordScoutBase
+from ender.game_plan.condition.enemy_mined_gas import EnemyMinedGas
+from ender.game_plan.game_plan import GamePlan
+from ender.game_plan.action.action_sequence import ActionSequence
+from ender.game_plan.action.conditional_action import ConditionalAction
+from ender.game_plan.action.make_unit import MakeUnit
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
 from ender.game_plan.action.wait_until import WaitUntil
 from ender.game_plan.action.worker_scout_action import WorkerScoutAction
-from ender.game_plan.condition import HaveUnit, All
+from ender.game_plan.condition import HaveUnit, All, No
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
@@ -78,21 +86,49 @@ class Strategy(Tech):
         #
         self.new_plan = GamePlan(
             [
-                Step(
+                ConditionalAction(
                     Any(
                         [
                             RememberCondition(
                                 All([BeforeTime(100), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])
                             ),
                             EnemyUnit(UnitTypeId.BANSHEE),
+                            EnemyUnit(UnitTypeId.BATTLECRUISER),
                             EnemyUnit(UnitTypeId.ORACLE),
                             EnemyUnit(UnitTypeId.MUTALISK),
                             EnemyUnit(UnitTypeId.DARKTEMPLAR),
                         ]
                     ),
-                    WaitUntil(200, PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())),
+                    ActionSequence(
+                        [WaitUntil(200), PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())]
+                    ),
                 ),
-                Step(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
+                ConditionalAction(
+                    RememberCondition(
+                        All([BeforeTime(65), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])
+                    ),
+                    ActionSequence(
+                        [
+                            WaitUntil(90),
+                            PlaceBuilding(UnitTypeId.EXTRACTOR, ExtractorPositioning(), 2),
+                            PlaceBuilding(UnitTypeId.LAIR, BasePositioning()),
+                            WaitUntil(180),
+                            ParallelAction(
+                                [
+                                    OverlordScoutBase(self.enemymain),
+                                    ConditionalAction(EnemyMinedGas(200), PlaceBuilding(UnitTypeId.SPIRE, amount=1)),
+                                ]
+                            ),
+                        ]
+                    ),
+                ),
+                ConditionalAction(
+                    EnemyUnit(UnitTypeId.BATTLECRUISER),
+                    ActionSequence(
+                        [PlaceBuilding(UnitTypeId.SPIRE), MakeUnit(UnitTypeId.BATTLECRUISER, UnitTypeId.CORRUPTOR, 3)]
+                    ),
+                ),
+                ConditionalAction(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]
         )
         self.new_plan.setup(self)
@@ -150,7 +186,7 @@ class Strategy(Tech):
             else:
                 logger.warning("Fail to find a plan")
         #
-        self.new_plan.execute()
+        await self.new_plan.execute()
         #
         await self.react()
 
