@@ -9,5 +9,5 @@ class IAction:
         pass
 
     @abstractmethod
-    async def execute(self):
+    def execute(self) -> bool:
         pass

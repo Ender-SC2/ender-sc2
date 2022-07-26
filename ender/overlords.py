@@ -63,9 +63,7 @@ class Overlords(Common):
             for ovi in self.units(UnitTypeId.OVERLORD):
                 if self.job_of_unit(ovi) == Job.UNCLEAR:
                     self.set_job_of_unit(ovi, Job.ROAMER)
-            # move random
-            for ovi in self.units(UnitTypeId.OVERLORD).idle:
-                if self.job_of_unit(ovi) == Job.ROAMER:
+                if ovi.is_idle and self.job_of_unit(ovi) == Job.ROAMER:
                     goal = self.random_mappoint()
                     ovi.move(goal)
                     # hang still at goal
@@ -126,10 +124,12 @@ class Overlords(Common):
                         )
                 # id the lords
                 if len(self.units(UnitTypeId.OVERLORD)) > len(self.scoutlords):
-                    for ovi in self.units(UnitTypeId.OVERLORD):
-                        if ovi.tag not in self.scoutlords.values():
-                            nr = len(self.scoutlords)
-                            self.scoutlords[nr] = ovi.tag
+                    for ovi in self.units.of_type(UnitTypeId.OVERLORD).filter(
+                        lambda unit: self.job_of_unit(unit) != Job.SACRIFICIAL_SCOUT
+                        and unit.tag not in self.scoutlords.values()
+                    ):
+                        nr = len(self.scoutlords)
+                        self.scoutlords[nr] = ovi.tag
                 # move the lords
                 used = set()
                 for moveplan in self.overlordplan:
