@@ -130,7 +130,7 @@ class Strategy(Tech):
                 ),
                 ConditionalAction(
                     All([EnemyStructure(UnitTypeId.GATEWAY, 4), No(HaveStructure(UnitTypeId.ROACHWARREN))]),
-                    ActionSequence([PlaceBuilding(UnitTypeId.ROACHWARREN)]),
+                    PlaceBuilding(UnitTypeId.ROACHWARREN),
                 ),
                 ConditionalAction(
                     EnemyUnit(UnitTypeId.ZEALOT),
