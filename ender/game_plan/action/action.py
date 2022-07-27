@@ -1,9 +1,9 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 from ender.common import Common
 
 
-class IAction:
+class IAction(ABC):
     @abstractmethod
     def setup(self, common: Common):
         pass
