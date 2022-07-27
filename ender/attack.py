@@ -1020,10 +1020,12 @@ class Attack(Map_if, Tech):
                             need_target.add(worker.tag)
                 attackers = self.enemy_units.not_flying.filter(lambda u: self.townhalls.closest_distance_to(u) < 30)
                 structures = self.enemy_structures.filter(
-                    lambda s: s.type_id in self.guard_structures
-                    and self.townhalls.closest_distance_to(s) < 30
-                    and s.build_progress < 0.95
-                    or s.type_id in self.guard_structures_safe
+                    lambda s: self.townhalls.closest_distance_to(s) < 30
+                    and (
+                        s.type_id in self.guard_structures
+                        and s.build_progress < 0.95
+                        or s.type_id in self.guard_structures_safe
+                    )
                 )
 
                 # drone guards
@@ -1033,9 +1035,10 @@ class Attack(Map_if, Tech):
                     wish_defenders = attacking_amount + 1
                 else:
                     wish_defenders = attacking_amount
-                wish_defenders += len(structures) * 2
+                wish_defenders += len(structures) * 3
                 defenders = set()
                 for worker in self.workers.filter(lambda w: self.job_of_unit(w) == Job.GUARD):
+                    logger.info(f"Guard {worker.tag} at {worker.position}")
                     tag = worker.tag
                     defenders.add(tag)
                     if tag in need_target:
