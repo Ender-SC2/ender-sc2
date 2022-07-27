@@ -19,7 +19,7 @@ from ender.game_plan.action.mineral_building_positioning import MineralLinePosit
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
 from ender.game_plan.action.wait_until import WaitUntil
 from ender.game_plan.action.worker_scout_action import WorkerScoutAction
-from ender.game_plan.condition import HaveUnit, All, No
+from ender.game_plan.condition import HaveUnit, All, No, HaveStructure
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
@@ -127,6 +127,18 @@ class Strategy(Tech):
                     ActionSequence(
                         [PlaceBuilding(UnitTypeId.SPIRE), MakeUnit(UnitTypeId.BATTLECRUISER, UnitTypeId.CORRUPTOR, 3)]
                     ),
+                ),
+                ConditionalAction(
+                    All([EnemyStructure(UnitTypeId.GATEWAY, 4), No(HaveStructure(UnitTypeId.ROACHWARREN))]),
+                    PlaceBuilding(UnitTypeId.ROACHWARREN),
+                ),
+                ConditionalAction(
+                    EnemyUnit(UnitTypeId.ZEALOT),
+                    MakeUnit(UnitTypeId.ZEALOT, UnitTypeId.ROACH, 0.6),
+                ),
+                ConditionalAction(
+                    EnemyUnit(UnitTypeId.STALKER),
+                    MakeUnit(UnitTypeId.STALKER, UnitTypeId.ZERGLING, 6),
                 ),
                 ConditionalAction(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]
