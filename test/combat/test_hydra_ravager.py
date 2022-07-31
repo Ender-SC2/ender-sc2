@@ -8,6 +8,7 @@ from ender.behavior.combat import (
     BackBehavior,
     ForwardBehavior,
     AttackCenterBehavior,
+    UprampBehavior,
 )
 from ender.behavior.combat.attack_closest_enemy_behavior import (
     AttackClosestEnemyBehavior,
@@ -36,6 +37,7 @@ class TestHydraRavager(unittest.TestCase):
                 ForwardBehavior(),
                 SidewardsBehavior(),
                 FocusFireCombatBehavior(),
+                UprampBehavior(),
                 SpellEffectDodgingBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 3, Point2([-10, -10])),
@@ -63,6 +65,7 @@ class TestHydraRavager(unittest.TestCase):
                 ForwardBehavior(),
                 SidewardsBehavior(),
                 FocusFireCombatBehavior(),
+                UprampBehavior(),
                 SpellEffectDodgingBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 15, Point2([-10, -10])),
@@ -90,6 +93,7 @@ class TestHydraRavager(unittest.TestCase):
                 ForwardBehavior(),
                 SidewardsBehavior(),
                 FocusFireCombatBehavior(),
+                UprampBehavior(),
                 SpellEffectDodgingBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 30, Point2([-10, -10])),

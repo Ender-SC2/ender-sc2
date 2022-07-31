@@ -6,3 +6,4 @@ from .forward_behavior import ForwardBehavior
 from .reposition_behavior import RepositionBehavior
 from .sidewards_behavior import SidewardsBehavior
 from .neural_behavior import NeuralBehavior
+from .upramp_behavior import UprampBehavior
