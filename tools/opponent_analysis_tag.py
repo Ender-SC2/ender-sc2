@@ -5,9 +5,8 @@ import requests
 
 # Download
 bot_id = 438  # Ids on AI ARENA
-tags = ["v0040"]  # Ids on AI ARENA
+tags = ["v011"]  # Ids on AI ARENA
 token = os.environ["ARENA_API_TOKEN"]  # Environment variable with token from: https://aiarena.net/profile/token/
-file_path = "./replays/"
 auth = {"Authorization": f"Token {token}"}
 map_names = dict()
 
@@ -20,10 +19,8 @@ def retrieve_map_name(map_id):
     return map_names[map_id]
 
 
-if not os.path.exists(file_path):
-    os.makedirs(file_path)
 for tag in tags:
-    matches_address = f"https://aiarena.net/api/matches/?tags={tag}"
+    matches_address = f"https://aiarena.net/api/matches/?tags={tag}&bot={bot_id}"
     matchup_elo = {}
     matchup_stats = {}
     map_stats = {}
