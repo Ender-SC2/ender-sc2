@@ -13,6 +13,7 @@ from ender.behavior.combat import (
     ForwardBehavior,
     BackBehavior,
     SidewardsBehavior,
+    UprampBehavior,
 )
 from ender.job import Job
 from ender.map_if import Map_if
@@ -86,6 +87,7 @@ class Attack(Map_if, Tech):
         RepositionBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
         BackBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
         SidewardsBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
+        UprampBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
     ]
     detector_types = [
         UnitTypeId.MISSILETURRET,

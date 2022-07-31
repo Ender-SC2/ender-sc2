@@ -7,6 +7,7 @@ from ender.behavior.combat import (
     SidewardsBehavior,
     BackBehavior,
     ForwardBehavior,
+    UprampBehavior,
 )
 from ender.behavior.combat.attack_closest_enemy_behavior import (
     AttackClosestEnemyBehavior,
@@ -29,6 +30,7 @@ class TestRoachHydra(unittest.TestCase):
                 BackBehavior(),
                 SidewardsBehavior(),
                 ForwardBehavior(),
+                UprampBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 1, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),
@@ -51,6 +53,7 @@ class TestRoachHydra(unittest.TestCase):
                 BackBehavior(),
                 SidewardsBehavior(),
                 ForwardBehavior(),
+                UprampBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),
@@ -73,6 +76,7 @@ class TestRoachHydra(unittest.TestCase):
                 BackBehavior(),
                 SidewardsBehavior(),
                 ForwardBehavior(),
+                UprampBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),

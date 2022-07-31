@@ -7,11 +7,10 @@ from ender.utils.point_utils import distance
 from sc2.ids.unit_typeid import UnitTypeId
 from ender.utils.unit_utils import range_vs
 
-# move this unit forward a bit.
-# on having less range
+# move this unit forward a bit if the opponent cannot attack
 
 
-class ForwardBehavior(CommandUtils):
+class UprampBehavior(CommandUtils):
     unit_types: Optional[List[UnitTypeId]]
     jobs: Optional[List[Job]]
 
@@ -26,15 +25,17 @@ class ForwardBehavior(CommandUtils):
             and (not self.unit_types or unit.type_id in self.unit_types)
         )
         for unit in myunits:
-            enemies = self.bot_ai.enemy_units.filter(lambda ene: distance(ene.position, unit.position) < 8)
-            enemies = enemies.filter(lambda ene: range_vs(ene, unit) > 0)  # it can shoot
+            enemies = self.bot_ai.enemy_units.filter(lambda ene: distance(ene.position, unit.position) < 10)
             if len(enemies) > 0:
-                if unit.weapon_cooldown > self.bot_ai.client.game_step:
+                if unit.weapon_cooldown > self.bot_ai.client.game_step:  # i shot
                     target = enemies.closest_to(unit)
-                    if 0 < range_vs(unit, target) < range_vs(target, unit):  # I have less range
-                        if abs(range_vs(unit, target) - range_vs(target, unit)) >= 0.5:  # unequal range
-                            touchdist = distance(unit.position, target.position) - (unit.radius + target.radius)
-                            if touchdist > 0:
-                                step = min(1, touchdist)
-                                goal = unit.position.towards(target.position, step)
-                                self.unit_interface.set_command(unit, MoveCommand(goal, "forward"))
+                    rangedist = 99999
+                    for ene in enemies:
+                        rd = distance(unit.position, ene.position) - range_vs(ene, unit)
+                        rangedist = min(rd, rangedist)
+                    if rangedist > 0:  # they cant shoot me
+                        touchdist = distance(unit.position, target.position) - (unit.radius + target.radius)
+                        step = min(touchdist, rangedist)
+                        step = min(1, step)
+                        goal = unit.position.towards(target.position, step)
+                        self.unit_interface.set_command(unit, MoveCommand(goal, "forward"))

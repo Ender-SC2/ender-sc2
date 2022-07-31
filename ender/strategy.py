@@ -553,7 +553,7 @@ class Strategy(Tech):
                 if self.frame > 2.5 * self.minutes:
                     self.agression = True
             if self.nenemybases == 2:
-                if self.frame > 5 * self.minutes:
+                if self.frame > 4.5 * self.minutes:
                     self.agression = True
             ene_worth = 0
             for tag in self.enemy_unit_mem:
