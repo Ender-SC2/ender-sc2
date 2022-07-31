@@ -27,7 +27,7 @@ class ForwardBehavior(CommandUtils):
         )
         for unit in myunits:
             enemies = self.bot_ai.enemy_units.filter(lambda ene: distance(ene.position, unit.position) < 8)
-            enemies = enemies.filter(lambda ene: range_vs(ene, unit) > 0) # it can shoot
+            enemies = enemies.filter(lambda ene: range_vs(ene, unit) > 0)  # it can shoot
             if len(enemies) > 0:
                 if unit.weapon_cooldown > self.bot_ai.client.game_step:
                     target = enemies.closest_to(unit)

@@ -9,6 +9,7 @@ from ender.utils.unit_utils import range_vs
 
 # move this unit forward a bit if the opponent cannot attack
 
+
 class UprampBehavior(CommandUtils):
     unit_types: Optional[List[UnitTypeId]]
     jobs: Optional[List[Job]]
@@ -26,13 +27,13 @@ class UprampBehavior(CommandUtils):
         for unit in myunits:
             enemies = self.bot_ai.enemy_units.filter(lambda ene: distance(ene.position, unit.position) < 10)
             if len(enemies) > 0:
-                if unit.weapon_cooldown > self.bot_ai.client.game_step: # i shot
+                if unit.weapon_cooldown > self.bot_ai.client.game_step:  # i shot
                     target = enemies.closest_to(unit)
                     rangedist = 99999
                     for ene in enemies:
                         rd = distance(unit.position, ene.position) - range_vs(ene, unit)
                         rangedist = min(rd, rangedist)
-                    if rangedist > 0: # they cant shoot me
+                    if rangedist > 0:  # they cant shoot me
                         touchdist = distance(unit.position, target.position) - (unit.radius + target.radius)
                         step = min(touchdist, rangedist)
                         step = min(1, step)
