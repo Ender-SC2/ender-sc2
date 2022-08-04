@@ -4,7 +4,6 @@ from loguru import logger
 
 from ender.common import Common
 from ender.game_plan.action.action import IAction
-from ender.game_plan.action.base_positioning import BasePositioning
 from ender.game_plan.action.positioning import Positioning
 from ender.game_plan.action.random_positioning import RandomPositioning
 from sc2.ids.unit_typeid import UnitTypeId

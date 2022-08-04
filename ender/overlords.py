@@ -8,7 +8,6 @@ from loguru import logger
 from ender.common import Common
 from ender.job import Job
 from ender.utils.point_utils import distance
-from ender.utils.unit_utils import range_vs
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -25,7 +24,6 @@ class Overlords(Common):
     readoverlord = False
     scoutlords = {}  # numbering the overlords with fixed routes
     overlordplan = set()  # for scoutlords
-    tension_points = set()
     trips = set()  # of (passenger.tag, overlordtransport.tag)    Both unique
     trip_goal = {}  # per trip: a goal
     trip_phase = {}  # per trip: none -> destined -> phoned -> flying -> falling
@@ -150,29 +148,14 @@ class Overlords(Common):
             for ovi in self.units(UnitTypeId.OVERLORD):
                 if self.job_of_unit(ovi) in {Job.ROAMER, Job.HANGER}:
                     enemies = self.enemy_units.filter(lambda ene: distance(ene.position, ovi.position) < 13).filter(
-                        lambda ene: range_vs(ene, ovi) > 0
+                        lambda ene: ene.can_attack_air
                     )
                     enemies |= self.enemy_structures.filter(
                         lambda ene: distance(ene.position, ovi.position) < 13
-                    ).filter(lambda ene: range_vs(ene, ovi) > 0)
-                    rangedist = 99999
-                    for ene in enemies:
-                        rd = distance(ovi.position, ene.position) - range_vs(ene, ovi)
-                        if rd < rangedist:
-                            rangedist = rd
-                            monster = ene
-                    if rangedist < 99999:
-                        if rangedist != 0:
-                            self.tension_point_add(ovi.position)
-                            goal = ovi.position.towards(monster.position, -1)
-                            ovi.move(goal)
-
-    def tension_point_add(self, point: Point2):
-        dist = 99999
-        for apoint in self.tension_points:
-            dist = min(distance(point, apoint), dist)
-        if dist > 3:
-            self.tension_points.add(point)  # not yet used
+                    ).filter(lambda ene: ene.can_attack_air)
+                    if enemies:
+                        goal = ovi.position.towards(enemies.center, -ovi.sight_range)
+                        ovi.move(goal)
 
     def in_trips_passenger(self, tag) -> bool:
         for (pastag, lortag) in self.trips:

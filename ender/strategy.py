@@ -5,17 +5,15 @@ from enum import Enum, auto
 
 from loguru import logger
 
-from ender.game_plan.action.base_positioning import BasePositioning
-from ender.game_plan.action.extractor_positioning import ExtractorPositioning
-from ender.game_plan.action.parallel_action import ParallelAction
-from ender.game_plan.action.place_building import PlaceBuilding
-from ender.game_plan.action.overlord_scout_base import OverlordScoutBase
-from ender.game_plan.condition.enemy_mined_gas import EnemyMinedGas
-from ender.game_plan.game_plan import GamePlan
 from ender.game_plan.action.action_sequence import ActionSequence
+from ender.game_plan.action.base_positioning import BasePositioning
 from ender.game_plan.action.conditional_action import ConditionalAction
+from ender.game_plan.action.extractor_positioning import ExtractorPositioning
 from ender.game_plan.action.make_unit import MakeUnit
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
+from ender.game_plan.action.overlord_scout_base import OverlordScoutBase
+from ender.game_plan.action.parallel_action import ParallelAction
+from ender.game_plan.action.place_building import PlaceBuilding
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
 from ender.game_plan.action.wait_until import WaitUntil
 from ender.game_plan.action.worker_scout_action import WorkerScoutAction
@@ -25,7 +23,9 @@ from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.game_plan.condition.remember_condition import RememberCondition
+from ender.game_plan.game_plan import GamePlan
 from ender.tech import Tech
+from ender.utils.point_utils import closest_in_path
 from ender.utils.structure_utils import gas_extraction_structures
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -82,7 +82,7 @@ class Strategy(Tech):
     auto_upgrade = True
     auto_homequeen = True
 
-    def __step0(self):
+    async def __step0(self):
         #
         self.new_plan = GamePlan(
             [
@@ -103,6 +103,19 @@ class Strategy(Tech):
                         [WaitUntil(200), PlaceBuildingPerBase(UnitTypeId.SPORECRAWLER, MineralLinePositioning())]
                     ),
                 ),
+                ActionSequence(
+                    [
+                        WaitUntil(180),
+                        ParallelAction(
+                            [
+                                OverlordScoutBase(self.enemymain),
+                                OverlordScoutBase(
+                                    await closest_in_path(self, self.expansion_locations_list, self.enemymain, 35)
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
                 ConditionalAction(
                     RememberCondition(
                         All([BeforeTime(65), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])
@@ -113,12 +126,6 @@ class Strategy(Tech):
                             PlaceBuilding(UnitTypeId.EXTRACTOR, ExtractorPositioning(), 2),
                             PlaceBuilding(UnitTypeId.LAIR, BasePositioning()),
                             WaitUntil(180),
-                            ParallelAction(
-                                [
-                                    OverlordScoutBase(self.enemymain),
-                                    ConditionalAction(EnemyMinedGas(200), PlaceBuilding(UnitTypeId.SPIRE, amount=1)),
-                                ]
-                            ),
                         ]
                     ),
                 ),
@@ -161,7 +168,7 @@ class Strategy(Tech):
     async def on_step(self, iteration: int):
         await Tech.on_step(self, iteration)
         if not self.__did_step0:
-            self.__step0()
+            await self.__step0()
             logger.info("Tag:" + self.gameplan.name)
             await self.client.chat_send("Tag:" + self.gameplan.name, team_only=False)
             self.__did_step0 = True
