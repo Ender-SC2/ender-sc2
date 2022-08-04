@@ -33,4 +33,9 @@ def distance(point1: Point2, point2: Point2) -> float:
 
 def center(point_list: list[Point2]) -> Point2:
     amount = len(point_list)
-    return Point2((sum(point.x for point in point_list) / amount, sum(point.y for point in point_list) / amount,))
+    return Point2(
+        (
+            sum(point.x for point in point_list) / amount,
+            sum(point.y for point in point_list) / amount,
+        )
+    )

@@ -139,9 +139,13 @@ class Strategy(Tech):
                     All([EnemyStructure(UnitTypeId.GATEWAY, 4), No(HaveStructure(UnitTypeId.ROACHWARREN))]),
                     PlaceBuilding(UnitTypeId.ROACHWARREN),
                 ),
-                ConditionalAction(EnemyUnit(UnitTypeId.ZEALOT), MakeUnit(UnitTypeId.ZEALOT, UnitTypeId.ROACH, 0.6),),
                 ConditionalAction(
-                    EnemyUnit(UnitTypeId.STALKER), MakeUnit(UnitTypeId.STALKER, UnitTypeId.ZERGLING, 6),
+                    EnemyUnit(UnitTypeId.ZEALOT),
+                    MakeUnit(UnitTypeId.ZEALOT, UnitTypeId.ROACH, 0.6),
+                ),
+                ConditionalAction(
+                    EnemyUnit(UnitTypeId.STALKER),
+                    MakeUnit(UnitTypeId.STALKER, UnitTypeId.ZERGLING, 6),
                 ),
                 ConditionalAction(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]
