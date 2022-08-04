@@ -5,17 +5,15 @@ from enum import Enum, auto
 
 from loguru import logger
 
-from ender.game_plan.action.base_positioning import BasePositioning
-from ender.game_plan.action.extractor_positioning import ExtractorPositioning
-from ender.game_plan.action.parallel_action import ParallelAction
-from ender.game_plan.action.place_building import PlaceBuilding
-from ender.game_plan.action.overlord_scout_base import OverlordScoutBase
-from ender.game_plan.condition.enemy_mined_gas import EnemyMinedGas
-from ender.game_plan.game_plan import GamePlan
 from ender.game_plan.action.action_sequence import ActionSequence
+from ender.game_plan.action.base_positioning import BasePositioning
 from ender.game_plan.action.conditional_action import ConditionalAction
+from ender.game_plan.action.extractor_positioning import ExtractorPositioning
 from ender.game_plan.action.make_unit import MakeUnit
 from ender.game_plan.action.mineral_building_positioning import MineralLinePositioning
+from ender.game_plan.action.overlord_scout_base import OverlordScoutBase
+from ender.game_plan.action.parallel_action import ParallelAction
+from ender.game_plan.action.place_building import PlaceBuilding
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
 from ender.game_plan.action.wait_until import WaitUntil
 from ender.game_plan.action.worker_scout_action import WorkerScoutAction
@@ -25,6 +23,7 @@ from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.game_plan.condition.remember_condition import RememberCondition
+from ender.game_plan.game_plan import GamePlan
 from ender.tech import Tech
 from ender.utils.point_utils import closest_in_path
 from ender.utils.structure_utils import gas_extraction_structures
@@ -110,7 +109,9 @@ class Strategy(Tech):
                         ParallelAction(
                             [
                                 OverlordScoutBase(self.enemymain),
-                                OverlordScoutBase(await closest_in_path(self, self.expansion_locations_list, self.enemymain, 35)),
+                                OverlordScoutBase(
+                                    await closest_in_path(self, self.expansion_locations_list, self.enemymain, 35)
+                                ),
                             ]
                         ),
                     ]
@@ -138,13 +139,9 @@ class Strategy(Tech):
                     All([EnemyStructure(UnitTypeId.GATEWAY, 4), No(HaveStructure(UnitTypeId.ROACHWARREN))]),
                     PlaceBuilding(UnitTypeId.ROACHWARREN),
                 ),
+                ConditionalAction(EnemyUnit(UnitTypeId.ZEALOT), MakeUnit(UnitTypeId.ZEALOT, UnitTypeId.ROACH, 0.6),),
                 ConditionalAction(
-                    EnemyUnit(UnitTypeId.ZEALOT),
-                    MakeUnit(UnitTypeId.ZEALOT, UnitTypeId.ROACH, 0.6),
-                ),
-                ConditionalAction(
-                    EnemyUnit(UnitTypeId.STALKER),
-                    MakeUnit(UnitTypeId.STALKER, UnitTypeId.ZERGLING, 6),
+                    EnemyUnit(UnitTypeId.STALKER), MakeUnit(UnitTypeId.STALKER, UnitTypeId.ZERGLING, 6),
                 ),
                 ConditionalAction(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]

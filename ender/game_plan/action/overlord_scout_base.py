@@ -46,8 +46,11 @@ class OverlordScoutBase(IAction):
         return self.state == ScoutState.DONE
 
     def start(self):
-        overlord = self.common.units.of_type(UnitTypeId.OVERLORD).filter(
-            lambda unit: self.common.job_of_unit(unit) == Job.HANGER).closest_to(self.position)
+        overlord = (
+            self.common.units.of_type(UnitTypeId.OVERLORD)
+            .filter(lambda unit: self.common.job_of_unit(unit) == Job.HANGER)
+            .closest_to(self.position)
+        )
         self.overlord_tag = overlord.tag
         self.common.set_job_of_unittag(self.overlord_tag, Job.SACRIFICIAL_SCOUT)
         self.state = ScoutState.SCOUT
