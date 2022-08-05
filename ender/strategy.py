@@ -108,7 +108,13 @@ class Strategy(Tech):
                     [
                         # If we detect gas completed before 71 seconds, we should be commanding the overlords to move in at 2:45
                         # If they built gas after 50 seconds then we should command overlords in at 3:15
-                        ConditionalAction(RememberCondition(EnemyStructureReadyBefore(unit_type=gas_extraction_structures, amount=1, time_limit=71)), WaitUntil(165), WaitUntil(195)),
+                        ConditionalAction(
+                            RememberCondition(
+                                EnemyStructureReadyBefore(unit_type=gas_extraction_structures, amount=1, time_limit=71)
+                            ),
+                            WaitUntil(165),
+                            WaitUntil(195),
+                        ),
                         ParallelAction(
                             [
                                 OverlordScoutBase(self.enemymain),
