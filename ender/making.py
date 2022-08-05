@@ -75,7 +75,7 @@ class Making(Map_if, Resources, Strategy):
 
     def __step0(self):
         #
-        self.importance["overlord"] = 100
+        self.importance["overlord"] = 2100 # above emergency
         self.importance["drone"] = 90
         self.importance["queen"] = 80
         self.importance["hive_building"] = 70
