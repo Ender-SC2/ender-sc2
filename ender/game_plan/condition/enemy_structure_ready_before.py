@@ -32,11 +32,9 @@ class EnemyStructureReadyBefore(ICondition):
     def check(self) -> bool:
         if self.bot_ai.time > self.time_limit:
             return False
-        enemy_structures = self.bot_ai.enemy_structures.of_type(self.unit_type)
-        for structure in enemy_structures:
-            ready_at = self.bot_ai.time + structure._type_data.cost.time / structure.build_progress
-            logger.info(f"R: {structure.is_ready} RA: {ready_at} TL: {self.time_limit}")
+        enemy_units = self.bot_ai.enemy_structures.of_type(self.unit_type).filter(
+            lambda structure: structure.is_ready or self.bot_ai.time +
+                              structure._type_data.cost.time * (1 - structure.build_progress) < self.time_limit)
         if self.position:
-            enemy_structures = enemy_structures.closer_than(self.distance, self.position)
-        logger.info(f"Found {enemy_structures.amount} units")
-        return enemy_structures.amount >= self.amount
+            enemy_units = enemy_units.closer_than(self.distance, self.position)
+        return enemy_units.amount >= self.amount
