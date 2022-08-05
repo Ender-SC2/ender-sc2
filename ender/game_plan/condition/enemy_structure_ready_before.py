@@ -33,8 +33,9 @@ class EnemyStructureReadyBefore(ICondition):
         if self.bot_ai.time > self.time_limit:
             return False
         enemy_units = self.bot_ai.enemy_structures.of_type(self.unit_type).filter(
-            lambda structure: structure.is_ready or self.bot_ai.time +
-                              structure._type_data.cost.time * (1 - structure.build_progress) < self.time_limit)
+            lambda structure: structure.is_ready
+            or self.bot_ai.time + structure._type_data.cost.time * (1 - structure.build_progress) < self.time_limit
+        )
         if self.position:
             enemy_units = enemy_units.closer_than(self.distance, self.position)
         return enemy_units.amount >= self.amount
