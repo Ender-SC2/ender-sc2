@@ -79,6 +79,7 @@ class Attack(Map_if, Tech):
     may_spawn = {}  # timer for swarmhosts
     sh_forward = {}  # direction for swarmhosts
     sh_goal = None  # direction for swarmhosts
+    sh_indiv_goal = {}  # should follow sh_goal
     dried = set()  # expo with neither minerals nor gas
     fresh = set()  # expo with minerals or gas
     behaviors: List[IBehavior] = [
@@ -616,15 +617,24 @@ class Attack(Map_if, Tech):
                         self.may_spawn[tag] = 0
                     if tag not in self.sh_forward:
                         self.sh_forward[tag] = False
+                    if tag not in self.sh_indiv_goal:
+                        self.sh_indiv_goal[tag] = self.ourmain
                     #
                     if self.frame < self.may_spawn[tag] - 22 * self.seconds:
                         if self.sh_forward[tag]:
                             self.sh_forward[tag] = False
                             sh.move(self.hospital)
                     else:
-                        if not self.sh_forward[tag]:
-                            goal = self.sh_goal.towards(self.ourmain, 15)
+                        # go forward
+                        if self.sh_forward[tag]:
+                            if self.sh_indiv_goal[tag] != self.sh_goal:
+                                self.sh_indiv_goal[tag] = self.sh_goal
+                                goal = self.sh_goal.towards(self.ourmain, 15)
+                                sh.move(goal)
+                        else:
                             self.sh_forward[tag] = True
+                            self.sh_indiv_goal[tag] = self.sh_goal
+                            goal = self.sh_goal.towards(self.ourmain, 15)
                             sh.move(goal)
             for sh in self.units(UnitTypeId.SWARMHOSTMP) | self.units(UnitTypeId.SWARMHOSTBURROWEDMP):
                 tag = sh.tag
@@ -636,11 +646,17 @@ class Attack(Map_if, Tech):
                     #
                     if self.frame >= self.may_spawn[tag]:
                         locusts = False
-                        if len(sh.orders) == 0:
+                        if len(sh.orders) == 0:  # goal reached
                             locusts = True
-                        if tag in self.last_health:
+                        if tag in self.last_health:  # being shot
                             if sh.health < self.last_health[tag]:
                                 locusts = True
+                        if self.enemy_units:
+                            enemies = self.enemy_units.filter(lambda ene: ene.can_attack_ground)
+                            if enemies:
+                                enemy = enemies.closest_to(sh)
+                                if distance(sh.position, enemy.position) < 8:
+                                    locusts = True
                         if locusts:
                             sh(spawn, self.sh_goal)
                             self.may_spawn[tag] = self.frame + 43 * self.seconds + 20
