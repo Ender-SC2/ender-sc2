@@ -13,12 +13,12 @@ class EnemyStructureReadyBefore(ICondition):
     bot_ai: BotAI
 
     def __init__(
-            self,
-            unit_type: Union[UnitTypeId, Iterable[UnitTypeId]],
-            time_limit: float,
-            amount: int = 1,
-            position: Optional[Point2] = None,
-            distance: float = 11,
+        self,
+        unit_type: Union[UnitTypeId, Iterable[UnitTypeId]],
+        time_limit: float,
+        amount: int = 1,
+        position: Optional[Point2] = None,
+        distance: float = 11,
     ):
         self.unit_type = convert_into_iterable(unit_type)
         self.time_limit = time_limit
