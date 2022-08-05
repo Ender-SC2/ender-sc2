@@ -405,15 +405,6 @@ class Common(BotAI, IUnitInterface):
             # lairtech
             self.lairtech = len(self.structures(UnitTypeId.LAIR).ready) + len(self.structures(UnitTypeId.HIVE)) > 0
 
-    def range_vs(self, unit: Unit, target: Unit) -> float:
-        ground_range = 0
-        air_range = 0
-        if unit.can_attack_ground and not target.is_flying:
-            ground_range = unit.ground_range
-        elif unit.can_attack_air and (target.is_flying or target.type_id == UnitTypeId.COLOSSUS):
-            air_range = unit.air_range
-        return max(ground_range, air_range)
-
     def function_listens(self, name, delay) -> bool:
         # forces 'delay' frames between function calls.
         # init

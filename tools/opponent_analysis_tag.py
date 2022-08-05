@@ -83,9 +83,9 @@ for tag in tags:
         stat = matchup_stats[key]
         print(f"| {key:<18} | {value:<3} | {stat['wins']:<4} | {stat['losses']:<6} | {stat['ties']:<4} |")
     print("")
-    print(f"|{' Map stats ':<20}|{' Wins ':<6}|{' Losses ':<8}|{' Ties ':<6}| {' Win% ':<7}")
+    print(f"|{' Map stats ':<20}|{' Wins ':<6}|{' Losses ':<8}|{' Ties ':<6}| {' Win% ':<7} |")
     print(f"|{'-' * 20}|{'-' * 6}|{'-' * 8}|{'-' * 6}|{'-' * 7}|")
     for key, value in map_stats.items():
         print(
-            f"| {key:<18} | {value['wins']:<4} | {value['losses']:<6} | {value['ties']:<4} | {100 * value['wins'] / value['games']:.2f}"
+            f"| {key:<18} | {value['wins']:<4} | {value['losses']:<6} | {value['ties']:<4} | {100 * value['wins'] / value['games']:.2f} |"
         )

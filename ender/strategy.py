@@ -21,6 +21,7 @@ from ender.game_plan.condition import HaveUnit, All, No, HaveStructure
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
+from ender.game_plan.condition.enemy_structure_ready_before import EnemyStructureReadyBefore
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.game_plan.condition.remember_condition import RememberCondition
 from ender.game_plan.game_plan import GamePlan
@@ -105,7 +106,9 @@ class Strategy(Tech):
                 ),
                 ActionSequence(
                     [
-                        WaitUntil(180),
+                        # If we detect gas completed before 71 seconds, we should be commanding the overlords to move in at 2:45
+                        # If they built gas after 50 seconds then we should command overlords in at 3:15
+                        ConditionalAction(RememberCondition(EnemyStructureReadyBefore(unit_type=gas_extraction_structures, amount=1, time_limit=71)), WaitUntil(165), WaitUntil(195)),
                         ParallelAction(
                             [
                                 OverlordScoutBase(self.enemymain),
