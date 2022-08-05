@@ -79,7 +79,7 @@ class Attack(Map_if, Tech):
     may_spawn = {}  # timer for swarmhosts
     sh_forward = {}  # direction for swarmhosts
     sh_goal = None  # direction for swarmhosts
-    sh_indiv_goal = {} # should follow sh_goal
+    sh_indiv_goal = {}  # should follow sh_goal
     dried = set()  # expo with neither minerals nor gas
     fresh = set()  # expo with minerals or gas
     behaviors: List[IBehavior] = [
@@ -646,9 +646,9 @@ class Attack(Map_if, Tech):
                     #
                     if self.frame >= self.may_spawn[tag]:
                         locusts = False
-                        if len(sh.orders) == 0: # goal reached
+                        if len(sh.orders) == 0:  # goal reached
                             locusts = True
-                        if tag in self.last_health: # being shot
+                        if tag in self.last_health:  # being shot
                             if sh.health < self.last_health[tag]:
                                 locusts = True
                         if self.enemy_units:
