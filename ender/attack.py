@@ -1127,11 +1127,11 @@ class Attack(Map_if, Tech):
                         for effectpos in effect.positions:
                             if distance(effectpos, pos) < 13.5:  # scanrange + 0.5
                                 burrow = False
-                # max 2 within radius 7
+                # max 2 within radius 9
                 amclose = 0
                 for atag in self.burbanes:
                     (apos, aframe) = self.burbanes[atag]
-                    if distance(apos, pos) < 7:
+                    if distance(apos, pos) < 9:
                         amclose += 1
                 if amclose >= 2:
                     burrow = False
