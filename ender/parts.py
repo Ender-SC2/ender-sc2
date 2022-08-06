@@ -116,7 +116,7 @@ class Parts(Common):
         return mapfamily
 
     async def lingscout(self):
-        if self.function_listens("lingscout", 10): # so no code needed to prevent double orders
+        if self.function_listens("lingscout", 10):  # so no code needed to prevent double orders
             startminutes = 3.3
             endminutes = 9
             interminutes = 0.6
@@ -130,7 +130,7 @@ class Parts(Common):
                         if unt.tag == self.lingscout_tag:
                             if self.job_of_unit(unt) == Job.SCOUT:
                                 dist = distance(unt.position, self.scout_nextgoal)
-                                idling = (len(unt.orders) == 0)
+                                idling = len(unt.orders) == 0
                                 if (dist < 2) or idling:
                                     scout = unt
                 if scout:
@@ -138,7 +138,7 @@ class Parts(Common):
                         goal = self.scoutplan.pop(0)
                         scout.move(goal)
                         self.scout_nextgoal = goal
-                    else: # finished
+                    else:  # finished
                         self.set_job_of_unit(scout, Job.UNCLEAR)
                         self.lingscout_tag = 0
             #
@@ -149,7 +149,7 @@ class Parts(Common):
             if self.nextscout < self.frame < self.nextscout + self.seconds:
                 self.nextscout += interminutes * self.minutes
                 # is there a scout?
-                scout = None               
+                scout = None
                 for unittype in [UnitTypeId.ZERGLING, UnitTypeId.DRONE]:
                     for unt in self.units(unittype):
                         if unt.tag == self.lingscout_tag:
@@ -178,7 +178,7 @@ class Parts(Common):
         self.scoutplan = []
         toscoutpos = set()
         for expo in self.freeexpos:
-            toscoutpos.add(expo.towards(self.map_center, 6)) # Will approach 6+2
+            toscoutpos.add(expo.towards(self.map_center, 6))  # Will approach 6+2
         nowpos = startpos
         while len(toscoutpos) > 0:
             bestdist = 99999
@@ -190,10 +190,3 @@ class Parts(Common):
             toscoutpos.remove(bestpos)
             self.scoutplan.append(bestpos)
             nowpos = bestpos
-
-
-
-                
-                
-
-
