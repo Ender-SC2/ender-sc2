@@ -21,7 +21,6 @@ from ender.game_plan.condition import HaveUnit, All, No, HaveStructure
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
-from ender.game_plan.condition.enemy_structure_ready_before import EnemyStructureReadyBefore
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.game_plan.condition.remember_condition import RememberCondition
 from ender.game_plan.game_plan import GamePlan
@@ -29,6 +28,7 @@ from ender.tech import Tech
 from ender.utils.point_utils import closest_in_path
 from ender.utils.structure_utils import gas_extraction_structures
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.data import Race
 
 
 class Strategy(Tech):
@@ -36,7 +36,7 @@ class Strategy(Tech):
     needhatches = {}  # opening delay until a certain amount of hatches
     building_order = []  # opening buildings order explicit
     structype_order = []
-    greed_wish = False
+    greed_wish = False # greed opening or shifted
 
     class Gameplan(Enum):
         TWELVEPOOL = auto()
@@ -74,7 +74,7 @@ class Strategy(Tech):
         Gameplan.GREED,
     }
     gameplan = Gameplan.ENDGAME
-    followup = Gameplan.ENDGAME
+    followup = {} # per gameplan the next gameplan
     last_wave_count = 0
     zero_plan = {}  # 0 for every unit, structure, or upgrade
     result_plan = {}
@@ -106,15 +106,7 @@ class Strategy(Tech):
                 ),
                 ActionSequence(
                     [
-                        # If we detect gas completed before 71 seconds, we should be commanding the overlords to move in at 2:45
-                        # If they built gas after 50 seconds then we should command overlords in at 3:15
-                        ConditionalAction(
-                            RememberCondition(
-                                EnemyStructureReadyBefore(unit_type=gas_extraction_structures, amount=1, time_limit=71)
-                            ),
-                            WaitUntil(165),
-                            WaitUntil(195),
-                        ),
+                        WaitUntil(180),
                         ParallelAction(
                             [
                                 OverlordScoutBase(self.enemymain),
@@ -161,6 +153,8 @@ class Strategy(Tech):
         )
         self.new_plan.setup(self)
         #
+        self.init_followup()
+        #
         self.init_zero_plan()
         #
         self.standard_structype_order()
@@ -168,6 +162,8 @@ class Strategy(Tech):
         choice = random.choice(list(self.Gameplan))
         while choice not in self.openingplans:
             choice = random.choice(list(self.Gameplan))
+        if random.random() < 0.75:
+            choice = self.Gameplan.GREED
         #
         # here you can fix a choice to debug an opening
         choice = self.Gameplan.GREED
@@ -186,33 +182,31 @@ class Strategy(Tech):
         #
         if self.wave_count != self.last_wave_count:
             self.last_wave_count = self.wave_count
-            # change strategy to followup
-            plan = self.followup
-            # alternatives
-            if plan == self.Gameplan.ENDGAME:
-                if self.minerals > 3000:
-                    if self.gameplan != self.Gameplan.LINGWAVE:
-                        plan = self.Gameplan.LINGWAVE
-                if (self.minerals > 4500) and (self.vespene >= 3000):
-                    if len(self.structures(UnitTypeId.ULTRALISKCAVERN).ready) > 0:
-                        if self.gameplan != self.Gameplan.ULTRAWAVE:
-                            plan = self.Gameplan.ULTRAWAVE
+            self.greed_wish = False
+            # 
+            plan = self.get_followup(self.gameplan)
+            self.set_gameplan(plan)
             # skip on goal reached
-            if plan == self.Gameplan.TO_LAIR:
-                if len(self.structures(UnitTypeId.LAIR)) > 0:
-                    plan = self.Gameplan.TO_SPIRE
-            if plan == self.Gameplan.FIVEBASE:
-                if self.nbases >= 5:
-                    plan = self.Gameplan.TO_HIVE
-            if plan == self.Gameplan.TO_HIVE:
-                if len(self.structures(UnitTypeId.HIVE)) > 0:
-                    plan = self.Gameplan.ENDGAME
-            if plan:
-                logger.info("Transitioning to " + plan.name)
-                await self.client.chat_send("Transitioning to " + plan.name, team_only=False)
-                self.set_gameplan(plan)
-            else:
-                logger.warning("Fail to find a plan")
+            if plan not in [self.Gameplan.SWARM,
+                            self.Gameplan.ENDGAME,
+                            self.Gameplan.LINGBANEMUTA,
+                            self.Gameplan.LINGWAVE,
+                            self.Gameplan.MUTAS,
+                            self.Gameplan.ULTRAWAVE,
+                            ]:
+                goalreached = True
+                while goalreached:
+                    for spire in self.result_plan:
+                        if self.result_plan[spire] > 0:
+                            if spire in self.all_structuretypes:
+                                if len(self.structures(spire).ready) < self.result_plan[spire]:
+                                    goalreached = False
+                    if goalreached:
+                        logger.info("(Skipping " + plan.name + " because its structures exist.)")
+                        plan = self.get_followup(self.gameplan)
+                        self.set_gameplan(plan)
+            logger.info("Transitioning to " + plan.name)
+            await self.client.chat_send("Transitioning to " + plan.name, team_only=False)
         #
         await self.new_plan.execute()
         #
@@ -228,51 +222,39 @@ class Strategy(Tech):
             self.structures_at_hatches = 1
             self.result_plan[UnitTypeId.HATCHERY] = 1
             self.result_plan[UnitTypeId.ZERGLING] = 12
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 12, UnitTypeId.SPAWNINGPOOL, 1))
-            self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE_NOGAS:
             self.structures_at_hatches = 1
             self.result_plan[UnitTypeId.HATCHERY] = 2
             self.result_plan[UnitTypeId.ZERGLING] = 12
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 16, UnitTypeId.SPAWNINGPOOL, 1))
             self.opening.append(("supply", 20, UnitTypeId.HATCHERY, 2))
-            self.followup = self.Gameplan.TWOBASE
         elif gameplan == self.Gameplan.ONEBASE:
             self.structures_at_hatches = 1
             self.result_plan[UnitTypeId.HATCHERY] = 2
             self.result_plan[UnitTypeId.EXTRACTOR] = 2
             self.result_plan[UnitTypeId.ZERGLING] = 2
             self.result_plan[UnitTypeId.ROACH] = 10
-            self.result_plan[UnitTypeId.DRONE] = 16 * 1 + 3 * self.result_plan[UnitTypeId.EXTRACTOR] + 1
             self.opening.append(("supply", 22, UnitTypeId.HATCHERY, 2))
-            self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE_NOGAS:
             self.structures_at_hatches = 2
             self.result_plan[UnitTypeId.HATCHERY] = 3
             self.result_plan[UnitTypeId.EXTRACTOR] = 0
             self.result_plan[UnitTypeId.ZERGLING] = 45
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 25, UnitTypeId.HATCHERY, 3))
-            self.followup = self.Gameplan.THREEBASE
         elif gameplan == self.Gameplan.TWOBASE:
             self.structures_at_hatches = 2
             self.result_plan[UnitTypeId.HATCHERY] = 3
             self.result_plan[UnitTypeId.EXTRACTOR] = 3
             self.result_plan[UnitTypeId.ZERGLING] = 12
             self.result_plan[UnitTypeId.ROACH] = 16
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 25, UnitTypeId.HATCHERY, 3))
-            self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.THREEBASE_NOGAS:
             self.structures_at_hatches = 3
             self.result_plan[UnitTypeId.HATCHERY] = 4
             self.result_plan[UnitTypeId.EXTRACTOR] = 0
             self.result_plan[UnitTypeId.ZERGLING] = 65
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 35, UnitTypeId.HATCHERY, 4))
-            self.followup = self.Gameplan.FOURBASE
         elif gameplan == self.Gameplan.THREEBASE:
             self.structures_at_hatches = 3
             self.result_plan[UnitTypeId.HATCHERY] = 4
@@ -280,18 +262,14 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ZERGLING] = 16
             self.result_plan[UnitTypeId.BANELING] = 10
             self.result_plan[UnitTypeId.ROACH] = 20
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 75, UnitTypeId.HATCHERY, 4))
-            self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.RAVATHREE:
             self.structures_at_hatches = 3
             self.result_plan[UnitTypeId.HATCHERY] = 4
             self.result_plan[UnitTypeId.EXTRACTOR] = 5
             self.result_plan[UnitTypeId.ZERGLING] = 5
             self.result_plan[UnitTypeId.RAVAGER] = 16
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.opening.append(("supply", 75, UnitTypeId.HATCHERY, 4))
-            self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.GREED:
             self.greed_wish = True  # to allow react away and back
             self.structures_at_hatches = 5
@@ -301,7 +279,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 10
             self.result_plan[UnitTypeId.ROACH] = 20
             self.result_plan[UnitTypeId.RAVAGER] = 20
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
             self.building_order = [
                 UnitTypeId.HATCHERY,
                 UnitTypeId.HATCHERY,
@@ -326,7 +303,6 @@ class Strategy(Tech):
                 UnitTypeId.EXTRACTOR,
             ]
             self.structype_order = []
-            self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.FOURBASE:
             # wants to reach max
             self.structures_at_hatches = 4
@@ -336,8 +312,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 20
             self.result_plan[UnitTypeId.ROACH] = 30
             self.result_plan[UnitTypeId.RAVAGER] = 10
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.TO_LAIR
         elif gameplan == self.Gameplan.TO_LAIR:
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 4
@@ -346,12 +320,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 10
             self.result_plan[UnitTypeId.ROACH] = 20
             self.result_plan[UnitTypeId.RAVAGER] = 10
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.TO_SPIRE
-            if random.random() * 2 < 1:
-                self.followup = self.Gameplan.FIVEBASE
-            if random.random() * 3 < 1:
-                self.followup = self.Gameplan.SWARM
         elif gameplan == self.Gameplan.SWARM:
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 5
@@ -359,8 +327,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.SWARMHOSTMP] = 20
             self.result_plan[UnitTypeId.BANELING] = 2
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.TO_SPIRE:
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 5
@@ -372,10 +338,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
             self.iffadd_result(UnitTypeId.LURKERDENMP, UnitTypeId.LURKER, 2)
             self.result_plan[UnitTypeId.SPIRE] = 1
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.MUTAS
-            if random.random() * 2 < 1:
-                self.followup = self.Gameplan.LINGBANEMUTA
         elif gameplan == self.Gameplan.MUTAS:
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 4
@@ -384,8 +346,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.MUTALISK] = 20
             self.result_plan[UnitTypeId.BANELING] = 2
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.LINGBANEMUTA:
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 4
@@ -394,8 +354,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 20
             self.result_plan[UnitTypeId.MUTALISK] = 20
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.FIVEBASE:
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 5
@@ -406,8 +364,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.RAVAGER] = 5
             self.result_plan[UnitTypeId.HYDRALISK] = 20
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.TO_HIVE
         elif gameplan == self.Gameplan.TO_HIVE:
             self.structures_at_hatches = 6
             self.result_plan[UnitTypeId.HATCHERY] = 6
@@ -420,8 +376,6 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HYDRALISK] = 16
             self.result_plan[UnitTypeId.INFESTOR] = 3
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.ENDGAME:
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
@@ -434,23 +388,19 @@ class Strategy(Tech):
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.CORRUPTOR, 14)
             self.iffadd_result(UnitTypeId.GREATERSPIRE, UnitTypeId.BROODLORD, 8)
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.VIPER, 3)
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.ENDGAME
         elif gameplan == self.Gameplan.LINGWAVE:
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
-            self.result_plan[UnitTypeId.ZERGLING] = 2 * (self.supplycap_army - self.army_supply_used)
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.ENDGAME
+            self.result_plan[UnitTypeId.ZERGLING] = \
+                2 * (self.supplycap_army - self.army_supply_used) + len(self.units(UnitTypeId.ZERGLING))
         elif gameplan == self.Gameplan.ULTRAWAVE:
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.result_plan[UnitTypeId.ULTRALISK] = 10
             self.result_plan[UnitTypeId.MUTALISK] = 15
-            self.result_plan[UnitTypeId.DRONE] = self.droneformula()
-            self.followup = self.Gameplan.ENDGAME
+        self.result_plan[UnitTypeId.DRONE] = self.droneformula()
         self.add_morphers()
         self.tech_close()
         # debug
@@ -568,8 +518,11 @@ class Strategy(Tech):
             if self.nenemybases == 1:
                 if self.frame > 2.5 * self.minutes:
                     self.agression = True
+            threebasetime = 4.5
+            if self.enemy_race == Race.Zerg:
+                threebasetime = 3.5
             if self.nenemybases == 2:
-                if self.frame > 4.5 * self.minutes:
+                if self.frame > threebasetime * self.minutes:
                     self.agression = True
             ene_worth = 0
             for tag in self.enemy_unit_mem:
@@ -590,44 +543,85 @@ class Strategy(Tech):
             #
 
     async def react(self):
-        if self.function_listens("react", 50):
+        if self.function_listens("react", 30):
             if self.greed_wish and (self.gameplan in self.openingplans):
-                if self.gameplan == self.Gameplan.GREED:
-                    if self.agression:
-                        # my started bases
-                        mybases = 0
-                        for halltype in self.all_halltypes:
-                            for stru in self.structures(halltype):
-                                mybases += 1
-                        mydronedbases = len(self.units(UnitTypeId.DRONE)) // 14
-                        mybases = min(mydronedbases, mybases)
-                        plan = None
-                        # choose plan
-                        if self.vespene == 0:
-                            if mybases == 1:
-                                plan = self.Gameplan.ONEBASE_NOGAS
-                            elif mybases == 2:
-                                plan = self.Gameplan.TWOBASE_NOGAS
-                            elif mybases >= 3:
-                                plan = self.Gameplan.THREEBASE_NOGAS
-                        else:
-                            if mybases == 1:
-                                plan = self.Gameplan.ONEBASE
-                            elif mybases == 2:
-                                plan = self.Gameplan.TWOBASE
-                            elif mybases == 3:
-                                plan = self.Gameplan.THREEBASE
-                            elif mybases >= 4:
-                                plan = self.Gameplan.FOURBASE
-                        if plan:
-                            logger.info("Shifting to " + plan.name)
-                            await self.client.chat_send("Shifting to " + plan.name, team_only=False)
-                            self.set_gameplan(plan)
-                        else:
-                            logger.warning(f"Fail to find a downgrade plan: Bases ({mybases})")
-                else:  # non greed gameplan
-                    if not self.agression:
-                        plan = self.Gameplan.GREED
+                # my started bases
+                mybases = 0
+                for halltype in self.all_halltypes:
+                    for stru in self.structures(halltype):
+                        mybases += 1
+                mydronedbases = len(self.units(UnitTypeId.DRONE)) // 14
+                mybases = min(mydronedbases, mybases)
+                #
+                plan = None
+                if self.agression:
+                    if self.vespene == 0:
+                        if mybases == 1:
+                            plan = self.Gameplan.ONEBASE_NOGAS
+                        elif mybases == 2:
+                            plan = self.Gameplan.TWOBASE_NOGAS
+                        elif mybases >= 3:
+                            plan = self.Gameplan.THREEBASE_NOGAS
+                    else:
+                        if mybases == 1:
+                            plan = self.Gameplan.ONEBASE
+                        elif mybases == 2:
+                            plan = self.Gameplan.TWOBASE
+                        elif mybases == 3:
+                            plan = self.Gameplan.THREEBASE
+                        elif mybases >= 4:
+                            plan = self.Gameplan.FOURBASE
+                else:  # no agression
+                    plan = self.Gameplan.GREED
+                if plan:
+                    if plan != self.gameplan:
                         logger.info("Shifting to " + plan.name)
                         await self.client.chat_send("Shifting to " + plan.name, team_only=False)
                         self.set_gameplan(plan)
+
+    def fol(self, vanplan, naarplan):
+        self.followup[vanplan] = naarplan
+        
+    def init_followup(self):
+        self.fol(self.Gameplan.TWELVEPOOL, self.Gameplan.TWOBASE)
+        self.fol(self.Gameplan.ONEBASE_NOGAS, self.Gameplan.TWOBASE)
+        self.fol(self.Gameplan.ONEBASE, self.Gameplan.THREEBASE)
+        self.fol(self.Gameplan.TWOBASE_NOGAS, self.Gameplan.THREEBASE)
+        self.fol(self.Gameplan.TWOBASE, self.Gameplan.TO_LAIR)
+        self.fol(self.Gameplan.THREEBASE_NOGAS, self.Gameplan.FOURBASE)
+        self.fol(self.Gameplan.THREEBASE, self.Gameplan.TO_LAIR)
+        self.fol(self.Gameplan.RAVATHREE, self.Gameplan.TO_LAIR)
+        self.fol(self.Gameplan.GREED, self.Gameplan.TO_LAIR)
+        self.fol(self.Gameplan.FOURBASE, self.Gameplan.TO_LAIR)
+        self.fol(self.Gameplan.TO_LAIR, self.Gameplan.TO_SPIRE)
+        self.fol(self.Gameplan.SWARM, self.Gameplan.TO_HIVE)
+        self.fol(self.Gameplan.TO_SPIRE, self.Gameplan.MUTAS)
+        self.fol(self.Gameplan.MUTAS, self.Gameplan.TO_HIVE)
+        self.fol(self.Gameplan.LINGBANEMUTA, self.Gameplan.TO_HIVE)
+        self.fol(self.Gameplan.FIVEBASE, self.Gameplan.TO_HIVE)
+        self.fol(self.Gameplan.TO_HIVE, self.Gameplan.ENDGAME)
+        self.fol(self.Gameplan.ENDGAME, self.Gameplan.ENDGAME)
+        self.fol(self.Gameplan.LINGWAVE, self.Gameplan.ENDGAME)
+        self.fol(self.Gameplan.ULTRAWAVE, self.Gameplan.ENDGAME)
+
+    def get_followup(self, in_plan): # -> Gameplan
+        plan = self.followup[in_plan]
+        # alternatives
+        if plan == self.Gameplan.TO_SPIRE:
+            if random.random() * 2 < 1:
+                plan = self.Gameplan.FIVEBASE
+            if random.random() * 3 < 1:
+                plan = self.Gameplan.SWARM
+        if plan == self.Gameplan.MUTAS:
+            if random.random() * 2 < 1:
+                self.followup = self.Gameplan.LINGBANEMUTA
+        if plan == self.Gameplan.ENDGAME:
+            if self.minerals > 3000:
+                if self.gameplan != self.Gameplan.LINGWAVE:
+                    plan = self.Gameplan.LINGWAVE
+            if (self.minerals > 4500) and (self.vespene >= 3000):
+                if len(self.structures(UnitTypeId.ULTRALISKCAVERN).ready) > 0:
+                    if self.gameplan != self.Gameplan.ULTRAWAVE:
+                        plan = self.Gameplan.ULTRAWAVE
+        return plan
+    

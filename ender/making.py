@@ -784,7 +784,7 @@ class Making(Map_if, Resources, Strategy):
         # the chosen amount of needed hatcheries
         if len(self.structures(UnitTypeId.HATCHERY)) < self.needhatches[unty]:  # just-started hatcheries
             # this shouldnt get everything stuck forever
-            if self.minerals < 2000:
+            if self.minerals < 1000:
                 if unty == self.example:
                     logger.info("example " + self.example.name + " waits for hatches")
                     logger.info(str(len(self.structures(UnitTypeId.HATCHERY))), " ", str(self.needhatches[unty]))
@@ -956,6 +956,9 @@ class Making(Map_if, Resources, Strategy):
                             evalu -= 50
                         if myarmy:
                             evalu += 50
+                        if self.game_info.map_name == 'Blackburn AIE':
+                            if pos == Point2((92.5, 32.5)):
+                                evalu -= 100
                         #
                         if evalu > bestevalu:
                             bestevalu = evalu
