@@ -956,7 +956,7 @@ class Making(Map_if, Resources, Strategy):
                             evalu -= 50
                         if myarmy:
                             evalu += 50
-                        if self.game_info.map_name == 'Blackburn AIE':
+                        if self.game_info.map_name == "Blackburn AIE":
                             if pos == Point2((92.5, 32.5)):
                                 evalu -= 100
                         #

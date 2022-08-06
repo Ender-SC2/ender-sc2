@@ -36,7 +36,7 @@ class Strategy(Tech):
     needhatches = {}  # opening delay until a certain amount of hatches
     building_order = []  # opening buildings order explicit
     structype_order = []
-    greed_wish = False # greed opening or shifted
+    greed_wish = False  # greed opening or shifted
 
     class Gameplan(Enum):
         TWELVEPOOL = auto()
@@ -74,7 +74,7 @@ class Strategy(Tech):
         Gameplan.GREED,
     }
     gameplan = Gameplan.ENDGAME
-    followup = {} # per gameplan the next gameplan
+    followup = {}  # per gameplan the next gameplan
     last_wave_count = 0
     zero_plan = {}  # 0 for every unit, structure, or upgrade
     result_plan = {}
@@ -183,17 +183,18 @@ class Strategy(Tech):
         if self.wave_count != self.last_wave_count:
             self.last_wave_count = self.wave_count
             self.greed_wish = False
-            # 
+            #
             plan = self.get_followup(self.gameplan)
             self.set_gameplan(plan)
             # skip on goal reached
-            if plan not in [self.Gameplan.SWARM,
-                            self.Gameplan.ENDGAME,
-                            self.Gameplan.LINGBANEMUTA,
-                            self.Gameplan.LINGWAVE,
-                            self.Gameplan.MUTAS,
-                            self.Gameplan.ULTRAWAVE,
-                            ]:
+            if plan not in [
+                self.Gameplan.SWARM,
+                self.Gameplan.ENDGAME,
+                self.Gameplan.LINGBANEMUTA,
+                self.Gameplan.LINGWAVE,
+                self.Gameplan.MUTAS,
+                self.Gameplan.ULTRAWAVE,
+            ]:
                 goalreached = True
                 while goalreached:
                     for spire in self.result_plan:
@@ -392,8 +393,9 @@ class Strategy(Tech):
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
-            self.result_plan[UnitTypeId.ZERGLING] = \
-                2 * (self.supplycap_army - self.army_supply_used) + len(self.units(UnitTypeId.ZERGLING))
+            self.result_plan[UnitTypeId.ZERGLING] = 2 * (self.supplycap_army - self.army_supply_used) + len(
+                self.units(UnitTypeId.ZERGLING)
+            )
         elif gameplan == self.Gameplan.ULTRAWAVE:
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
@@ -581,7 +583,7 @@ class Strategy(Tech):
 
     def fol(self, vanplan, naarplan):
         self.followup[vanplan] = naarplan
-        
+
     def init_followup(self):
         self.fol(self.Gameplan.TWELVEPOOL, self.Gameplan.TWOBASE)
         self.fol(self.Gameplan.ONEBASE_NOGAS, self.Gameplan.TWOBASE)
@@ -604,7 +606,7 @@ class Strategy(Tech):
         self.fol(self.Gameplan.LINGWAVE, self.Gameplan.ENDGAME)
         self.fol(self.Gameplan.ULTRAWAVE, self.Gameplan.ENDGAME)
 
-    def get_followup(self, in_plan): # -> Gameplan
+    def get_followup(self, in_plan):  # -> Gameplan
         plan = self.followup[in_plan]
         # alternatives
         if plan == self.Gameplan.TO_SPIRE:
@@ -624,4 +626,3 @@ class Strategy(Tech):
                     if self.gameplan != self.Gameplan.ULTRAWAVE:
                         plan = self.Gameplan.ULTRAWAVE
         return plan
-    
