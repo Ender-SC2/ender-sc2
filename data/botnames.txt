@@ -65,3 +65,18 @@ c7fc88b9 JanusBot
 806ece42 LucidZJS
 72b3b411 Slavbot
 b6dcbfc2 BiggusDickus
+9ddbc8b4 Sajuuk
+e3808f50 Crustacean
+2d827274 JaProBot
+1ff0a7b4 TheToaster
+045aa006 Omega2A
+39200814 PhantomTest
+e8972ce3 Rookiebot
+7f14e3c1 DadBot
+ec603d06 BaronessZuli
+5ef0aed8 Monomi
+dd86cf7e FaxBot
+af09f69e Xena
+1c635e3f MilkWang1
+ebda6c3b SaShaBot
+

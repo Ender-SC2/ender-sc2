@@ -616,7 +616,7 @@ class Strategy(Tech):
                 plan = self.Gameplan.SWARM
         if plan == self.Gameplan.MUTAS:
             if random.random() * 2 < 1:
-                self.followup = self.Gameplan.LINGBANEMUTA
+                plan = self.Gameplan.LINGBANEMUTA
         if plan == self.Gameplan.ENDGAME:
             if self.minerals > 3000:
                 if self.gameplan != self.Gameplan.LINGWAVE:
