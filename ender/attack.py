@@ -49,8 +49,10 @@ class Attack(Map_if, Tech):
     }
     biletarget_units = {
         UnitTypeId.SIEGETANKSIEGED,
-        UnitTypeId.RAVAGER,
-        UnitTypeId.CORRUPTOR,
+        UnitTypeId.SIEGETANK,
+        UnitTypeId.LURKERMP,
+        UnitTypeId.LURKERMPBURROWED,
+        UnitTypeId.INFESTOR,
         UnitTypeId.GHOST,
         UnitTypeId.LIBERATORAG,
         UnitTypeId.SENTRY,
