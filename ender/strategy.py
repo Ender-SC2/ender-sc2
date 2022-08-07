@@ -111,7 +111,9 @@ class Strategy(Tech):
                         # If they built gas after 50 seconds then we should command overlords in at 3:15
                         ConditionalAction(
                             RememberCondition(
-                                EnemyStructureStartedBefore(unit_type=gas_extraction_structures, amount=1, time_limit=50)
+                                EnemyStructureStartedBefore(
+                                    unit_type=gas_extraction_structures, amount=1, time_limit=50
+                                )
                             ),
                             WaitUntil(165),
                             WaitUntil(195),
