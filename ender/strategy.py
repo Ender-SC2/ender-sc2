@@ -21,6 +21,7 @@ from ender.game_plan.condition import HaveUnit, All, No, HaveStructure
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
+from ender.game_plan.condition.enemy_structure_ready_before import EnemyStructureStartedBefore
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.game_plan.condition.remember_condition import RememberCondition
 from ender.game_plan.game_plan import GamePlan
@@ -106,7 +107,15 @@ class Strategy(Tech):
                 ),
                 ActionSequence(
                     [
-                        WaitUntil(180),
+                        # If we detect gas completed before 71 seconds, we should be commanding the overlords to move in at 2:45
+                        # If they built gas after 50 seconds then we should command overlords in at 3:15
+                        ConditionalAction(
+                            RememberCondition(
+                                EnemyStructureStartedBefore(unit_type=gas_extraction_structures, amount=1, time_limit=50)
+                            ),
+                            WaitUntil(165),
+                            WaitUntil(195),
+                        ),
                         ParallelAction(
                             [
                                 OverlordScoutBase(self.enemymain),
@@ -137,16 +146,24 @@ class Strategy(Tech):
                     ),
                 ),
                 ConditionalAction(
-                    All([EnemyStructure(UnitTypeId.GATEWAY, 4), No(HaveStructure(UnitTypeId.ROACHWARREN))]),
-                    PlaceBuilding(UnitTypeId.ROACHWARREN),
+                    EnemyUnit(UnitTypeId.ROACH),
+                    ActionSequence(
+                        [MakeUnit(UnitTypeId.ROACH, UnitTypeId.ROACH, 0.6)],
+                    ),
                 ),
                 ConditionalAction(
-                    EnemyUnit(UnitTypeId.ZEALOT),
-                    MakeUnit(UnitTypeId.ZEALOT, UnitTypeId.ROACH, 0.6),
+                    EnemyUnit(UnitTypeId.ZERGLING),
+                    ActionSequence(
+                        [MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],
+                    ),
                 ),
                 ConditionalAction(
-                    EnemyUnit(UnitTypeId.STALKER),
-                    MakeUnit(UnitTypeId.STALKER, UnitTypeId.ZERGLING, 6),
+                    RememberCondition(
+                        EnemyStructureStartedBefore(unit_type=UnitTypeId.SPAWNINGPOOL, amount=1, time_limit=50)
+                    ),
+                    ActionSequence(
+                        [MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],
+                    ),
                 ),
                 ConditionalAction(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]

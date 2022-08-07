@@ -9,7 +9,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
 
-class EnemyStructureReadyBefore(ICondition):
+class EnemyStructureStartedBefore(ICondition):
     bot_ai: BotAI
 
     def __init__(
@@ -30,11 +30,13 @@ class EnemyStructureReadyBefore(ICondition):
         self.bot_ai = bot_ai
 
     def check(self) -> bool:
-        if self.bot_ai.time > self.time_limit:
+        build_time = self.bot_ai.game_data.units[self.unit_type[0].value].cost.time
+        logger.error(f"Buildtime {build_time}")
+        if self.bot_ai.time + build_time > self.time_limit:
             return False
         enemy_units = self.bot_ai.enemy_structures.of_type(self.unit_type).filter(
             lambda structure: structure.is_ready
-            or self.bot_ai.time + structure._type_data.cost.time * (1 - structure.build_progress) < self.time_limit
+            or self.bot_ai.time - build_time * structure.build_progress < self.time_limit
         )
         if self.position:
             enemy_units = enemy_units.closer_than(self.distance, self.position)
