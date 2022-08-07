@@ -37,8 +37,10 @@ class PlaceBuilding(IAction):
             return True
         if self.request_time + self.REQUEST_TIMEOUT > self.common.time:
             return False
-        logger.info(f"Asking for {self.unit_type} on {self.get_position()}")
-        self.common.emergency.add((self.unit_type, self.get_position()))
+        position = self.get_position()
+        if position:
+            logger.info(f"Asking for {self.unit_type} on {self.get_position()}")
+            self.common.emergency.add((self.unit_type, self.get_position()))
         self.request_time = self.common.time
         return False
 

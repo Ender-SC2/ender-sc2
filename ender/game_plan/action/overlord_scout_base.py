@@ -54,7 +54,10 @@ class OverlordScoutBase(IAction):
         self.overlord_tag = overlord.tag
         self.common.set_job_of_unittag(self.overlord_tag, Job.SACRIFICIAL_SCOUT)
         self.state = ScoutState.SCOUT
-        self.original_point = overlord.position
+        if overlord.is_idle:
+            self.original_point = overlord.position
+        else:
+            self.original_point = overlord.order_target
         self.scout_points.append(self.position)
         for geyser in self.common.vespene_geyser:
             if geyser.distance_to(self.position) <= 12:
