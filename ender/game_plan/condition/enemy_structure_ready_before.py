@@ -1,8 +1,7 @@
 from typing import Optional, Union, Iterable
 
-from loguru import logger
-
 from ender.game_plan.condition.condition import ICondition
+from ender.utils.game_utils import LOOPS_PER_SECOND
 from ender.utils.type_utils import convert_into_iterable
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -30,8 +29,7 @@ class EnemyStructureStartedBefore(ICondition):
         self.bot_ai = bot_ai
 
     def check(self) -> bool:
-        build_time = self.bot_ai.game_data.units[self.unit_type[0].value].cost.time
-        logger.error(f"Buildtime {build_time}")
+        build_time = self.bot_ai.game_data.units[self.unit_type[0].value].cost.time / LOOPS_PER_SECOND
         if self.bot_ai.time + build_time > self.time_limit:
             return False
         enemy_units = self.bot_ai.enemy_structures.of_type(self.unit_type).filter(
