@@ -423,7 +423,7 @@ class Strategy(Tech):
             self.iffadd_result(UnitTypeId.BANELINGNEST, UnitTypeId.BANELING, 3)
             self.iffadd_result(UnitTypeId.ROACHWARREN, UnitTypeId.ROACH, 5)
             self.iffadd_result(UnitTypeId.HYDRALISKDEN, UnitTypeId.HYDRALISK, 5)
-            if len(self.structures(UnitTypeId. HYDRALISKDEN).ready) > 0:
+            if len(self.structures(UnitTypeId.HYDRALISKDEN).ready) > 0:
                 self.iffadd_result(UnitTypeId.LURKERDEN, UnitTypeId.LURKER, 1)
             self.iffadd_result(UnitTypeId.INFESTATIONPIT, UnitTypeId.INFESTOR, 4)
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.CORRUPTOR, 14)
@@ -666,5 +666,3 @@ class Strategy(Tech):
                     if self.gameplan != self.Gameplan.ULTRAWAVE:
                         plan = self.Gameplan.ULTRAWAVE
         return plan
-
-

@@ -77,8 +77,8 @@ class Making(Map_if, Resources, Strategy):
     file_expers = []  # datafile lines
     part_expers = []  # mapspecific lines
     experience_is_read = False
-    experience_maxframe = 7000 # about 5 minutes
-    experience = [] # of oldgame, with oldgame a list of (typ, pos, betterwalk)
+    experience_maxframe = 7000  # about 5 minutes
+    experience = []  # of oldgame, with oldgame a list of (typ, pos, betterwalk)
     valid_oldgames = set()  # of oldgame_ix, begun like this game
     learn_typ = {}  # per dronetag: typ
     learn_pos = {}  # per dronetag: pos
@@ -653,7 +653,7 @@ class Making(Map_if, Resources, Strategy):
                         expiration = self.frame + self.buildplan_timeout
                         self.buildplan[typ] = (self.somedrone, pos, expiration)
                     # overwrite pos using experience
-                    if typ in self.buildplan: # so just added
+                    if typ in self.buildplan:  # so just added
                         for (ix, oldgame) in enumerate(self.experience):
                             if ix in self.valid_oldgames:
                                 (atype, betterpos, betterwalk) = oldgame[self.buildplan_nr]
@@ -664,9 +664,9 @@ class Making(Map_if, Resources, Strategy):
                                     self.valid_oldgames.remove(ix)
                         self.buildplan_nr += 1
                     # save thisgame for experience
-                    if typ in self.buildplan: # so just added
+                    if typ in self.buildplan:  # so just added
                         (dronetag, pos, expiration) = self.buildplan[typ]
-                        self.thisgame.append((typ, pos, 9999999)) # walk not
+                        self.thisgame.append((typ, pos, 9999999))  # walk not
                 if typ in self.buildplan:
                     (histag, buildpos, expiration) = self.buildplan[typ]
                     there = self.walk_finished(typ)
@@ -685,10 +685,9 @@ class Making(Map_if, Resources, Strategy):
                         if there and reso:
                             self.learn_experience(histag)
 
-
     async def learn_administration(self):
         # delete learn info when buildplan is gone
-        if self.function_listens('learn_administration', 51):
+        if self.function_listens("learn_administration", 51):
             checktags = set(self.learn_typ.keys()).copy()
             for tag in checktags:
                 typ = self.learn_typ[tag]
@@ -704,7 +703,7 @@ class Making(Map_if, Resources, Strategy):
                         del self.learn_resources[tag]
                     if tag in self.learn_arrive:
                         del self.learn_arrive[tag]
-                        
+
     def learn_experience(self, histag):
         typ = self.learn_typ[histag]
         pos = self.learn_pos[histag]
@@ -735,7 +734,7 @@ class Making(Map_if, Resources, Strategy):
             if not self.disturbed:
                 if not self.wrote_experience:
                     self.wrote_experience = True
-                    logger.info("Learnsum of walkstart = " + str(round(self.learnsum / self.seconds)) )
+                    logger.info("Learnsum of walkstart = " + str(round(self.learnsum / self.seconds)))
                     if self.learnsum >= 5 * self.seconds:
                         # for open buildplans, mark walk of thisgame with -1
                         for typ in self.buildplan:
@@ -746,19 +745,21 @@ class Making(Map_if, Resources, Strategy):
                         # write all
                         pl = open(os.path.join("data", "experience.txt"), "w")
                         for stri in self.file_expers:
-                            pl.write(stri + '\n')
+                            pl.write(stri + "\n")
                         # append thisgame
-                        mapplace = 'map: ' + self.game_info.map_name + ' ' + str(self.ourmain.x) + ' ' + str(self.ourmain.y)
+                        mapplace = (
+                            "map: " + self.game_info.map_name + " " + str(self.ourmain.x) + " " + str(self.ourmain.y)
+                        )
                         stri = mapplace
-                        pl.write(stri + '\n')
+                        pl.write(stri + "\n")
                         for (typ, pos, walk) in self.thisgame:
                             strtyp = typ.name
-                            strpos = str(pos.x) + ' ' + str(pos.y)
+                            strpos = str(pos.x) + " " + str(pos.y)
                             strwalk = str(walk)
-                            stri = strtyp + ' ' + strpos + ' ' + strwalk
-                            pl.write(stri + '\n')
-                        stri = '#####'
-                        pl.write(stri + '\n')
+                            stri = strtyp + " " + strpos + " " + strwalk
+                            pl.write(stri + "\n")
+                        stri = "#####"
+                        pl.write(stri + "\n")
                         pl.close()
 
     async def read_experience(self):
@@ -767,7 +768,7 @@ class Making(Map_if, Resources, Strategy):
             if not self.experience_is_read:
                 self.experience_is_read = True
                 # read file
-                mapplace = 'map: ' + self.game_info.map_name + ' ' + str(self.ourmain.x) + ' ' + str(self.ourmain.y)
+                mapplace = "map: " + self.game_info.map_name + " " + str(self.ourmain.x) + " " + str(self.ourmain.y)
                 pl = open(os.path.join("data", "experience.txt"), "r")
                 self.file_expers = pl.read().splitlines()
                 pl.close()
@@ -779,10 +780,10 @@ class Making(Map_if, Resources, Strategy):
                         cop = True
                     if cop:
                         self.part_expers.append(line)
-                    if line == '#####':
+                    if line == "#####":
                         cop = False
                 if len(self.part_expers) == 0:
-                    logger.info('No experience for this map.')
+                    logger.info("No experience for this map.")
                 # put in internal datastructure
                 self.experience = []
                 self.valid_oldgames = set()
@@ -886,7 +887,7 @@ class Making(Map_if, Resources, Strategy):
                     self.set_job_of_unittag(tag, Job.WALKER)
                     self.expiration_of_builder[tag] = expir
                     drone.move(buildpos)
-                    self.buildplan[typ] = (tag, buildpos, expir) # was somedrone
+                    self.buildplan[typ] = (tag, buildpos, expir)  # was somedrone
                     if typ == UnitTypeId.HATCHERY:
                         self.current_expandings[buildpos] = tag
                     self.learn_typ[tag] = typ

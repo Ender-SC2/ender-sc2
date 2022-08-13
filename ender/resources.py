@@ -283,7 +283,7 @@ class Resources(Tech):
                 return False
         else:
             return False
-    
+
     def spend_resources(self, typ):
         # call after check_resources, if you are going to order build
         # should be in claims
