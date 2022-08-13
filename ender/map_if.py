@@ -35,7 +35,7 @@ class Map_if(Common):
     #
 
     def __step0(self):
-        self.plan_timeout = 2 * self.minutes
+        self.plan_timeout = 3 * self.minutes
         self.map = numpy.ndarray(shape=(200, 200), dtype=self.Mapcolor)
         for right in range(200):
             for up in range(200):

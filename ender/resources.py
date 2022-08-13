@@ -277,19 +277,32 @@ class Resources(Tech):
             #
             if buildnow:
                 if typ == self.example:
-                    logger.info("example will build")
-                del self.claims[claimindex]
-                short = self.frame + self.seconds
-                long = self.frame + self.minutes
-                if typ in self.all_structuretypes:
-                    self.orderdelay.append((typ, resources, importance, long))
-                else:
-                    self.orderdelay.append((typ, resources, importance, short))
+                    logger.info("example has resources")
                 return True
             else:
                 return False
         else:
             return False
+    
+    def spend_resources(self, typ):
+        # call after check_resources, if you are going to order build
+        # should be in claims
+        inclaims = False
+        claimindex = 0
+        for (ix, hclaim) in enumerate(self.claims):
+            (htyp, hresource, himportance, hexpiration) = hclaim
+            if htyp == typ:
+                inclaims = True
+                claimindex = ix
+        if inclaims:
+            (htyp, resources, importance, expiration) = self.claims[claimindex]
+            del self.claims[claimindex]
+            short = self.frame + self.seconds
+            long = self.frame + 10 * self.seconds
+            if typ in self.all_structuretypes:
+                self.orderdelay.append((typ, resources, importance, long))
+            else:
+                self.orderdelay.append((typ, resources, importance, short))
 
     def unclaim_resources(self, typ):
         logger.info("Making a " + typ.name)

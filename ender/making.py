@@ -1,5 +1,6 @@
 # making.py, Ender
 
+import os
 import random
 from loguru import logger
 
@@ -17,6 +18,7 @@ from sc2.position import Point2
 
 class Making(Map_if, Resources, Strategy):
 
+    #
     creation = {}  # per unittype the ability of making it. One source, so misses unburrows.
     #
     # upgrade_chain to start upgrades in this order (provided creatable)
@@ -50,6 +52,7 @@ class Making(Map_if, Resources, Strategy):
     ]
     __did_step0 = False
     somedrone = -2  # constant
+    buildplan_timeout = 0
     want_supply = True
     expansions = []  # of (pos,height,hasmin,hasgas,mybase,herbase,myblock,herblock,myarmy,herarmy)
     expansion_tried = {}  # per expansionpos: the frame of the last hatchery create try
@@ -59,9 +62,7 @@ class Making(Map_if, Resources, Strategy):
     vespene_hist = 0  # sometimes gets the vespene value, to detect no mining
     minerals_hist = 0  # sometimes gets the minerals value, to detect no mining
     buildplan = {}  # per typ: (histag, buildpos, expiration)
-    prewalkers = set()  # expanding with a drone prewalking
     expiration_of_builder = {}  # it is a temporal job
-    experience = []  # walktime for prewalkers
     example = UnitTypeId.SCV  # for debugging, e.g. EXTRACTOR. To silence: SCV
     # emergency in common.py
     # supplytricking in common.py
@@ -71,9 +72,25 @@ class Making(Map_if, Resources, Strategy):
     i_am_making_a = set()  # recently issued build commands
     i_am_making_a_building = set()  # recently issued build commands
     # current_expandings is in common.py. The expand positions with a walker or builder.
+    wrote_experience = False
+    disturbed = False
+    file_expers = []  # datafile lines
+    part_expers = []  # mapspecific lines
+    experience_is_read = False
+    experience_maxframe = 7000 # about 5 minutes
+    experience = [] # of oldgame, with oldgame a list of (typ, pos, betterwalk)
+    valid_oldgames = set()  # of oldgame_ix, begun like this game
+    learn_typ = {}  # per dronetag: typ
+    learn_pos = {}  # per dronetag: pos
+    learn_walk = {}  # per dronetag: walkframe
+    learn_arrive = {}  # per dronetag: arriveframe
+    learn_resources = {}  # per dronetag: resourcesframe
+    learnsum = 0  # sum of (abs change of walkframe)
+    thisgame = []  # of (typ, pos, betterwalk)
+    buildplan_nr = 0
     #
-
     def __step0(self):
+        self.buildplan_timeout = 2.5 * self.minutes
         #
         self.importance["overlord"] = 2100  # above emergency
         self.importance["drone"] = 90
@@ -177,7 +194,6 @@ class Making(Map_if, Resources, Strategy):
         for upg in self.all_upgrades:
             await self.upgrade(upg)
         await self.make_drones()
-        # await self.prewalk()
         await self.builder_admin()
         await self.go_walk()
         await self.downroot()
@@ -192,6 +208,10 @@ class Making(Map_if, Resources, Strategy):
             self.minerals_hist = self.minerals
         #
         await self.calc_groupclaim()
+        await self.check_disturbed()
+        await self.learn_administration()
+        await self.read_experience()
+        await self.write_experience()
 
     async def check_making(self):
         if self.function_listens("check_making", 9):
@@ -475,6 +495,7 @@ class Making(Map_if, Resources, Strategy):
                 typ = UnitTypeId.OVERLORD
                 self.claim_resources(typ, importance)
                 if self.check_resources(typ, importance):
+                    self.spend_resources(typ)
                     self.now_make_a(typ)
 
     async def make_army_unit(self, typ):
@@ -513,6 +534,7 @@ class Making(Map_if, Resources, Strategy):
                         break
                 self.claim_resources(typ, importance)
                 if self.check_resources(typ, importance):
+                    self.spend_resources(typ)
                     self.now_make_a(typ)
                 else:
                     if typ == self.example:
@@ -532,7 +554,7 @@ class Making(Map_if, Resources, Strategy):
                     await self.build_structure("evo3", it)
 
     async def build_structure(self, name, typ):
-        patience = self.seconds
+        patience = 10
         if self.supplytricking:
             patience = 5
         if self.function_listens("build_structure_" + name, patience):
@@ -568,13 +590,13 @@ class Making(Map_if, Resources, Strategy):
                         pos = gey.position
                         if self.map_can_plan_gas(pos, size):
                             self.map_plan_gas(pos, size)
-                            expiration = self.frame + self.minutes
+                            expiration = self.frame + self.buildplan_timeout
                             self.buildplan[typ] = (self.somedrone, pos, expiration)
                     elif typ == UnitTypeId.HATCHERY:
                         pos = self.next_expansion
                         if self.map_can_plan(pos, size):
                             self.map_plan(pos, size)
-                            expiration = self.frame + 2 * self.minutes
+                            expiration = self.frame + self.buildplan_timeout
                             self.buildplan[typ] = (self.somedrone, pos, expiration)
                         self.expansion_tried[pos] = self.frame
                         self.choose_next_expansion()
@@ -582,19 +604,19 @@ class Making(Map_if, Resources, Strategy):
                         if len(self.structures(UnitTypeId.SPIRE).ready.idle) > 0:
                             stru = self.structures(UnitTypeId.SPIRE).ready.idle.random
                             pos = stru.position
-                            expiration = self.frame + self.minutes
+                            expiration = self.frame + self.buildplan_timeout
                             self.buildplan[typ] = (self.notag, pos, expiration)
                     elif typ == UnitTypeId.LAIR:
                         if len(self.structures(UnitTypeId.HATCHERY).ready.idle) > 0:
                             stru = self.structures(UnitTypeId.HATCHERY).ready.idle.random
                             pos = stru.position
-                            expiration = self.frame + self.minutes
-                            self.buildplan[typ] = (self.somedrone, pos, expiration)
+                            expiration = self.frame + self.buildplan_timeout
+                            self.buildplan[typ] = (self.notag, pos, expiration)
                     elif typ == UnitTypeId.HIVE:
                         if len(self.structures(UnitTypeId.LAIR).ready.idle) > 0:
                             stru = self.structures(UnitTypeId.LAIR).ready.idle.random
                             pos = stru.position
-                            expiration = self.frame + self.minutes
+                            expiration = self.frame + self.buildplan_timeout
                             self.buildplan[typ] = (self.notag, pos, expiration)
                     elif typ in self.all_sporetypes:
                         abasepos = self.structures(UnitTypeId.HATCHERY).random.position
@@ -621,24 +643,168 @@ class Making(Map_if, Resources, Strategy):
                             self.emergency.remove((typ, pos))
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
-                        expiration = self.frame + self.minutes
+                        expiration = self.frame + self.buildplan_timeout
                         self.buildplan[typ] = (self.somedrone, pos, expiration)
                     else:
                         abasepos = self.structures(UnitTypeId.HATCHERY).ready.random.position
                         pos = abasepos.towards(self.map_center, 5)
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
-                        expiration = self.frame + self.minutes
+                        expiration = self.frame + self.buildplan_timeout
                         self.buildplan[typ] = (self.somedrone, pos, expiration)
+                    # overwrite pos using experience
+                    if typ in self.buildplan: # so just added
+                        for (ix, oldgame) in enumerate(self.experience):
+                            if ix in self.valid_oldgames:
+                                (atype, betterpos, betterwalk) = oldgame[self.buildplan_nr]
+                                if atype == typ:
+                                    (dronetag, pos, expiration) = self.buildplan[typ]
+                                    self.buildplan[typ] = (dronetag, betterpos, expiration)
+                                else:
+                                    self.valid_oldgames.remove(ix)
+                        self.buildplan_nr += 1
+                    # save thisgame for experience
+                    if typ in self.buildplan: # so just added
+                        (dronetag, pos, expiration) = self.buildplan[typ]
+                        self.thisgame.append((typ, pos, 9999999)) # walk not
                 if typ in self.buildplan:
-                    if self.walk_finished(typ):
-                        (histag, buildpos, expiration) = self.buildplan[typ]
-                        if expiration > self.frame + self.minutes:
-                            expiration = self.frame + self.minutes
-                            self.buildplan[typ] = (histag, buildpos, expiration)
-                        if self.check_resources(typ, importance):
-                            self.now_make_a_building(typ, histag, buildpos)
-                            del self.buildplan[typ]
+                    (histag, buildpos, expiration) = self.buildplan[typ]
+                    there = self.walk_finished(typ)
+                    reso = self.check_resources(typ, importance)
+                    if there and reso:
+                        self.spend_resources(typ)
+                        self.now_make_a_building(typ, histag, buildpos)
+                        del self.buildplan[typ]
+                    if histag in self.learn_typ:
+                        if there:
+                            if histag not in self.learn_arrive:
+                                self.learn_arrive[histag] = self.frame
+                        if reso:
+                            if histag not in self.learn_resources:
+                                self.learn_resources[histag] = self.frame
+                        if there and reso:
+                            self.learn_experience(histag)
+
+
+    async def learn_administration(self):
+        # delete learn info when buildplan is gone
+        if self.function_listens('learn_administration', 51):
+            checktags = set(self.learn_typ.keys()).copy()
+            for tag in checktags:
+                typ = self.learn_typ[tag]
+                if typ not in self.buildplan:
+                    # delete
+                    if tag in self.learn_typ:
+                        del self.learn_typ[tag]
+                    if tag in self.learn_pos:
+                        del self.learn_pos[tag]
+                    if tag in self.learn_walk:
+                        del self.learn_walk[tag]
+                    if tag in self.learn_resources:
+                        del self.learn_resources[tag]
+                    if tag in self.learn_arrive:
+                        del self.learn_arrive[tag]
+                        
+    def learn_experience(self, histag):
+        typ = self.learn_typ[histag]
+        pos = self.learn_pos[histag]
+        walk = self.learn_walk[histag]
+        arrive = self.learn_arrive[histag]
+        reso = self.learn_resources[histag]
+        oldwalk = walk
+        # try to have it arrive 1 sec before actual build.
+        early = reso - (arrive + self.seconds)
+        walk += early
+        # We now have a better walk.
+        triple = (typ, pos, 9999999)
+        if triple not in self.thisgame:
+            triple = (typ, pos, -1)
+        ix = self.thisgame.index(triple)
+        self.thisgame[ix] = (typ, pos, walk)
+        # cleanup
+        del self.learn_typ[histag]
+        del self.learn_pos[histag]
+        del self.learn_walk[histag]
+        del self.learn_arrive[histag]
+        del self.learn_resources[histag]
+        # learnsum
+        self.learnsum += abs(walk - oldwalk)
+
+    async def write_experience(self):
+        if self.frame >= self.experience_maxframe:
+            if not self.disturbed:
+                if not self.wrote_experience:
+                    self.wrote_experience = True
+                    logger.info("Learnsum of walkstart = " + str(round(self.learnsum / self.seconds)) )
+                    if self.learnsum >= 5 * self.seconds:
+                        # for open buildplans, mark walk of thisgame with -1
+                        for typ in self.buildplan:
+                            (histag, buildpos, expiration) = self.buildplan[typ]
+                            triple = (typ, buildpos, 9999999)
+                            if triple in self.thisgame:
+                                self.thisgame[self.thisgame.index(triple)] = (typ, buildpos, -1)
+                        # write all
+                        pl = open(os.path.join("data", "experience.txt"), "w")
+                        for stri in self.file_expers:
+                            pl.write(stri + '\n')
+                        # append thisgame
+                        mapplace = 'map: ' + self.game_info.map_name + ' ' + str(self.ourmain.x) + ' ' + str(self.ourmain.y)
+                        stri = mapplace
+                        pl.write(stri + '\n')
+                        for (typ, pos, walk) in self.thisgame:
+                            strtyp = typ.name
+                            strpos = str(pos.x) + ' ' + str(pos.y)
+                            strwalk = str(walk)
+                            stri = strtyp + ' ' + strpos + ' ' + strwalk
+                            pl.write(stri + '\n')
+                        stri = '#####'
+                        pl.write(stri + '\n')
+                        pl.close()
+
+    async def read_experience(self):
+        # you can startup this system with an empty data\experience.txt
+        if self.frame >= 8 * self.seconds:
+            if not self.experience_is_read:
+                self.experience_is_read = True
+                # read file
+                mapplace = 'map: ' + self.game_info.map_name + ' ' + str(self.ourmain.x) + ' ' + str(self.ourmain.y)
+                pl = open(os.path.join("data", "experience.txt"), "r")
+                self.file_expers = pl.read().splitlines()
+                pl.close()
+                # filter mapspecific
+                self.part_expers = []
+                cop = False
+                for line in self.file_expers:
+                    if line == mapplace:
+                        cop = True
+                    if cop:
+                        self.part_expers.append(line)
+                    if line == '#####':
+                        cop = False
+                if len(self.part_expers) == 0:
+                    logger.info('No experience for this map.')
+                # put in internal datastructure
+                self.experience = []
+                self.valid_oldgames = set()
+                nr = 0
+                for aline in self.part_expers:
+                    woord = aline.split()
+                    if len(woord) > 0:
+                        if woord[0] == "map:":
+                            oldgame = []
+                        elif woord[0] == "#####":
+                            self.experience.append(oldgame)
+                            self.valid_oldgames.add(nr)
+                            nr += 1
+                        elif len(woord) == 4:
+                            for atype in self.all_structuretypes:
+                                if atype.name == woord[0]:
+                                    typ = atype
+                            posx = float(woord[1])
+                            posy = float(woord[2])
+                            pos = Point2((posx, posy))
+                            walk = float(woord[3])
+                            oldgame.append((typ, pos, walk))
 
     def walk_finished(self, typ) -> bool:
         (histag, buildpos, expiration) = self.buildplan[typ]
@@ -646,7 +812,7 @@ class Making(Map_if, Resources, Strategy):
             return True
         for drone in self.units(UnitTypeId.DRONE):
             if drone.tag == histag:
-                if distance(drone.position, buildpos) < 4:
+                if distance(drone.position, buildpos) < 3:
                     return True
         return False
 
@@ -657,42 +823,75 @@ class Making(Map_if, Resources, Strategy):
         for typ in self.buildplan:
             (histag, buildpos, expir) = self.buildplan[typ]
             if histag == self.somedrone:
-                # get closest drone (not yet a walker)
-                bestdist = 99999
-                for drone in self.units(UnitTypeId.DRONE):
-                    tag = drone.tag
-                    if self.job_of_unittag(tag) not in {Job.WALKER, Job.BUILDER}:
+                walknow = False
+                walkdrone = None
+                have_experience = False
+                if not self.disturbed:
+                    for (ix, oldgame) in enumerate(self.experience):
+                        if ix in self.valid_oldgames:
+                            for (atype, apos, awalk) in oldgame:
+                                if (atype == typ) and (apos == buildpos) and (awalk != -1):
+                                    have_experience = True
+                                    walkframe = awalk
+                    if have_experience:
+                        if self.frame >= walkframe:
+                            # get closest drone (not yet a walker)
+                            bestdist = 99999
+                            for drone in self.units(UnitTypeId.DRONE):
+                                tag = drone.tag
+                                if self.job_of_unittag(tag) not in {Job.WALKER, Job.BUILDER, Job.SCOUT}:
+                                    dist = distance(drone.position, buildpos)
+                                    if dist < bestdist:
+                                        bestdist = dist
+                                        bestdrone = drone
+                            if bestdist < 99999:
+                                walknow = True
+                                walkdrone = bestdrone
+                if not have_experience:
+                    # get closest drone (not yet a walker)
+                    bestdist = 99999
+                    for drone in self.units(UnitTypeId.DRONE):
+                        tag = drone.tag
+                        if self.job_of_unittag(tag) not in {Job.WALKER, Job.BUILDER, Job.SCOUT}:
+                            dist = distance(drone.position, buildpos)
+                            if dist < bestdist:
+                                bestdist = dist
+                                bestdrone = drone
+                    if bestdist < 99999:
+                        drone = bestdrone
+                        tag = drone.tag
                         dist = distance(drone.position, buildpos)
-                        if dist < bestdist:
-                            bestdist = dist
-                            bestdrone = drone
-                if bestdist < 99999:
-                    drone = bestdrone
+                        mimgap = self.mineral_gap(typ)
+                        gasgap = self.vespene_gap(typ)
+                        if mimminers > 0:
+                            mimwait = mimgap / mimminers
+                        elif mimgap > 0:
+                            mimwait = 99999
+                        else:
+                            mimwait = 0
+                        if gasminers > 0:
+                            gaswait = gasgap / gasminers
+                        elif gasgap > 0:
+                            gaswait = 99999
+                        else:
+                            gaswait = 0
+                        resourcewait = max(mimwait, gaswait)
+                        if resourcewait < dist * 0.5:
+                            walknow = True
+                            walkdrone = drone
+                #
+                if walknow:
+                    drone = walkdrone
                     tag = drone.tag
-                    dist = distance(drone.position, buildpos)
-                    mimgap = self.mineral_gap(typ)
-                    gasgap = self.vespene_gap(typ)
-                    if mimminers > 0:
-                        mimwait = mimgap / mimminers
-                    elif mimgap > 0:
-                        mimwait = 99999
-                    else:
-                        mimwait = 0
-                    if gasminers > 0:
-                        gaswait = gasgap / gasminers
-                    elif gasgap > 0:
-                        gaswait = 99999
-                    else:
-                        gaswait = 0
-                    resourcewait = max(mimwait, gaswait)
-                    if resourcewait < dist * 0.5:
-                        self.set_job_of_unit(drone, Job.WALKER)
-                        if expir > self.frame + self.minutes:  # lower to minute
-                            expir = self.frame + self.minutes
-                        self.expiration_of_builder[tag] = expir
-                        drone.move(buildpos)
-                        self.buildplan[typ] = (tag, buildpos, expir)
+                    self.set_job_of_unittag(tag, Job.WALKER)
+                    self.expiration_of_builder[tag] = expir
+                    drone.move(buildpos)
+                    self.buildplan[typ] = (tag, buildpos, expir) # was somedrone
+                    if typ == UnitTypeId.HATCHERY:
                         self.current_expandings[buildpos] = tag
+                    self.learn_typ[tag] = typ
+                    self.learn_pos[tag] = buildpos
+                    self.learn_walk[tag] = self.frame
 
     def we_finished_a(self, thing) -> bool:
         if thing in self.state.upgrades:
@@ -870,6 +1069,7 @@ class Making(Map_if, Resources, Strategy):
             if self.check_wannado_upgrade(typ, importance):
                 self.claim_resources(typ, importance)
                 if self.check_resources(typ, importance):
+                    self.spend_resources(typ)
                     self.now_make_a(typ)
 
     async def make_drones(self):
@@ -898,6 +1098,7 @@ class Making(Map_if, Resources, Strategy):
                             importance += 1000
                         self.claim_resources(typ, importance)
                         if self.check_resources(typ, importance):
+                            self.spend_resources(typ)
                             self.now_make_a(typ)
 
     def init_expansions(self):
@@ -959,6 +1160,8 @@ class Making(Map_if, Resources, Strategy):
                         if self.game_info.map_name == "Blackburn AIE":
                             if pos == Point2((92.5, 32.5)):
                                 evalu -= 100
+                        if distance(self.enemymain, pos) < 80:
+                            evalu -= 20
                         #
                         if evalu > bestevalu:
                             bestevalu = evalu
@@ -999,44 +1202,6 @@ class Making(Map_if, Resources, Strategy):
                     if self.frame >= self.expiration_of_builder[unt.tag]:
                         self.set_job_of_unit(unt, Job.UNCLEAR)
             # the builder may still work after the buildplan is deleted
-
-    async def prewalk(self):
-        if self.function_listens("prewalk", 10):
-            hatchclaim = False
-            for claim in self.claims:
-                (typ, resources, importance, expiration) = claim
-                if typ == UnitTypeId.HATCHERY:
-                    hatchclaim = True
-            if hatchclaim:
-                pos = self.next_expansion
-                if pos not in self.prewalkers:
-                    self.init_experience()
-                    walkframe = 0
-                    ix = len(self.prewalkers)
-                    if ix < len(self.experience):
-                        walkframe = self.experience[ix]
-                    if self.frame > walkframe:
-                        clodist = 99999
-                        bestunt = None
-                        for unt in self.units(UnitTypeId.DRONE):
-                            if self.job_of_unit(unt) in [Job.UNCLEAR, Job.MIMMINER]:
-                                dist = distance(unt.position, pos)
-                                if dist < clodist:
-                                    clodist = dist
-                                    bestunt = unt
-                        if bestunt:
-                            unt = bestunt
-                            self.prewalkers.add(pos)
-                            self.set_job_of_unit(unt, Job.WALKER)
-                            unt.move(pos)
-                            self.expiration_of_builder[unt.tag] = self.frame + self.minutes
-                            self.current_expandings[pos] = unt.tag
-
-    def init_experience(self):
-        if len(self.experience) == 0:
-            self.experience.append(900)
-            self.experience.append(1650)
-            self.experience.append(5200)
 
     async def downroot(self):
         if self.function_listens("downroot", 10):
@@ -1115,3 +1280,7 @@ class Making(Map_if, Resources, Strategy):
                     self.rallied.add(hat.tag)
                     point = hat.position.towards(self.map_center, 3)
                     hat(AbilityId.RALLY_BUILDING, point)
+
+    async def check_disturbed(self):
+        if self.gameplan != self.Gameplan.GREED:
+            self.disturbed = True
