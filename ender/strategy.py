@@ -74,7 +74,7 @@ class Strategy(Tech):
         Gameplan.RAVATHREE,
         Gameplan.GREED,
     }
-    gameplan = Gameplan.ENDGAME
+    gameplan = None
     followup = {}  # per gameplan the next gameplan
     last_wave_count = 0
     zero_plan = {}  # 0 for every unit, structure, or upgrade
@@ -197,7 +197,8 @@ class Strategy(Tech):
             await self.client.chat_send("Tag:" + self.gameplan.name, team_only=False)
             self.__did_step0 = True
         #
-        await self.check_agression()
+        # To test the pure greed, comment out next line, and change in Main.py the opponent difficulty to VeryEasy
+        # await self.check_agression()
         #
         if self.wave_count != self.last_wave_count:
             self.last_wave_count = self.wave_count
@@ -216,10 +217,10 @@ class Strategy(Tech):
             ]:
                 goalreached = True
                 while goalreached:
-                    for spire in self.result_plan:
-                        if self.result_plan[spire] > 0:
-                            if spire in self.all_structuretypes:
-                                if len(self.structures(spire).ready) < self.result_plan[spire]:
+                    for thing in self.result_plan:
+                        if self.result_plan[thing] > 0:
+                            if thing in self.all_structuretypes:
+                                if self.halfway_structures(thing) < self.result_plan[thing]:
                                     goalreached = False
                     if goalreached:
                         logger.info("(Skipping " + plan.name + " because its structures exist.)")
@@ -231,6 +232,22 @@ class Strategy(Tech):
         await self.new_plan.execute()
         #
         await self.react()
+
+    def halfway_structures(self, thing) -> int:
+        doing = 0
+        for stru in self.structures(thing):
+            if stru.build_progress > 0.5:
+                doing += 1
+        if thing == UnitTypeId.HATCHERY:
+            doing += len(self.structures(UnitTypeId.LAIR))
+            doing += len(self.structures(UnitTypeId.HIVE))
+        if thing == UnitTypeId.LAIR:
+            doing += len(self.structures(UnitTypeId.HIVE))
+        if thing == UnitTypeId.SPIRE:
+            doing += len(self.structures(UnitTypeId.GREATERSPIRE))
+        if thing == UnitTypeId.EXTRACTOR:
+            doing += len(self.structures(UnitTypeId.EXTRACTORRICH))
+        return doing
 
     def set_gameplan(self, gameplan):
         self.gameplan = gameplan
@@ -291,9 +308,10 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.RAVAGER] = 16
             self.opening.append(("supply", 75, UnitTypeId.HATCHERY, 4))
         elif gameplan == self.Gameplan.GREED:
-            self.greed_wish = True  # to allow react away and back
+            self.greed_wish = True  # to allow shift away and back
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 6
+            self.result_plan[UnitTypeId.LAIR] = 1
             self.result_plan[UnitTypeId.EXTRACTOR] = 12
             self.result_plan[UnitTypeId.ZERGLING] = 10
             self.result_plan[UnitTypeId.BANELING] = 10
@@ -316,9 +334,10 @@ class Strategy(Tech):
                 UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
-                UnitTypeId.EXTRACTOR,
-                UnitTypeId.EXTRACTOR,
+                UnitTypeId.LAIR,
                 UnitTypeId.BANELINGNEST,
+                UnitTypeId.EXTRACTOR,
+                UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
             ]
@@ -401,12 +420,14 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.iffadd_result(UnitTypeId.ULTRALISKCAVERN, UnitTypeId.ULTRALISK, 1)
-            self.iffadd_result(UnitTypeId.BANELINGNEST, UnitTypeId.BANELING, 5)
+            self.iffadd_result(UnitTypeId.BANELINGNEST, UnitTypeId.BANELING, 3)
             self.iffadd_result(UnitTypeId.ROACHWARREN, UnitTypeId.ROACH, 5)
             self.iffadd_result(UnitTypeId.HYDRALISKDEN, UnitTypeId.HYDRALISK, 5)
+            if len(self.structures(UnitTypeId.HYDRALISKDEN).ready) > 0:
+                self.iffadd_result(UnitTypeId.LURKERDEN, UnitTypeId.LURKER, 1)
             self.iffadd_result(UnitTypeId.INFESTATIONPIT, UnitTypeId.INFESTOR, 4)
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.CORRUPTOR, 14)
-            self.iffadd_result(UnitTypeId.GREATERSPIRE, UnitTypeId.BROODLORD, 8)
+            self.iffadd_result(UnitTypeId.GREATERSPIRE, UnitTypeId.BROODLORD, 7)
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.VIPER, 3)
         elif gameplan == self.Gameplan.LINGWAVE:
             self.structures_at_hatches = 99
