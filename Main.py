@@ -9,6 +9,7 @@ from ender.creep import Creep
 from ender.endstep import Endstep
 from ender.making import Making
 from ender.parts import Parts
+from ender.lingscout import Lingscout
 from ender.queens import Queens
 from ender.overlords import Overlords
 from ender.mining import Mining
@@ -22,18 +23,18 @@ from sc2.player import Bot, Computer
 #                          Common
 #                                       \
 #                                        Tech
-#                        /  |          /   \       \       \         \      \     \
-#                  Attack Map_if Resources Strategy Queens Overlords Mining Parts Endstep
+#                        /  |          /   \       \       \         \      \     \        \
+#                  Attack Map_if Resources Strategy Queens Overlords Mining Parts Lingscout Endstep
 #                           |   \    |    /
 #                         Creep   Making
 #
-#                       \   |       /            /      /      /     /     /
+#                       \   |       /            /      /      /     /     /          /
 #
 #                         Ender
 #
 
 
-class Ender(Attack, Creep, Making, Queens, Overlords, Mining, Parts, Endstep):
+class Ender(Attack, Creep, Making, Queens, Overlords, Mining, Parts, Lingscout, Endstep):
     def __init__(self):
         super().__init__()
 
@@ -49,6 +50,7 @@ class Ender(Attack, Creep, Making, Queens, Overlords, Mining, Parts, Endstep):
         await Overlords.on_step(self, iteration)
         await Mining.on_step(self, iteration)
         await Parts.on_step(self, iteration)
+        await Lingscout.on_step(self, iteration)
         await Endstep.on_step(self, iteration)
 
 
@@ -69,11 +71,11 @@ def main():
     opponentspecies = random.choice([Race.Terran, Race.Zerg, Race.Protoss])
     # TO TEST use next line
     # opponentspecies = Race.Terran
-    # Easy/Medium/Hard/VeryHard
+    # VeryEasy/Easy/Medium/Hard/VeryHard
     run_game(
         sc2.maps.get(map),
-        [Bot(Race.Zerg, Ender()), Computer(opponentspecies, Difficulty.VeryHard)],  # VeryHard Easy
-        save_replay_as=f"{datetime.utcnow().strftime('%Y%m%d')}.SC2Replay",
+        [Bot(Race.Zerg, Ender()), Computer(opponentspecies, Difficulty.VeryHard)],
+        save_replay_as=f"{datetime.utcnow().strftime('%Y%m%d_%H%M')}.SC2Replay",
         realtime=False,
     )
 

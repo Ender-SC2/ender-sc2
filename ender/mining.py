@@ -82,7 +82,7 @@ class Mining(Common):
             respos = res.position
             post = self.postag_of_position(respos)
             bestdist = 99999
-            for expo in self.expansion_locations_list:
+            for expo in self.expansion_locations:
                 dist = distance(expo, respos)
                 if dist < bestdist:
                     bestdist = dist
@@ -92,7 +92,7 @@ class Mining(Common):
             respos = res.position
             post = self.postag_of_position(respos)
             bestdist = 99999
-            for expo in self.expansion_locations_list:
+            for expo in self.expansion_locations:
                 dist = distance(expo, respos)
                 if dist < bestdist:
                     bestdist = dist
@@ -176,7 +176,7 @@ class Mining(Common):
             self.minables_hash_last = self.minables_hash
             # per expo: the closest own base
             self.minebase_of_expo_mfu = {}
-            for expo in self.expansion_locations_list:
+            for expo in self.expansion_locations:
                 bestdist = 99999
                 for bas in self.minebases:
                     baspos = bas.position
