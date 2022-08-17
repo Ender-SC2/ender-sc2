@@ -228,7 +228,7 @@ class Common(BotAI, IUnitInterface):
         self.hospital = self.ourmain.towards(self.map_center, -7)
         self.expansion_locations = self.expansion_locations_list.copy()
         # mapspecific
-        if self.game_info.map_name == '2000 Atmospheres AIE':
+        if self.game_info.map_name == "2000 Atmospheres AIE":
             mispoint = Point2((67.5, 130.5))
             correctpoint = Point2((66.5, 131.5))
             del self.expansion_locations[self.expansion_locations.index(mispoint)]
@@ -467,4 +467,4 @@ class Common(BotAI, IUnitInterface):
     def t_of_p(self, point: Point2) -> str:
         x = round(point.x * 10) / 10
         y = round(point.y * 10) / 10
-        return '(' + str(x) + ',' + str(y) + ')'
+        return "(" + str(x) + "," + str(y) + ")"

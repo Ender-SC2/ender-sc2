@@ -262,6 +262,6 @@ class Queens(Common):
                                                         # transfer
                                                         self.queen_of_hall[hall.tag] = self.notag
                                                         self.queen_of_hall[besttohall.tag] = que.tag
-                                                        que.attack(besttohall.position) # moves there
+                                                        que.attack(besttohall.position)  # moves there
                                                         self.listenframe_of_unit[que.tag] = self.frame + 50
                                                         tohalls.remove(besttohall)

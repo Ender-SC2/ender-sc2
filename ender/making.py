@@ -297,7 +297,12 @@ class Making(Map_if, Resources, Strategy):
                 justone.train(typ)
                 self.listenframe_of_structure[justone.tag] = self.frame + 5
                 if bestwantdist < 99999:
-                    logger.info("building a queen at " + self.t_of_p(justone.position) + " for " + self.t_of_p(bestwanthall.position))
+                    logger.info(
+                        "building a queen at "
+                        + self.t_of_p(justone.position)
+                        + " for "
+                        + self.t_of_p(bestwanthall.position)
+                    )
                     self.queen_of_hall[bestwanthall.tag] = self.notag
             elif len(self.structures(crea).ready.idle) > 0:
                 # best at a distance
