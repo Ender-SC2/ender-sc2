@@ -41,7 +41,7 @@ class Creep(Map_if):
         #
         if self.enemy_race != Race.Zerg:
             # do not creep on expansionlocations
-            for pos in self.expansion_locations_list:
+            for pos in self.expansion_locations:
                 self.map_nocreep(pos, 5)
         #
 
@@ -61,12 +61,12 @@ class Creep(Map_if):
         self.creepdirection = []
         self.directionfinish = []
         if self.creepstyle == 0:  # aggressive
-            for epo in self.expansion_locations_list:
+            for epo in self.expansion_locations:
                 if distance(epo, self.enemymain) < 70:
                     self.creepdirection.append(epo)
                     self.directionfinish.append(12)
         elif self.creepstyle == 1:  # all bases
-            for epo in self.expansion_locations_list:
+            for epo in self.expansion_locations:
                 self.creepdirection.append(epo)
                 self.directionfinish.append(12)
         elif self.creepstyle == 2:  # mapedges
@@ -153,13 +153,17 @@ class Creep(Map_if):
             directionx = self.directionx_of_tumor[tag]
             dirpoint = self.creepdirection[directionx]
 
+    def want_injects(self) -> bool:
+        return len(self.larva) < 2 * self.nbases
+
     async def queencreep(self):
         # get some creep queens
         for unt in self.units(UnitTypeId.QUEEN).idle:
             if self.job_of_unit(unt) == Job.UNCLEAR:
                 if unt.energy >= 27:  # inject pickup is at 23
-                    if self.frame >= self.listenframe_of_unit[unt.tag]:
-                        self.set_job_of_unit(unt, Job.CREEPER)
+                    if not self.want_injects():
+                        if self.frame >= self.listenframe_of_unit[unt.tag]:
+                            self.set_job_of_unit(unt, Job.CREEPER)
         # move to its spot
         for unt in self.units(UnitTypeId.QUEEN).idle:
             if self.job_of_unit(unt) == Job.CREEPER:

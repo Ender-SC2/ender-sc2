@@ -122,7 +122,7 @@ class Attack(Map_if, Tech):
             behavior.setup(self, self)
         # enemynatural
         bestdist = 99999
-        for pos in self.expansion_locations_list:
+        for pos in self.expansion_locations:
             dist = distance(pos, self.enemymain)
             if dist > 5:
                 if dist < bestdist:
@@ -1190,7 +1190,7 @@ class Attack(Map_if, Tech):
             geysers_nonemp = self.vespene_geyser.filter(lambda gey: gey.has_vespene)
             geysers_nonemp_pos = [gey.position for gey in geysers_nonemp]
             mineral_pos = [patch.position for patch in self.mineral_field]
-            for expo in self.expansion_locations_list:
+            for expo in self.expansion_locations:
                 has_ore = False
                 for ore_pos in geysers_nonemp_pos:
                     if distance(ore_pos, expo) < 10:
@@ -1220,7 +1220,7 @@ class Attack(Map_if, Tech):
             for stru in self.structures(typ).idle:
                 tag = stru.tag
                 if self.frame >= self.listenframe_of_structure[tag]:
-                    for expo in self.expansion_locations_list:
+                    for expo in self.expansion_locations:
                         if distance(expo, stru.position) < 10:
                             if expo in self.dried:
                                 mindist = 99999

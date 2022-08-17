@@ -122,7 +122,7 @@ class Strategy(Tech):
                             [
                                 OverlordScoutBase(self.enemymain),
                                 OverlordScoutBase(
-                                    await closest_in_path(self, self.expansion_locations_list, self.enemymain, 35)
+                                    await closest_in_path(self, self.expansion_locations, self.enemymain, 35)
                                 ),
                             ]
                         ),
@@ -313,9 +313,9 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = 6
             self.result_plan[UnitTypeId.LAIR] = 1
             self.result_plan[UnitTypeId.EXTRACTOR] = 12
-            self.result_plan[UnitTypeId.ZERGLING] = 10
+            self.result_plan[UnitTypeId.ZERGLING] = 40
             self.result_plan[UnitTypeId.BANELING] = 10
-            self.result_plan[UnitTypeId.ROACH] = 20
+            self.result_plan[UnitTypeId.ROACH] = 15
             self.result_plan[UnitTypeId.RAVAGER] = 20
             self.building_order = [
                 UnitTypeId.HATCHERY,
@@ -342,6 +342,7 @@ class Strategy(Tech):
                 UnitTypeId.EXTRACTOR,
             ]
             self.structype_order = []
+            self.opening.append(("supply", 17, UnitTypeId.HATCHERY, 2))
         elif gameplan == self.Gameplan.FOURBASE:
             # wants to reach max
             self.structures_at_hatches = 4
@@ -375,7 +376,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ROACH] = 10
             self.result_plan[UnitTypeId.RAVAGER] = 5
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-            self.iffadd_result(UnitTypeId.LURKERDENMP, UnitTypeId.LURKER, 2)
+            self.iffadd_result(UnitTypeId.LURKERDENMP, UnitTypeId.LURKERMP, 2)
             self.result_plan[UnitTypeId.SPIRE] = 1
         elif gameplan == self.Gameplan.MUTAS:
             self.structures_at_hatches = 5
@@ -424,7 +425,7 @@ class Strategy(Tech):
             self.iffadd_result(UnitTypeId.ROACHWARREN, UnitTypeId.ROACH, 5)
             self.iffadd_result(UnitTypeId.HYDRALISKDEN, UnitTypeId.HYDRALISK, 5)
             if len(self.structures(UnitTypeId.HYDRALISKDEN).ready) > 0:
-                self.iffadd_result(UnitTypeId.LURKERDEN, UnitTypeId.LURKER, 1)
+                self.iffadd_result(UnitTypeId.LURKERDENMP, UnitTypeId.LURKERMP, 1)
             self.iffadd_result(UnitTypeId.INFESTATIONPIT, UnitTypeId.INFESTOR, 4)
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.CORRUPTOR, 14)
             self.iffadd_result(UnitTypeId.GREATERSPIRE, UnitTypeId.BROODLORD, 7)

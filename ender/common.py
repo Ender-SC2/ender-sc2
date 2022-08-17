@@ -28,6 +28,7 @@ class Common(BotAI, IUnitInterface):
     ourmain = nowhere
     seconds = 22.4
     minutes = seconds * 60
+    expansion_locations = []
     all_halltypes = {
         UnitTypeId.COMMANDCENTER,
         UnitTypeId.ORBITALCOMMAND,
@@ -225,6 +226,18 @@ class Common(BotAI, IUnitInterface):
         self.map_bottom = self.game_info.playable_area.y
         self.map_top = self.game_info.playable_area.height + self.game_info.playable_area.y
         self.hospital = self.ourmain.towards(self.map_center, -7)
+        self.expansion_locations = self.expansion_locations_list.copy()
+        # mapspecific
+        if self.game_info.map_name == '2000 Atmospheres AIE':
+            mispoint = Point2((67.5, 130.5))
+            correctpoint = Point2((66.5, 131.5))
+            del self.expansion_locations[self.expansion_locations.index(mispoint)]
+            self.expansion_locations.append(correctpoint)
+            mispoint = Point2((156.5, 73.5))
+            correctpoint = Point2((157.5, 72.5))
+            del self.expansion_locations[self.expansion_locations.index(mispoint)]
+            self.expansion_locations.append(correctpoint)
+        #
 
     async def on_start(self):
         self.client.game_step = self.game_step
@@ -347,7 +360,7 @@ class Common(BotAI, IUnitInterface):
             # print('freegeysers: ' + str(len(self.freegeysers)))
             # freeexpos
             self.freeexpos = []
-            for pos in self.expansion_locations_list:
+            for pos in self.expansion_locations:
                 free = True
                 for typ in self.all_halltypes:
                     for stru in self.structures(typ):
@@ -450,3 +463,8 @@ class Common(BotAI, IUnitInterface):
 
     def blue_half(self, tag) -> bool:
         return abs(tag) % 10 in {0, 3, 5, 6, 9}  # half of them
+
+    def t_of_p(self, point: Point2) -> str:
+        x = round(point.x * 10) / 10
+        y = round(point.y * 10) / 10
+        return '(' + str(x) + ',' + str(y) + ')'

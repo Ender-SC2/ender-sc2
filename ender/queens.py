@@ -12,7 +12,7 @@ from sc2.position import Point2
 class Queens(Common):
 
     __did_step0 = False
-    nextinject = {}  # per hatch to prevent overINJECTER
+    nextinject = {}  # per hatch to prevent overinjecting
     treating = {}  # per patient the next treating moment
     mineralside = {}  # per expopos
     # queen_of_hall is in common.py
@@ -29,23 +29,28 @@ class Queens(Common):
         await self.queeninject()
         await self.transfuse()
         await self.admin_queen_of_hall()
+        await self.transfer()
+
+    def want_injects(self) -> bool:
+        return len(self.larva) < 2 * self.nbases
 
     def choose_inject(self, pos) -> bool:
         # for a queen at pos
         want = False
         itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(pos)
-        if len(self.larva) < 2 * self.nbases:
-            mayinject = True
-            if itshatch.tag in self.nextinject:
-                if self.frame < self.nextinject[itshatch.tag]:
-                    mayinject = False
-            if mayinject:
-                if itshatch.has_buff(BuffId.QUEENSPAWNLARVATIMER):
-                    # print('spawnrest '+str(itshatch.buff_duration_remain))
-                    if itshatch.buff_duration_remain < 8 * self.seconds:
+        if itshatch.build_progress == 1:
+            if self.want_injects():
+                mayinject = True
+                if itshatch.tag in self.nextinject:
+                    if self.frame < self.nextinject[itshatch.tag]:
+                        mayinject = False
+                if mayinject:
+                    if itshatch.has_buff(BuffId.QUEENSPAWNLARVATIMER):
+                        # print('spawnrest '+str(itshatch.buff_duration_remain))
+                        if itshatch.buff_duration_remain < 8 * self.seconds:
+                            want = True
+                    else:
                         want = True
-                else:
-                    want = True
         return want
 
     async def queeninject(self):
@@ -59,7 +64,8 @@ class Queens(Common):
                                 pos = unt.position
                                 self.set_job_of_unit(unt, Job.INJECTER)
                                 itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(pos)
-                                self.nextinject[itshatch.tag] = self.frame + 21 * self.seconds
+                                if itshatch.build_progress == 1:
+                                    self.nextinject[itshatch.tag] = self.frame + 21 * self.seconds
             # move to its spot
             for unt in self.units(UnitTypeId.QUEEN).idle:
                 if self.job_of_unit(unt) == Job.INJECTER:
@@ -76,9 +82,10 @@ class Queens(Common):
                     if self.frame >= self.listenframe_of_unit[unt.tag]:
                         if unt.energy >= 25:
                             itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
-                            unt(AbilityId.EFFECT_INJECTLARVA, itshatch)
-                            self.set_job_of_unit(unt, Job.UNCLEAR)
-                            self.listenframe_of_unit[unt.tag] = self.frame + 100
+                            if itshatch.build_progress == 1:
+                                unt(AbilityId.EFFECT_INJECTLARVA, itshatch)
+                                self.set_job_of_unit(unt, Job.UNCLEAR)
+                                self.listenframe_of_unit[unt.tag] = self.frame + 100
 
     async def transfuse(self):
         if self.function_listens("transfusion", self.seconds):
@@ -188,7 +195,7 @@ class Queens(Common):
                     for halltype in self.all_halltypes:
                         for hall in self.structures(halltype):
                             if hall.tag == halltag:
-                                bestdist = 40
+                                bestdist = 60
                                 for que in self.units(UnitTypeId.QUEEN):
                                     if self.job_of_unit(que) != Job.NURSE:
                                         if que.tag not in self.queen_of_hall.values():
@@ -196,7 +203,7 @@ class Queens(Common):
                                             if dist < bestdist:
                                                 bestdist = dist
                                                 bestqueen = que
-                                if bestdist < 40:
+                                if bestdist < 60:
                                     que = bestqueen
                                     self.queen_of_hall[halltag] = que.tag
                                     self.set_job_of_unit(que, Job.UNCLEAR)
@@ -204,7 +211,7 @@ class Queens(Common):
 
     def init_mineralside(self):
         self.mineralside = {}
-        for expo in self.expansion_locations_list:
+        for expo in self.expansion_locations:
             side = self.map_center
             minerals = self.mineral_field.closer_than(8, expo)
             if minerals:
@@ -216,3 +223,45 @@ class Queens(Common):
             return self.mineralside[expos]
         else:
             return expos.towards(self.map_center, 4)
+
+    def hall_makes_queen(self, hall) -> bool:
+        makes = False
+        for order in hall.orders:
+            if order.ability.id == AbilityId.TRAINQUEEN_QUEEN:
+                makes = True
+        return makes
+
+    async def transfer(self):
+        # If a queen is made at a near hatch, at that near hatch the existing queen can switch with the queen-being-made.
+        if self.function_listens("transfer", 18):
+            tohalls = set()
+            for halltyp in self.all_halltypes:
+                for hall in self.structures(halltyp):
+                    if hall.tag in self.queen_of_hall:
+                        if self.queen_of_hall[hall.tag] == self.notag:
+                            if not self.hall_makes_queen(hall):
+                                tohalls.add(hall)
+            if len(tohalls) > 0:
+                for que in self.units(UnitTypeId.QUEEN):
+                    if self.job_of_unit(que) == Job.UNCLEAR:
+                        if self.frame >= self.listenframe_of_unit[que.tag]:
+                            for halltyp in self.all_halltypes:
+                                for hall in self.structures(halltyp):
+                                    if hall.tag in self.queen_of_hall:
+                                        if que.tag == self.queen_of_hall[hall.tag]:
+                                            if self.hall_makes_queen(hall):
+                                                if que.energy < 15:
+                                                    # this queen could transfer
+                                                    bestdist = 99999
+                                                    for tohall in tohalls:
+                                                        dist = distance(que.position, tohall.position)
+                                                        if dist < bestdist:
+                                                            bestdist = dist
+                                                            besttohall = tohall
+                                                    if bestdist < 99999:
+                                                        # transfer
+                                                        self.queen_of_hall[hall.tag] = self.notag
+                                                        self.queen_of_hall[besttohall.tag] = que.tag
+                                                        que.attack(besttohall.position) # moves there
+                                                        self.listenframe_of_unit[que.tag] = self.frame + 50
+                                                        tohalls.remove(besttohall)
