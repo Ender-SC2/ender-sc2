@@ -83,6 +83,7 @@ class Strategy(Tech):
     structures_at_hatches = 0
     auto_upgrade = True
     auto_homequeen = True
+    auto_tech = False # tech asap to greaterspire
 
     async def __step0(self):
         #
@@ -173,9 +174,7 @@ class Strategy(Tech):
         self.new_plan.setup(self)
         #
         self.init_followup()
-        #
         self.init_zero_plan()
-        #
         self.standard_structype_order()
         #
         choice = random.choice(list(self.Gameplan))
@@ -198,23 +197,39 @@ class Strategy(Tech):
             self.__did_step0 = True
         #
         # To test the pure greed, comment out next line, and change in Main.py the opponent difficulty to VeryEasy
-        # await self.check_agression()
+        await self.check_agression()
         #
         if self.wave_count != self.last_wave_count:
             self.last_wave_count = self.wave_count
-            self.greed_wish = False
             #
             plan = self.get_followup(self.gameplan)
+            if self.greed_wish:
+                if plan in self.openingplans:
+                    plan = self.Gameplan.GREED
+                elif plan in [
+                    self.Gameplan.FOURBASE,
+                    self.Gameplan.TO_LAIR,
+                ]:
+                    plan = self.Gameplan.GREED
+                else:
+                    self.greed_wish = False
             self.set_gameplan(plan)
             # skip on goal reached
-            if plan not in [
+            if plan in [
                 self.Gameplan.SWARM,
-                self.Gameplan.ENDGAME,
                 self.Gameplan.LINGBANEMUTA,
-                self.Gameplan.LINGWAVE,
                 self.Gameplan.MUTAS,
+            ]:
+                if len(self.structures(UnitTypeId.HIVE).ready) > 0:
+                    logger.info("(Skipping " + plan.name + " because hive exists.)")
+                    plan = self.Gameplan.ENDGAME
+            elif plan in [
+                self.Gameplan.LINGWAVE,
+                self.Gameplan.ENDGAME,
                 self.Gameplan.ULTRAWAVE,
             ]:
+                pass
+            else:
                 goalreached = True
                 while goalreached:
                     for thing in self.result_plan:
@@ -310,9 +325,9 @@ class Strategy(Tech):
         elif gameplan == self.Gameplan.GREED:
             self.greed_wish = True  # to allow shift away and back
             self.structures_at_hatches = 5
-            self.result_plan[UnitTypeId.HATCHERY] = 6
+            self.result_plan[UnitTypeId.HATCHERY] = 5
             self.result_plan[UnitTypeId.LAIR] = 1
-            self.result_plan[UnitTypeId.EXTRACTOR] = 12
+            self.result_plan[UnitTypeId.EXTRACTOR] = 10
             self.result_plan[UnitTypeId.ZERGLING] = 40
             self.result_plan[UnitTypeId.BANELING] = 10
             self.result_plan[UnitTypeId.ROACH] = 15
@@ -327,7 +342,6 @@ class Strategy(Tech):
                 UnitTypeId.ROACHWARREN,
                 UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
-                UnitTypeId.HATCHERY,
                 UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
@@ -338,11 +352,10 @@ class Strategy(Tech):
                 UnitTypeId.BANELINGNEST,
                 UnitTypeId.EXTRACTOR,
                 UnitTypeId.EXTRACTOR,
-                UnitTypeId.EXTRACTOR,
-                UnitTypeId.EXTRACTOR,
             ]
             self.structype_order = []
             self.opening.append(("supply", 17, UnitTypeId.HATCHERY, 2))
+            self.auto_tech = True
         elif gameplan == self.Gameplan.FOURBASE:
             # wants to reach max
             self.structures_at_hatches = 4
@@ -634,7 +647,7 @@ class Strategy(Tech):
         self.fol(self.Gameplan.THREEBASE_NOGAS, self.Gameplan.FOURBASE)
         self.fol(self.Gameplan.THREEBASE, self.Gameplan.TO_LAIR)
         self.fol(self.Gameplan.RAVATHREE, self.Gameplan.TO_LAIR)
-        self.fol(self.Gameplan.GREED, self.Gameplan.TO_LAIR)
+        self.fol(self.Gameplan.GREED, self.Gameplan.TO_SPIRE)
         self.fol(self.Gameplan.FOURBASE, self.Gameplan.TO_LAIR)
         self.fol(self.Gameplan.TO_LAIR, self.Gameplan.TO_SPIRE)
         self.fol(self.Gameplan.SWARM, self.Gameplan.TO_HIVE)

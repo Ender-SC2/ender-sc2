@@ -231,6 +231,14 @@ class Queens(Common):
                 makes = True
         return makes
 
+    def hall_makes_queen_nearready(self, hall) -> bool:
+        makes = False
+        for order in hall.orders:
+            if order.ability.id == AbilityId.TRAINQUEEN_QUEEN:
+                if order.progress > 0.5: # 18 sec
+                    makes = True
+        return makes
+
     async def transfer(self):
         # If a queen is made at a near hatch, at that near hatch the existing queen can switch with the queen-being-made.
         if self.function_listens("transfer", 18):
@@ -249,7 +257,7 @@ class Queens(Common):
                                 for hall in self.structures(halltyp):
                                     if hall.tag in self.queen_of_hall:
                                         if que.tag == self.queen_of_hall[hall.tag]:
-                                            if self.hall_makes_queen(hall):
+                                            if self.hall_makes_queen_nearready(hall):
                                                 if que.energy < 15:
                                                     # this queen could transfer
                                                     bestdist = 99999

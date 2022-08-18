@@ -312,6 +312,7 @@ class Attack(Map_if, Tech):
                     if wanttrade:
                         # report
                         logger.info("PLANNING BIGATTACK!")
+                        await self.client.chat_send("planning attack", team_only=False)
                         self.bigattacking = True
                         #
                         self.correct_speed()
