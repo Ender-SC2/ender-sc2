@@ -601,6 +601,14 @@ class Making(Map_if, Resources, Strategy):
                     importance = self.importance["lone_building"]
                 if self.make_plan[typ] > 0:
                     importance += 1000
+                if self.auto_tech:
+                    if typ in {
+                        UnitTypeId.HIVE,
+                        UnitTypeId.INFESTATIONPIT,
+                        UnitTypeId.SPIRE,
+                        UnitTypeId.GREATERSPIRE,
+                    }:
+                        importance += 1500
                 if self.do_emergencies:
                     for (emerg_typ, emerg_pos) in self.emergency:
                         if emerg_typ == typ:
