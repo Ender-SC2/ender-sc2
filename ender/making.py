@@ -554,8 +554,8 @@ class Making(Map_if, Resources, Strategy):
                     for emergency_entry in self.emergency.queue().values():
                         if isinstance(emergency_entry, EmergencyUnit):
                             if emergency_entry.unit_type == typ and self.atleast_started(typ) < emergency_entry.amount:
-                            importance = 2000
-                            break
+                                importance = 2000
+                                break
                 self.claim_resources(typ, importance)
                 if self.check_resources(typ, importance):
                     self.spend_resources(typ)
