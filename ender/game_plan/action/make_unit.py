@@ -2,12 +2,12 @@ from loguru import logger
 
 from ender.common import Common
 from ender.game_plan.action.action import IAction
+from ender.production.emergency import EmergencyUnit
 from sc2.ids.unit_typeid import UnitTypeId
 
 
 class MakeUnit(IAction):
     common: Common
-    REQUEST_TIMEOUT = 30
 
     def __init__(self, reference_unit: UnitTypeId, unit_type: UnitTypeId, ratio: float = 1):
         super().__init__()
@@ -20,16 +20,16 @@ class MakeUnit(IAction):
         self.common = common
 
     def execute(self):
-        amount = self.wanted_amount()
-        if amount >= self.count_units():
+        wanted_amount = self.wanted_amount()
+        if wanted_amount < self.count_units():
             return False
-        logger.info(f"Asking for {self.unit_type}")
-        self.common.emergency.add((self.unit_type, None))
+        logger.info(f"Asking for {self.unit_type}:{wanted_amount}")
+        self.common.emergency.queue()[id(self)] = EmergencyUnit(self.unit_type, wanted_amount)
         self.request_time = self.common.time
         return False
 
-    def wanted_amount(self):
-        return len(self.common.enemy_units.of_type(self.reference_unit)) * self.ratio
+    def wanted_amount(self) -> int:
+        return int(len(self.common.enemy_units.of_type(self.reference_unit)) * self.ratio)
 
-    def count_units(self):
+    def count_units(self) -> int:
         return len(self.common.units.of_type(self.unit_type))

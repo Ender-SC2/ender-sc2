@@ -2,7 +2,9 @@
 
 from loguru import logger
 
+from ender.cache.enemy_cache import EnemyCache
 from ender.job import Job
+from ender.production.emergency import Emergency, EmergencyQueue
 from ender.unit.unit_command import IUnitCommand
 from ender.unit.unit_interface import IUnitInterface, UnitInterface
 from ender.utils.point_utils import distance
@@ -18,12 +20,12 @@ class Common(BotAI, IUnitInterface):
 
     # Unit Interface
     _unit_interface: IUnitInterface = UnitInterface()
+    enemy_cache: EnemyCache = EnemyCache()
 
     # constants after step0:
     nowhere = Point2((1, 1))
     notag = -1
     game_step = 4  # the amount of frames between program-step-runs
-    __did_step0 = False
     enemymain = nowhere
     ourmain = nowhere
     seconds = 22.4
@@ -212,7 +214,7 @@ class Common(BotAI, IUnitInterface):
     __did_step0 = False
     _last_structures_len = 0  # internal speedup
     _last_enemy_struc_mem_len = 0  # internal speedup
-    emergency = set()  # A thing in emergency will build with 2000 importance. Set of (typ, pos)
+    emergency: EmergencyQueue = EmergencyQueue()  # A thing in emergency will build with 2000 importance.
 
     async def __step0(self):
         self.enemymain = self.enemy_start_locations[0].position
@@ -237,6 +239,7 @@ class Common(BotAI, IUnitInterface):
             self.__did_step0 = True
         if not self.did_common_onstep:
             self.did_common_onstep = True
+            self.enemy_cache.update(self)
             # frame
             self.game_step = self.client.game_step
             self.frame = self.iteration * self.game_step
@@ -404,6 +407,7 @@ class Common(BotAI, IUnitInterface):
             self.army_supply_used = self.supply_used - (self.drones_supply_used + self.queens_supply_used)
             # lairtech
             self.lairtech = len(self.structures(UnitTypeId.LAIR).ready) + len(self.structures(UnitTypeId.HIVE)) > 0
+            await self.execute()
 
     def function_listens(self, name, delay) -> bool:
         # forces 'delay' frames between function calls.
@@ -450,3 +454,6 @@ class Common(BotAI, IUnitInterface):
 
     def blue_half(self, tag) -> bool:
         return abs(tag) % 10 in {0, 3, 5, 6, 9}  # half of them
+
+    def on_unit_destroyed(self, unit_tag: int):
+        self.enemy_cache.unit_destroyed(unit_tag)
