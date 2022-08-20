@@ -1,14 +1,11 @@
 # nydus.py, Ender
 
-import os
-
 from loguru import logger
 
 from ender.common import Common
-from ender.utils.type_utils import get_version
-from ender.job import Job
-from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.ability_id import AbilityId
+from sc2.position import Point2
 from ender.utils.point_utils import distance
 
 
@@ -34,8 +31,8 @@ class Nydus(Common):
         await self.do_nydus()
 
     async def do_nydus(self):
-       if self.via_nydus:
-           self.nydus_out(AbilityId.SMART)
+        if self.via_nydus:
+            self.nydus_out(AbilityId.SMART)
 
     def set_nydus(self, aa: Point2, bb: Point2):
         distland = distance(aa, bb)
@@ -64,14 +61,14 @@ class Nydus(Common):
         if unt.type_id in self.all_changelings:
             nyd = False
         if nyd:
-           if distance(pos, self.nydus_in_pos) + distance(pos, self.nydus_out_pos) < distance(pos, goal):
-               if distance(pos, self.nydus_in_pos) > 5:
-                  unt.attack(self.nydus_in_pos)
-               else:
-                  if self.frame >= self.wait_of_unit[self.nydus_in.tag]:
-	              self.nydus_in(AbilityId.LOAD_NYDUSNETWORK, unt)
-                      self.wait_of_unit[self.nydus_in.tag] = self.frame + 0.18 * self.seconds
-           else:
-               unt.attack(goal)
+            if distance(pos, self.nydus_in_pos) + distance(pos, self.nydus_out_pos) < distance(pos, goal):
+                if distance(pos, self.nydus_in_pos) > 5:
+                    unt.attack(self.nydus_in_pos)
+                else:
+                    if self.frame >= self.wait_of_unit[self.nydus_in.tag]:
+                        self.nydus_in(AbilityId.LOAD_NYDUSNETWORK, unt)
+                        self.wait_of_unit[self.nydus_in.tag] = self.frame + 0.18 * self.seconds
+            else:
+                unt.attack(goal)
         else:
-           unt.attack(goal)
+            unt.attack(goal)
