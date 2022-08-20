@@ -6,6 +6,7 @@ from ender.common import Common
 from ender.game_plan.action.action import IAction
 from ender.game_plan.action.positioning import Positioning
 from ender.game_plan.action.random_positioning import RandomPositioning
+from ender.production.emergency import EmergencyStructure
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
@@ -40,7 +41,7 @@ class PlaceBuilding(IAction):
         position = self.get_position()
         if position:
             logger.info(f"Asking for {self.unit_type} on {self.get_position()}")
-            self.common.emergency.add((self.unit_type, self.get_position()))
+            self.common.emergency.add(EmergencyStructure(self.unit_type, self.get_position()))
         self.request_time = self.common.time
         return False
 

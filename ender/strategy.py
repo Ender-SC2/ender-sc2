@@ -17,19 +17,19 @@ from ender.game_plan.action.place_building import PlaceBuilding
 from ender.game_plan.action.place_building_per_base import PlaceBuildingPerBase
 from ender.game_plan.action.wait_until import WaitUntil
 from ender.game_plan.action.worker_scout_action import WorkerScoutAction
-from ender.game_plan.condition import HaveUnit, All, No, HaveStructure
+from ender.game_plan.condition import HaveUnit, All
 from ender.game_plan.condition.any import Any
 from ender.game_plan.condition.before_time import BeforeTime
 from ender.game_plan.condition.enemy_structure import EnemyStructure
-from ender.game_plan.condition.enemy_structure_ready_before import EnemyStructureStartedBefore
+from ender.game_plan.condition.enemy_structure_started_before import EnemyStructureStartedBefore
 from ender.game_plan.condition.enemy_unit import EnemyUnit
 from ender.game_plan.condition.remember_condition import RememberCondition
 from ender.game_plan.game_plan import GamePlan
 from ender.tech import Tech
 from ender.utils.point_utils import closest_in_path
 from ender.utils.structure_utils import gas_extraction_structures
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.data import Race
+from sc2.ids.unit_typeid import UnitTypeId
 
 
 class Strategy(Tech):
@@ -90,6 +90,7 @@ class Strategy(Tech):
         self.new_plan = GamePlan(
             [
                 ConditionalAction(
+                    "Defensive spores",
                     Any(
                         [
                             RememberCondition(
@@ -111,6 +112,7 @@ class Strategy(Tech):
                         # If we detect gas completed before 71 seconds, we should be commanding the overlords to move in at 2:45
                         # If they built gas after 50 seconds then we should command overlords in at 3:15
                         ConditionalAction(
+                            "Overlord scout",
                             RememberCondition(
                                 EnemyStructureStartedBefore(
                                     unit_type=gas_extraction_structures, amount=1, time_limit=50
@@ -130,6 +132,7 @@ class Strategy(Tech):
                     ]
                 ),
                 ConditionalAction(
+                    "Early enemy gas reaction",
                     RememberCondition(
                         All([BeforeTime(65), EnemyStructure(unit_type=gas_extraction_structures, amount=2)])
                     ),
@@ -143,32 +146,38 @@ class Strategy(Tech):
                     ),
                 ),
                 ConditionalAction(
+                    "Early enemy pool reaction",
+                    RememberCondition(EnemyStructureStartedBefore(UnitTypeId.SPAWNINGPOOL, 50)),
+                    ActionSequence(
+                        [PlaceBuilding(UnitTypeId.SPAWNINGPOOL), MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 1.2)]
+                    ),
+                ),
+                ConditionalAction(
+                    "Battle cruiser reaction",
                     EnemyUnit(UnitTypeId.BATTLECRUISER),
                     ActionSequence(
                         [PlaceBuilding(UnitTypeId.SPIRE), MakeUnit(UnitTypeId.BATTLECRUISER, UnitTypeId.CORRUPTOR, 3)]
                     ),
                 ),
                 ConditionalAction(
+                    "Enemy roach reaction",
                     EnemyUnit(UnitTypeId.ROACH),
                     ActionSequence(
                         [MakeUnit(UnitTypeId.ROACH, UnitTypeId.ROACH, 0.6)],
                     ),
                 ),
                 ConditionalAction(
+                    "Enemy lings reaction",
                     EnemyUnit(UnitTypeId.ZERGLING),
                     ActionSequence(
                         [MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],
                     ),
                 ),
                 ConditionalAction(
-                    RememberCondition(
-                        EnemyStructureStartedBefore(unit_type=UnitTypeId.SPAWNINGPOOL, amount=1, time_limit=50)
-                    ),
-                    ActionSequence(
-                        [MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],
-                    ),
+                    "13 drone scout",
+                    HaveUnit(UnitTypeId.DRONE, 13),
+                    WorkerScoutAction()
                 ),
-                ConditionalAction(HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]
         )
         self.new_plan.setup(self)

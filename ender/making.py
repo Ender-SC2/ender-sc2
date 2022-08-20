@@ -6,6 +6,7 @@ from loguru import logger
 
 from ender.job import Job
 from ender.map_if import Map_if
+from ender.production.emergency import EmergencyStructure, EmergencyUnit
 from ender.resources import Resources
 from ender.strategy import Strategy
 from ender.utils.point_utils import distance
@@ -66,13 +67,11 @@ class Making(Map_if, Resources, Strategy):
     example = UnitTypeId.SCV  # for debugging, e.g. EXTRACTOR. To silence: SCV
     # emergency in common.py
     do_emergencies = True  # False to test greed without emergency spores
-    # supplytricking in common.py
     supplytrick_phase = "no"
     supplytrick_end = 0
     rallied = set()
     i_am_making_a = set()  # recently issued build commands
     i_am_making_a_building = set()  # recently issued build commands
-    # current_expandings is in common.py. The expand positions with a walker or builder.
     wrote_experience = False
     disturbed = False
     file_expers = []  # datafile lines
@@ -89,6 +88,7 @@ class Making(Map_if, Resources, Strategy):
     learnsum = 0  # sum of (abs change of walkframe)
     thisgame = []  # of (typ, pos, betterwalk)
     buildplan_nr = 0
+
     #
     def __step0(self):
         self.buildplan_timeout = 2.5 * self.minutes
@@ -551,8 +551,9 @@ class Making(Map_if, Resources, Strategy):
                 ):
                     importance += 1000
                 if self.do_emergencies:
-                    for (emerg_typ, emerg_pos) in self.emergency:
-                        if emerg_typ == typ:
+                    for emergency_entry in self.emergency.queue().values():
+                        if isinstance(emergency_entry, EmergencyUnit):
+                            if emergency_entry.unit_type == typ and self.atleast_started(typ) < emergency_entry.amount:
                             importance = 2000
                             break
                 self.claim_resources(typ, importance)
@@ -610,10 +611,11 @@ class Making(Map_if, Resources, Strategy):
                     }:
                         importance += 1500
                 if self.do_emergencies:
-                    for (emerg_typ, emerg_pos) in self.emergency:
-                        if emerg_typ == typ:
-                            importance = 2000
-                            break
+                    for emergency_entry in self.emergency.queue().values():
+                        if isinstance(emergency_entry, EmergencyStructure):
+                            if emergency_entry.unit_type == typ:
+                                importance = 2000
+                                break
                 self.claim_resources(typ, importance)
                 if typ not in self.buildplan:
                     size = self.size_of_structure[typ]
@@ -665,15 +667,16 @@ class Making(Map_if, Resources, Strategy):
                             self.set_job_of_unit(gooddrone, Job.UNCLEAR)
                         # emergency position
                         if self.do_emergencies:
-                            emergency = False
-                            for (emerg_typ, emerg_pos) in self.emergency:
-                                if emerg_typ == typ:
-                                    logger.info(f"{emerg_typ} at {emerg_pos}")
-                                    pos = emerg_pos
-                                    emergency = True
-                                    break
-                            if emergency:
-                                self.emergency.remove((typ, pos))
+                            emergency_id = None
+                            for key, emergency_entry in self.emergency.queue().items():
+                                if isinstance(emergency_entry, EmergencyStructure):
+                                    if emergency_entry.unit_type == typ:
+                                        logger.info(f"{emergency_entry.unit_type} at {emergency_entry.location}")
+                                        pos = emergency_entry.location
+                                        emergency_id = emergency_id
+                                        break
+                            if emergency_id:
+                                self.emergency.queue().pop(emergency_id)
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
                         expiration = self.frame + self.buildplan_timeout
