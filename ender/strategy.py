@@ -83,7 +83,7 @@ class Strategy(Tech):
     structures_at_hatches = 0
     auto_upgrade = True
     auto_homequeen = True
-    auto_tech = False # tech asap to greaterspire
+    auto_tech = False  # tech asap to greaterspire
 
     async def __step0(self):
         #
@@ -149,7 +149,10 @@ class Strategy(Tech):
                     "Early enemy pool reaction",
                     RememberCondition(EnemyStructureStartedBefore(UnitTypeId.SPAWNINGPOOL, 50)),
                     ActionSequence(
-                        [PlaceBuilding(UnitTypeId.SPAWNINGPOOL), MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 1.2)]
+                        [
+                            PlaceBuilding(UnitTypeId.SPAWNINGPOOL),
+                            MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 1.2),
+                        ]
                     ),
                 ),
                 ConditionalAction(
@@ -173,11 +176,7 @@ class Strategy(Tech):
                         [MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],
                     ),
                 ),
-                ConditionalAction(
-                    "13 drone scout",
-                    HaveUnit(UnitTypeId.DRONE, 13),
-                    WorkerScoutAction()
-                ),
+                ConditionalAction("13 drone scout", HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]
         )
         self.new_plan.setup(self)

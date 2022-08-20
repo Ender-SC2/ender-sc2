@@ -2,7 +2,8 @@ import unittest
 
 from ender.behavior.combat import (
     FocusFireCombatBehavior,
-    AttackCenterBehavior, RepositionBehavior,
+    AttackCenterBehavior,
+    RepositionBehavior,
 )
 from ender.behavior.combat.attack_closest_enemy_behavior import (
     AttackClosestEnemyBehavior,
@@ -18,23 +19,13 @@ from test.test_environment import TestEnvironment, battle_maps
 class TestRoachBaneling(unittest.TestCase):
     def test_roach_vs_baneling_20_supply(self):
         winner = EnderTestBot(
-            [
-                AttackCenterBehavior(),
-                AttackClosestEnemyBehavior(),
-                RepositionBehavior(),
-                FocusFireCombatBehavior()
-            ],
+            [AttackCenterBehavior(), AttackClosestEnemyBehavior(), RepositionBehavior(), FocusFireCombatBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),
         )
         loser = EnderTestBot(
             [AttackCenterBehavior(), AttackClosestEnemyBehavior()],
-            MultipleTestSetup(
-                [
-                    UpgradedSetup(),
-                    CreateUnitsTestSetup(UnitTypeId.BANELING, 30, Point2([10, 10]))
-                ]
-            ),
+            MultipleTestSetup([UpgradedSetup(), CreateUnitsTestSetup(UnitTypeId.BANELING, 30, Point2([10, 10]))]),
             No(HaveUnit()),
         )
         environment = TestEnvironment()
@@ -43,23 +34,13 @@ class TestRoachBaneling(unittest.TestCase):
 
     def test_roach_vs_baneling_50_supply(self):
         winner = EnderTestBot(
-            [
-                AttackCenterBehavior(),
-                AttackClosestEnemyBehavior(),
-                RepositionBehavior(),
-                FocusFireCombatBehavior()
-            ],
+            [AttackCenterBehavior(), AttackClosestEnemyBehavior(), RepositionBehavior(), FocusFireCombatBehavior()],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),
         )
         loser = EnderTestBot(
             [AttackCenterBehavior(), AttackClosestEnemyBehavior()],
-            MultipleTestSetup(
-                [
-                    UpgradedSetup(),
-                    CreateUnitsTestSetup(UnitTypeId.ZERGLING, 100, Point2([10, 10]))
-                ]
-            ),
+            MultipleTestSetup([UpgradedSetup(), CreateUnitsTestSetup(UnitTypeId.ZERGLING, 100, Point2([10, 10]))]),
             No(HaveUnit()),
         )
         environment = TestEnvironment()

@@ -23,6 +23,7 @@ class EmergencyQueue:
     """
     Holds emergency queue
     """
+
     emergency_queue = dict[int, Emergency]()
 
     def queue(self):

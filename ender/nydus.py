@@ -50,7 +50,7 @@ class Nydus(Common):
                 distbb = dist
                 self.nydus_out = nydus
                 self.nydus_out_pos = nydus.position
-        self.via_nydus = (distaa + distbb < distland)
+        self.via_nydus = distaa + distbb < distland
 
     def attack_via_nydus(self, unt):
         pos = unt.position
