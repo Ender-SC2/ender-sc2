@@ -455,5 +455,5 @@ class Common(BotAI, IUnitInterface):
     def blue_half(self, tag) -> bool:
         return abs(tag) % 10 in {0, 3, 5, 6, 9}  # half of them
 
-    def on_unit_destroyed(self, unit_tag: int):
+    async def on_unit_destroyed(self, unit_tag: int):
         self.enemy_cache.unit_destroyed(unit_tag)

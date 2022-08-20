@@ -17,7 +17,6 @@ class EnemyCache:
     '''
     Mutable, update positions, type and refresh timeout
     '''
-
     def update(self, bot_ai: BotAI):
         self.cache = {key: value for key, value in self.cache.items() if value.last_seen > bot_ai.time - 30}
         for unit in bot_ai.enemy_units:
@@ -30,9 +29,9 @@ class EnemyCache:
     '''
     Mutable, clear killed enemies
     '''
-
     def unit_destroyed(self, unit_tag: int):
-        self.cache.pop(unit_tag)
+        if unit_tag in self.cache:
+            self.cache.pop(unit_tag)
 
     def of_type(self, unit_type: UnitTypeId) -> List[UnitInfo]:
         return [entry.unit_info for entry in self.cache.values() if entry.unit_info.unit_type == unit_type]
