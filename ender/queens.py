@@ -235,7 +235,7 @@ class Queens(Common):
         makes = False
         for order in hall.orders:
             if order.ability.id == AbilityId.TRAINQUEEN_QUEEN:
-                if order.progress > 0.5: # 18 sec
+                if order.progress > 0.5:  # 18 sec
                     makes = True
         return makes
 

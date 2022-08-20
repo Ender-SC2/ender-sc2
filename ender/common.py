@@ -467,7 +467,7 @@ class Common(BotAI, IUnitInterface):
 
     def blue_half(self, tag) -> bool:
         return abs(tag) % 10 in {0, 3, 5, 6, 9}  # half of them
-        
+
     def t_of_p(self, point: Point2) -> str:
         x = round(point.x * 10) / 10
         y = round(point.y * 10) / 10

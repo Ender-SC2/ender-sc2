@@ -38,7 +38,7 @@ class FocusFireCombatBehavior(CommandUtils):
         self.frame = iteration * self.bot_ai.client.game_step
         myunits = self.bot_ai.units.filter(
             lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-                         and (not self.unit_types or unit.type_id in self.unit_types)
+            and (not self.unit_types or unit.type_id in self.unit_types)
         )
         for enemy in self.bot_ai.enemy_units:
             tag = enemy.tag
@@ -57,11 +57,11 @@ class FocusFireCombatBehavior(CommandUtils):
                 if unit.weapon_cooldown < self.bot_ai.client.game_step:  # I can shoot (before next programrun)
                     enemies_around = self.bot_ai.enemy_units.filter(
                         lambda enemy: enemy.can_be_attacked
-                                          and (
-                                              distance(self.next_position(unit), self.next_position(enemy))
-                                              < range_vs(unit, enemy) + unit.radius + enemy.radius
-                                      )
-                                      and (self.enemy_health[enemy.tag] > -5)
+                        and (
+                            distance(self.next_position(unit), self.next_position(enemy))
+                            < range_vs(unit, enemy) + unit.radius + enemy.radius
+                        )
+                        and (self.enemy_health[enemy.tag] > -5)
                     )
                     if not enemies_around.empty:
                         target = enemies_around.sorted(lambda u: self.unit_priority(u, self.enemy_health[u.tag])).first

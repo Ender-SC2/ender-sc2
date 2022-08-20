@@ -108,4 +108,3 @@ class Parts(Common):
             if ("a" <= ch <= "z") or ("A" <= ch <= "Z"):
                 mapfamily += ch.lower()
         return mapfamily
-
