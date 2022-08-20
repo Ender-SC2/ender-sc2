@@ -65,6 +65,8 @@ class Making(Map_if, Resources, Strategy):
     buildplan = {}  # per typ: (histag, buildpos, expiration)
     expiration_of_builder = {}  # it is a temporal job
     example = UnitTypeId.SCV  # for debugging, e.g. EXTRACTOR. To silence: SCV
+    # emergency in common.py
+    do_emergencies = True  # False to test greed without emergency spores
     supplytrick_phase = "no"
     supplytrick_end = 0
     rallied = set()
@@ -273,14 +275,35 @@ class Making(Map_if, Resources, Strategy):
                     justone.train(typ)
                     self.listenframe_of_unit[justone.tag] = self.frame + 5
             elif typ == UnitTypeId.QUEEN:
-                # preferrably a queenhatchery, not just any hatchery.
+                wanting = set()
+                for halltype in self.all_halltypes:
+                    for hall in self.structures(halltype):
+                        if hall.tag not in self.queen_of_hall:
+                            if hall.build_progress >= 0.5:
+                                wanting.add(hall)
+                bestwantdist = 99999
                 for halltype in self.all_halltypes:
                     for hall in self.structures(halltype).ready.idle:
-                        if hall.tag not in self.queen_of_hall:
+                        itsdist = 99999
+                        for wanthall in wanting:
+                            dist = distance(hall.position, wanthall.position)
+                            if dist < itsdist:
+                                itsdist = dist
+                                itshall = wanthall
+                        if itsdist < bestwantdist:
+                            bestwantdist = itsdist
+                            bestwanthall = itshall
                             justone = hall
                 justone.train(typ)
                 self.listenframe_of_structure[justone.tag] = self.frame + 5
-                self.queen_of_hall[justone.tag] = self.notag
+                if bestwantdist < 99999:
+                    logger.info(
+                        "building a queen at "
+                        + self.t_of_p(justone.position)
+                        + " for "
+                        + self.t_of_p(bestwanthall.position)
+                    )
+                    self.queen_of_hall[bestwanthall.tag] = self.notag
             elif len(self.structures(crea).ready.idle) > 0:
                 # best at a distance
                 bestdist = -1
@@ -527,9 +550,10 @@ class Making(Map_if, Resources, Strategy):
                     or ((typ == UnitTypeId.QUEEN) and self.auto_groupqueen)
                 ):
                     importance += 1000
-                for emergency_entry in self.emergency.queue().values():
-                    if isinstance(emergency_entry, EmergencyUnit):
-                        if emergency_entry.unit_type == typ and self.atleast_started(typ) < emergency_entry.amount:
+                if self.do_emergencies:
+                    for emergency_entry in self.emergency.queue().values():
+                        if isinstance(emergency_entry, EmergencyUnit):
+                            if emergency_entry.unit_type == typ and self.atleast_started(typ) < emergency_entry.amount:
                             importance = 2000
                             break
                 self.claim_resources(typ, importance)
@@ -578,11 +602,20 @@ class Making(Map_if, Resources, Strategy):
                     importance = self.importance["lone_building"]
                 if self.make_plan[typ] > 0:
                     importance += 1000
-                for emergency_entry in self.emergency.queue().values():
-                    if isinstance(emergency_entry, EmergencyStructure):
-                        if emergency_entry.unit_type == typ:
-                            importance = 2000
-                            break
+                if self.auto_tech:
+                    if typ in {
+                        UnitTypeId.HIVE,
+                        UnitTypeId.INFESTATIONPIT,
+                        UnitTypeId.SPIRE,
+                        UnitTypeId.GREATERSPIRE,
+                    }:
+                        importance += 1500
+                if self.do_emergencies:
+                    for emergency_entry in self.emergency.queue().values():
+                        if isinstance(emergency_entry, EmergencyStructure):
+                            if emergency_entry.unit_type == typ:
+                                importance = 2000
+                                break
                 self.claim_resources(typ, importance)
                 if typ not in self.buildplan:
                     size = self.size_of_structure[typ]
@@ -633,16 +666,17 @@ class Making(Map_if, Resources, Strategy):
                             pos = gooddrone.position
                             self.set_job_of_unit(gooddrone, Job.UNCLEAR)
                         # emergency position
-                        emergency_id = None
-                        for key, emergency_entry in self.emergency.queue().items():
-                            if isinstance(emergency_entry, EmergencyStructure):
-                                if emergency_entry.unit_type == typ:
-                                    logger.info(f"{emergency_entry.unit_type} at {emergency_entry.location}")
-                                    pos = emergency_entry.location
-                                    emergency_id = emergency_id
-                                    break
-                        if emergency_id:
-                            self.emergency.queue().pop(emergency_id)
+                        if self.do_emergencies:
+                            emergency_id = None
+                            for key, emergency_entry in self.emergency.queue().items():
+                                if isinstance(emergency_entry, EmergencyStructure):
+                                    if emergency_entry.unit_type == typ:
+                                        logger.info(f"{emergency_entry.unit_type} at {emergency_entry.location}")
+                                        pos = emergency_entry.location
+                                        emergency_id = emergency_id
+                                        break
+                            if emergency_id:
+                                self.emergency.queue().pop(emergency_id)
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
                         expiration = self.frame + self.buildplan_timeout
@@ -658,10 +692,13 @@ class Making(Map_if, Resources, Strategy):
                     if typ in self.buildplan:  # so just added
                         for (ix, oldgame) in enumerate(self.experience):
                             if ix in self.valid_oldgames:
-                                (atype, betterpos, betterwalk) = oldgame[self.buildplan_nr]
-                                if atype == typ:
-                                    (dronetag, pos, expiration) = self.buildplan[typ]
-                                    self.buildplan[typ] = (dronetag, betterpos, expiration)
+                                if len(oldgame) > self.buildplan_nr:
+                                    (atype, betterpos, betterwalk) = oldgame[self.buildplan_nr]
+                                    if atype == typ:
+                                        (dronetag, pos, expiration) = self.buildplan[typ]
+                                        self.buildplan[typ] = (dronetag, betterpos, expiration)
+                                    else:
+                                        self.valid_oldgames.remove(ix)
                                 else:
                                     self.valid_oldgames.remove(ix)
                         self.buildplan_nr += 1
@@ -952,9 +989,10 @@ class Making(Map_if, Resources, Strategy):
             if self.auto_homequeen and (not self.auto_groupqueen):
                 now = False
                 for typ in self.all_halltypes:
-                    for base in self.structures(typ).ready.idle:
+                    for base in self.structures(typ):
                         if base.tag not in self.queen_of_hall:
-                            now = True
+                            if base.build_progress >= 0.5:
+                                now = True
                 if not now:
                     if unty == self.example:
                         logger.info("example " + self.example.name + " waits for hall without queen")
@@ -1076,7 +1114,7 @@ class Making(Map_if, Resources, Strategy):
                     self.now_make_a(typ)
 
     async def make_drones(self):
-        if self.function_listens("make_drones", self.seconds):
+        if self.function_listens("make_drones", 7):
             typ = UnitTypeId.DRONE
             if self.check_wannado_unit(typ):
                 lategame_max = 3 * len(self.extractors) + 2 * len(self.mineral_field) + 3
@@ -1106,7 +1144,7 @@ class Making(Map_if, Resources, Strategy):
 
     def init_expansions(self):
         self.expansions = []
-        for pos in self.expansion_locations_list:
+        for pos in self.expansion_locations:
             gridpos = Point2((round(pos.x - 0.5), round(pos.y - 0.5)))
             height = self.game_info.terrain_height[gridpos]
             hasmin = True
