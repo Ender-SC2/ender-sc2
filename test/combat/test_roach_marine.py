@@ -4,8 +4,8 @@ from ender.behavior.combat import (
     FocusFireCombatBehavior,
     AttackCenterBehavior,
     AttackClosestEnemyBehavior,
-    RepositionBehavior,
-    ForwardBehavior,
+    MoreRangeBehavior,
+    LessRangeBehavior,
     SidewardsBehavior,
 )
 from ender.game_plan.condition import No, AfterTime
@@ -24,9 +24,9 @@ class TestRoachMarine(unittest.TestCase):
             [
                 AttackCenterBehavior(),
                 FocusFireCombatBehavior(),
-                ForwardBehavior(),
+                LessRangeBehavior(),
                 SidewardsBehavior(),
-                RepositionBehavior(),
+                MoreRangeBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 10, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),
@@ -45,9 +45,9 @@ class TestRoachMarine(unittest.TestCase):
             [
                 AttackCenterBehavior(),
                 FocusFireCombatBehavior(),
-                ForwardBehavior(),
+                LessRangeBehavior(),
                 SidewardsBehavior(),
-                RepositionBehavior(),
+                MoreRangeBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 25, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),
@@ -66,9 +66,9 @@ class TestRoachMarine(unittest.TestCase):
             [
                 AttackCenterBehavior(),
                 FocusFireCombatBehavior(),
-                ForwardBehavior(),
+                LessRangeBehavior(),
                 SidewardsBehavior(),
-                RepositionBehavior(),
+                MoreRangeBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 50, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),

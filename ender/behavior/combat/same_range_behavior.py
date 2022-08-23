@@ -7,9 +7,10 @@ from ender.unit import MoveCommand
 from ender.utils.command_utils import CommandUtils
 from ender.utils.unit_utils import range_vs
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.units import Units
 
 
-class BackBehavior(CommandUtils):
+class SameRangeBehavior(CommandUtils):
     unit_types: Optional[List[UnitTypeId]]
     jobs: Optional[List[Job]]
     maxcool = {}
@@ -21,14 +22,9 @@ class BackBehavior(CommandUtils):
         self.unit_types = unit_types
         self.jobs = jobs
 
-    async def on_step(self, iteration: int):
-        self.frame = iteration * self.bot_ai.client.game_step
-        myunits = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-            and (not self.unit_types or unit.type_id in self.unit_types)
-        )
+    async def on_step_units(self, units: Units):
         if not self.bot_ai.enemy_units.empty:
-            for unit in myunits:
+            for unit in units:
                 tag = unit.tag
                 if tag not in self.maxcool:
                     self.maxcool[tag] = 2

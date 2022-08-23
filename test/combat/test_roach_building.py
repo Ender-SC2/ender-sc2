@@ -3,10 +3,10 @@ import unittest
 from ender.behavior.combat import (
     FocusFireCombatBehavior,
     AttackCenterBehavior,
-    RepositionBehavior,
+    MoreRangeBehavior,
     SidewardsBehavior,
-    ForwardBehavior,
-    BackBehavior,
+    LessRangeBehavior,
+    SameRangeBehavior,
 )
 from ender.behavior.combat.attack_closest_enemy_behavior import (
     AttackClosestEnemyBehavior,
@@ -25,10 +25,10 @@ class TestRoachBuilding(unittest.TestCase):
             [
                 AttackCenterBehavior(),
                 FocusFireCombatBehavior(),
-                RepositionBehavior(),
-                ForwardBehavior(),
+                MoreRangeBehavior(),
+                LessRangeBehavior(),
                 SidewardsBehavior(),
-                BackBehavior(),
+                SameRangeBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.ROACH, 15, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(180)]),

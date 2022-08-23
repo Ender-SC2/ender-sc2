@@ -8,3 +8,7 @@ exclude = '''
   | data
 )/
 '''
+[tool.pytest.ini_options]
+pythonpath = [
+    "ender",
+]

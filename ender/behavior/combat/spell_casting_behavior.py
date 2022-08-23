@@ -1,20 +1,20 @@
 # spell_casting_behavior.py
-from typing import List, Optional, Dict
+import typing
 
-from ender.job import Job
 from ender.map import InfluenceMap
 from ender.unit.ability_command import AbilityCommand
 from ender.utils.ability_utils import ability_cooldown, ability_range, ability_radius
 from ender.utils.command_utils import CommandUtils
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.units import Units
 
 
 # TODO: Support other spells;
 class SpellCastingBehavior(CommandUtils):
-    supported_units: Dict[UnitTypeId, List[AbilityId]] = {UnitTypeId.RAVAGER: [AbilityId.EFFECT_CORROSIVEBILE]}
+    supported_units: typing.Dict[UnitTypeId, typing.List[AbilityId]] = {UnitTypeId.RAVAGER: [AbilityId.EFFECT_CORROSIVEBILE]}
     DEFAULT_STRUCTURE_VALUE: 5
-    SPECIAL_STRUCTURE_VALUE: Dict[UnitTypeId, int] = {
+    SPECIAL_STRUCTURE_VALUE: typing.Dict[UnitTypeId, int] = {
         UnitTypeId.PHOTONCANNON: 20,
         UnitTypeId.MISSILETURRET: 20,
         UnitTypeId.BUNKER: 20,
@@ -25,24 +25,18 @@ class SpellCastingBehavior(CommandUtils):
         UnitTypeId.PYLON: 10,
     }
     DEFAULT_UNIT_VALUE = 1
-    SPECIAL_UNIT_VALUE: Dict[UnitTypeId, int] = {
+    SPECIAL_UNIT_VALUE: typing.Dict[UnitTypeId, int] = {
         UnitTypeId.SIEGETANKSIEGED: 15,
         UnitTypeId.CARRIER: 10,
         UnitTypeId.LIBERATORAG: 10,
         UnitTypeId.MOTHERSHIP: 10,
         UnitTypeId.LURKERMPBURROWED: 10,
     }
+    spell_cooldown: typing.Dict[int, float] = {}
 
-    def __init__(self, unit_types: Optional[List[UnitTypeId]] = None, jobs: Optional[List[Job]] = None):
-        self.unit_types: Optional[List[UnitTypeId]] = unit_types
-        self.jobs: Optional[List[Job]] = jobs
-        self.spell_cooldown: Dict[int, float] = {}
-
-    async def on_step(self, iteration: int):
-        my_units = self.bot_ai.units.filter(
-            lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-            and (not self.unit_types or unit.type_id in self.unit_types)
-            and (unit.type_id in self.supported_units)
+    async def on_step_units(self, units: Units):
+        my_units = units.filter(
+            lambda unit: (unit.type_id in self.supported_units)
             and (unit.tag not in self.spell_cooldown or self.spell_cooldown[unit.tag] < self.bot_ai.time)
         )
         if my_units.empty:

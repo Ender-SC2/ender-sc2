@@ -2,7 +2,7 @@ import inspect
 from typing import List
 
 from ender.behavior import IBehavior
-from ender.game_plan.condition.condition import ICondition
+from ender.game_plan.condition import ICondition
 from ender.unit import UnitInterface
 from sc2.bot_ai import BotAI
 from test.setup import ITestSetup

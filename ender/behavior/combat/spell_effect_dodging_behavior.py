@@ -1,7 +1,5 @@
 # spell_effect_dodging_behavior.py
-from typing import List, Optional, Dict
 
-from ender.job import Job
 from ender.map import InfluenceMap
 from ender.unit import MoveCommand
 from ender.utils.ability_utils import (
@@ -15,8 +13,8 @@ from ender.utils.ability_utils import (
 from ender.utils.command_utils import CommandUtils
 from ender.utils.effect_utils import effect_ability
 from sc2.ids.effect_id import EffectId
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from sc2.units import Units
 
 
 # Differ persistent damage (psi storm) from landing damage (bile)
@@ -28,13 +26,9 @@ from sc2.position import Point2
 class SpellEffectDodgingBehavior(CommandUtils):
     supported_spells: list[EffectId] = [EffectId.RAVAGERCORROSIVEBILECP, EffectId.PSISTORMPERSISTENT]
     extra_dodge_range = 1
+    spells: dict[(Point2, EffectId), list[float]] = {}  # Position, Effect, Expected end time
 
-    def __init__(self, unit_types: Optional[List[UnitTypeId]] = None, jobs: Optional[List[Job]] = None):
-        self.unit_types: Optional[List[UnitTypeId]] = unit_types
-        self.jobs: Optional[List[Job]] = jobs
-        self.spells: Dict[(Point2, EffectId), List[float]] = {}  # Position, Effect, Expected end time
-
-    async def on_step(self, iteration: int):
+    async def on_step_units(self, units: Units):
         my_units = self.bot_ai.units.filter(
             lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
             and (not self.unit_types or unit.type_id in self.unit_types)

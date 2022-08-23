@@ -1,1 +1,1 @@
-from .behavior import IBehavior
+from .behavior import *
