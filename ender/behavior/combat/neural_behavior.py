@@ -7,7 +7,6 @@ from sc2.units import Units
 
 
 class NeuralBehavior(CommandUtils):
-
     async def on_step_units(self, units: Units):
         if not self.bot_ai.enemy_units.empty:
             for unit in units:
@@ -21,4 +20,6 @@ class NeuralBehavior(CommandUtils):
                                 besteng = ene.energy
                                 target = ene
                     if target:
-                        self.unit_interface.set_command(unit, AbilityCommand(AbilityId.NEURALPARASITE_NEURALPARASITE, target, "MoreRange"))
+                        self.unit_interface.set_command(
+                            unit, AbilityCommand(AbilityId.NEURALPARASITE_NEURALPARASITE, target, "MoreRange")
+                        )

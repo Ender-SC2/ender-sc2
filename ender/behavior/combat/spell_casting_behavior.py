@@ -12,7 +12,9 @@ from sc2.units import Units
 
 # TODO: Support other spells;
 class SpellCastingBehavior(CommandUtils):
-    supported_units: typing.Dict[UnitTypeId, typing.List[AbilityId]] = {UnitTypeId.RAVAGER: [AbilityId.EFFECT_CORROSIVEBILE]}
+    supported_units: typing.Dict[UnitTypeId, typing.List[AbilityId]] = {
+        UnitTypeId.RAVAGER: [AbilityId.EFFECT_CORROSIVEBILE]
+    }
     DEFAULT_STRUCTURE_VALUE: 5
     SPECIAL_STRUCTURE_VALUE: typing.Dict[UnitTypeId, int] = {
         UnitTypeId.PHOTONCANNON: 20,

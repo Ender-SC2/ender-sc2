@@ -8,7 +8,6 @@ from sc2.units import Units
 
 
 class MoreRangeBehavior(CommandUtils):
-
     async def on_step_units(self, units: Units):
         for unit in units:
             if unit.weapon_cooldown > self.bot_ai.client.game_step:  # I shot

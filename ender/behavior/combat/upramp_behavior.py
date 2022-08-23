@@ -9,7 +9,6 @@ from sc2.units import Units
 
 
 class UprampBehavior(CommandUtils):
-
     async def on_step_units(self, units: Units):
         for unit in units:
             enemies = self.bot_ai.enemy_units.filter(lambda ene: distance(ene.position, unit.position) < 10)

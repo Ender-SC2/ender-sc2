@@ -29,6 +29,6 @@ class IBehavior(ABC):
     async def on_step(self, iteration: int):
         my_units = self.bot_ai.units.filter(
             lambda unit: (not self.jobs or self.unit_interface.job_of_unit(unit) in self.jobs)
-                         and (not self.unit_types or unit.type_id in self.unit_types)
+            and (not self.unit_types or unit.type_id in self.unit_types)
         )
         await self.on_step_units(my_units)
