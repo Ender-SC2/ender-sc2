@@ -9,9 +9,9 @@ from loguru import logger
 from ender.behavior import IBehavior
 from ender.behavior.combat import (
     FocusFireCombatBehavior,
-    RepositionBehavior,
-    ForwardBehavior,
-    BackBehavior,
+    MoreRangeBehavior,
+    LessRangeBehavior,
+    SameRangeBehavior,
     SidewardsBehavior,
     UprampBehavior,
 )
@@ -85,11 +85,11 @@ class Attack(Map_if, Tech):
     dried = set()  # expo with neither minerals nor gas
     fresh = set()  # expo with minerals or gas
     behaviors: List[IBehavior] = [
-        ForwardBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
-        FocusFireCombatBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
-        RepositionBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
-        BackBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
+        LessRangeBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
+        MoreRangeBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
+        SameRangeBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
         SidewardsBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
+        FocusFireCombatBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
         UprampBehavior(jobs=[Job.DEFENDATTACK, Job.BIGATTACK, Job.BERSERKER]),
     ]
     detector_types = [

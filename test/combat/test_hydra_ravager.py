@@ -3,10 +3,10 @@ import unittest
 
 from ender.behavior.combat import (
     FocusFireCombatBehavior,
-    RepositionBehavior,
+    MoreRangeBehavior,
     SidewardsBehavior,
-    BackBehavior,
-    ForwardBehavior,
+    SameRangeBehavior,
+    LessRangeBehavior,
     AttackCenterBehavior,
     UprampBehavior,
 )
@@ -32,12 +32,12 @@ class TestHydraRavager(unittest.TestCase):
         winner = EnderTestBot(
             [
                 AttackCenterBehavior(),
-                BackBehavior(),
-                RepositionBehavior(),
-                ForwardBehavior(),
+                MoreRangeBehavior(),
+                SameRangeBehavior(),
+                LessRangeBehavior(),
                 SidewardsBehavior(),
                 FocusFireCombatBehavior(),
-                UprampBehavior(),
+                # UprampBehavior(),
                 SpellEffectDodgingBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 3, Point2([-10, -10])),
@@ -60,9 +60,9 @@ class TestHydraRavager(unittest.TestCase):
         winner = EnderTestBot(
             [
                 AttackCenterBehavior(),
-                BackBehavior(),
-                RepositionBehavior(),
-                ForwardBehavior(),
+                SameRangeBehavior(),
+                MoreRangeBehavior(),
+                LessRangeBehavior(),
                 SidewardsBehavior(),
                 FocusFireCombatBehavior(),
                 UprampBehavior(),
@@ -88,9 +88,9 @@ class TestHydraRavager(unittest.TestCase):
         winner = EnderTestBot(
             [
                 AttackCenterBehavior(),
-                BackBehavior(),
-                RepositionBehavior(),
-                ForwardBehavior(),
+                SameRangeBehavior(),
+                MoreRangeBehavior(),
+                LessRangeBehavior(),
                 SidewardsBehavior(),
                 FocusFireCombatBehavior(),
                 UprampBehavior(),

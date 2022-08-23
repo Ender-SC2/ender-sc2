@@ -4,7 +4,7 @@ from loguru import logger
 
 from ender.cache.enemy_cache import EnemyCache
 from ender.job import Job
-from ender.production.emergency import Emergency, EmergencyQueue
+from ender.production.emergency import EmergencyQueue
 from ender.unit.unit_command import IUnitCommand
 from ender.unit.unit_interface import IUnitInterface, UnitInterface
 from ender.utils.point_utils import distance
