@@ -551,7 +551,7 @@ class Making(Map_if, Resources, Strategy):
                 ):
                     importance += 1000
                 if self.do_emergencies:
-                    for emergency_entry in self.emergency.queue().values():
+                    for emergency_entry in self.emergency.emergency_queue.values():
                         if isinstance(emergency_entry, EmergencyUnit):
                             if emergency_entry.unit_type == typ and self.atleast_started(typ) < emergency_entry.amount:
                                 importance = 2000
@@ -611,7 +611,7 @@ class Making(Map_if, Resources, Strategy):
                     }:
                         importance += 1500
                 if self.do_emergencies:
-                    for emergency_entry in self.emergency.queue().values():
+                    for emergency_entry in self.emergency.emergency_queue.values():
                         if isinstance(emergency_entry, EmergencyStructure):
                             if emergency_entry.unit_type == typ:
                                 importance = 2000
@@ -668,7 +668,7 @@ class Making(Map_if, Resources, Strategy):
                         # emergency position
                         if self.do_emergencies:
                             emergency_id = None
-                            for key, emergency_entry in self.emergency.queue().items():
+                            for key, emergency_entry in self.emergency.emergency_queue.items():
                                 if isinstance(emergency_entry, EmergencyStructure):
                                     if emergency_entry.unit_type == typ:
                                         logger.info(f"{emergency_entry.unit_type} at {emergency_entry.location}")
@@ -676,7 +676,7 @@ class Making(Map_if, Resources, Strategy):
                                         emergency_id = emergency_id
                                         break
                             if emergency_id:
-                                self.emergency.queue().pop(emergency_id)
+                                self.emergency.emergency_queue.pop(emergency_id)
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
                         expiration = self.frame + self.buildplan_timeout
