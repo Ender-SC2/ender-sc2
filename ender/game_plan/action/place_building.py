@@ -41,7 +41,7 @@ class PlaceBuilding(IAction):
         position = self.get_position()
         if position:
             logger.info(f"Asking for {self.unit_type} on {self.get_position()}")
-            self.common.emergency.add(EmergencyStructure(self.unit_type, self.get_position()))
+            self.common.emergency.emergency_queue[id(self)] = EmergencyStructure(self.unit_type, self.get_position())
         self.request_time = self.common.time
         return False
 
