@@ -25,6 +25,3 @@ class EmergencyQueue:
     """
 
     emergency_queue = dict[int, Emergency]()
-
-    def queue(self):
-        return self.emergency_queue

@@ -5,7 +5,7 @@ import requests
 
 # Download
 bot_id = 438  # Ids on AI ARENA
-tags = ["v011"]  # Ids on AI ARENA
+tags = ["v015"]  # Ids on AI ARENA
 token = os.environ["ARENA_API_TOKEN"]  # Environment variable with token from: https://aiarena.net/profile/token/
 auth = {"Authorization": f"Token {token}"}
 map_names = dict()
@@ -83,7 +83,7 @@ for tag in tags:
         stat = matchup_stats[key]
         print(f"| {key:<18} | {value:<3} | {stat['wins']:<4} | {stat['losses']:<6} | {stat['ties']:<4} |")
     print("")
-    print(f"|{' Map stats ':<20}|{' Wins ':<6}|{' Losses ':<8}|{' Ties ':<6}| {' Win% ':<7} |")
+    print(f"|{' Map stats ':<20}|{' Wins ':<6}|{' Losses ':<8}|{' Ties ':<6}| {' Win% ':<5} |")
     print(f"|{'-' * 20}|{'-' * 6}|{'-' * 8}|{'-' * 6}|{'-' * 7}|")
     for key, value in map_stats.items():
         print(
