@@ -9,6 +9,7 @@ from sc2.ids.ability_id import AbilityId
 from sc2.position import Point2
 from ender.utils.point_utils import distance
 
+
 class Nytravel(Enum):
     PLANNED = auto()
     TOWARDS = auto()
@@ -16,19 +17,19 @@ class Nytravel(Enum):
     IN = auto()
     SPIT = auto()
 
+
 class Nydus(Common):
 
     __did_step0 = False
     #
     nydus_ports = set()  # Ready canals and networks. Multiframe units so use only position and tag.
-    future_nydus_ports = set() # same, but need not be ready.
+    future_nydus_ports = set()  # same, but need not be ready.
     nydus_ports_hash = 0  # detect changes
     nydus_in_tag = {}  # per unittag: tag of a nydus_port
     nydus_out_tag = {}  # per unittag: tag of a nydus_port
     nydees = {}  # per unittag the Nytravel
     # nydees also have an attackgoal
     nydus_queue = []  # unittags in fifo order. For nydees Nytravel.SUCCED or Nytravel.IN or Nytravel.SPIT
-    
 
     def __step0(self):
         pass
@@ -66,7 +67,7 @@ class Nydus(Common):
                         for port in self.future_nydus_ports:
                             if nita == port.tag:
                                 seen = True
-                        if not seen: 
+                        if not seen:
                             todel.add(tag)
                 for tag in todel:
                     del self.nydees[tag]
@@ -74,7 +75,7 @@ class Nydus(Common):
                     del self.nydus_out_tag[tag]
                     for unt in self.units:
                         if unt.tag == tag:
-                            self.attack_via_nydus(unt)                
+                            self.attack_via_nydus(unt)
 
     async def do_nydus(self):
         if len(self.future_nydus_ports) == 0:
@@ -96,7 +97,7 @@ class Nydus(Common):
                         for port in self.nydus_ports:
                             if port.tag == ntotag:
                                 self.nydees[tag] = Nytravel.SPIT
-                                port(AbilityId.SMART) # out
+                                port(AbilityId.SMART)  # out
                                 self.listenframe_of_unit[ntotag] = self.frame + 0.9 * self.seconds
                                 self.listenframe_of_unit[tag] = self.frame + 5
                         seen = False
@@ -145,7 +146,7 @@ class Nydus(Common):
                             del self.nydees[tag]
                             del self.nydus_in_tag[tag]
                             del self.nydus_out_tag[tag]
-                            del self.nydus_queue[self.nydus_queue.index(tag)] # usually 0
+                            del self.nydus_queue[self.nydus_queue.index(tag)]  # usually 0
                             self.listenframe_of_unit[tag] = self.frame + 5
                     elif stat == Nytravel.IN:
                         # Must be spit out of order. Repair.
@@ -163,11 +164,11 @@ class Nydus(Common):
         tag = unt.tag
         pos = unt.position
         goal = self.attack_goal[tag]
-        nyd = (len(self.future_nydus_ports) >= 2)
+        nyd = len(self.future_nydus_ports) >= 2
         if unt.is_flying:
             nyd = False
         if unt.type_id in self.all_changelings:
-            nyd = False            
+            nyd = False
         if nyd:
             distland = distance(pos, goal)
             distaa = 99999
