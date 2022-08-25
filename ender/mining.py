@@ -174,41 +174,42 @@ class Mining(Common):
     async def calc_work(self):
         if self.minables_hash != self.minables_hash_last:
             self.minables_hash_last = self.minables_hash
-            # per expo: the closest own base
-            self.minebase_of_expo_mfu = {}
-            for expo in self.expansion_locations:
-                bestdist = 99999
-                for bas in self.minebases:
-                    baspos = bas.position
-                    dist = distance(baspos, expo)
-                    if dist < bestdist:
-                        bestdist = dist
-                        bestbas = bas
-                self.minebase_of_expo_mfu[expo] = bestbas
-            # gaswork: a multiset of post
-            self.gaswork = []
-            for gas in self.gasbuildings:
-                respos = gas.position
-                post = self.postag_of_position(respos)
-                expo = self.expo_of_postag[post]
-                bas = self.minebase_of_expo_mfu[expo]
-                dist = distance(bas.position, respos)
-                if dist < 10:
-                    self.gaswork.append(post)
-                    self.gaswork.append(post)
-                    self.gaswork.append(post)
-            # mimwork: a multiset of post
-            self.mimwork = []
-            for patch in self.mineral_field:
-                respos = patch.position
-                post = self.postag_of_position(respos)
-                expo = self.expo_of_postag[post]
-                bas = self.minebase_of_expo_mfu[expo]
-                dist = distance(bas.position, respos)
-                if dist < 10:
-                    self.mimwork.append(post)
-                    self.mimwork.append(post)
-            self.calc_workers()
+            if len(self.minebases) > 0:
+                # per expo: the closest own base
+                self.minebase_of_expo_mfu = {}
+                for expo in self.expansion_locations:
+                    bestdist = 99999
+                    for bas in self.minebases:
+                        baspos = bas.position
+                        dist = distance(baspos, expo)
+                        if dist < bestdist:
+                            bestdist = dist
+                            bestbas = bas
+                    self.minebase_of_expo_mfu[expo] = bestbas
+                # gaswork: a multiset of post
+                self.gaswork = []
+                for gas in self.gasbuildings:
+                    respos = gas.position
+                    post = self.postag_of_position(respos)
+                    expo = self.expo_of_postag[post]
+                    bas = self.minebase_of_expo_mfu[expo]
+                    dist = distance(bas.position, respos)
+                    if dist < 10:
+                        self.gaswork.append(post)
+                        self.gaswork.append(post)
+                        self.gaswork.append(post)
+                # mimwork: a multiset of post
+                self.mimwork = []
+                for patch in self.mineral_field:
+                    respos = patch.position
+                    post = self.postag_of_position(respos)
+                    expo = self.expo_of_postag[post]
+                    bas = self.minebase_of_expo_mfu[expo]
+                    dist = distance(bas.position, respos)
+                    if dist < 10:
+                        self.mimwork.append(post)
+                        self.mimwork.append(post)
+                self.calc_workers()
 
     async def calc_miner_hash(self):
         self.miner_hash_last = self.miner_hash

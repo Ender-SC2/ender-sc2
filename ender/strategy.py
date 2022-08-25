@@ -81,6 +81,7 @@ class Strategy(Tech):
     result_plan = {}
     new_plan = None
     structures_at_hatches = 0
+    dont_shift = 0  # some greed under constant agression
     auto_upgrade = True
     auto_homequeen = True
     auto_tech = False  # tech asap to greaterspire
@@ -251,6 +252,8 @@ class Strategy(Tech):
                         self.set_gameplan(plan)
             logger.info("Transitioning to " + plan.name)
             await self.client.chat_send("Transitioning to " + plan.name, team_only=False)
+            #
+            self.dont_shift = self.frame + 30 * self.seconds
         #
         await self.new_plan.execute()
         #
@@ -619,22 +622,23 @@ class Strategy(Tech):
                 #
                 plan = None
                 if self.agression:
-                    if self.vespene == 0:
-                        if mybases == 1:
-                            plan = self.Gameplan.ONEBASE_NOGAS
-                        elif mybases == 2:
-                            plan = self.Gameplan.TWOBASE_NOGAS
-                        elif mybases >= 3:
-                            plan = self.Gameplan.THREEBASE_NOGAS
-                    else:
-                        if mybases == 1:
-                            plan = self.Gameplan.ONEBASE
-                        elif mybases == 2:
-                            plan = self.Gameplan.TWOBASE
-                        elif mybases == 3:
-                            plan = self.Gameplan.THREEBASE
-                        elif mybases >= 4:
-                            plan = self.Gameplan.FOURBASE
+                    if self.frame >= self.dont_shift:
+                        if self.vespene == 0:
+                            if mybases == 1:
+                                plan = self.Gameplan.ONEBASE_NOGAS
+                            elif mybases == 2:
+                                plan = self.Gameplan.TWOBASE_NOGAS
+                            elif mybases >= 3:
+                                plan = self.Gameplan.THREEBASE_NOGAS
+                        else:
+                            if mybases == 1:
+                                plan = self.Gameplan.ONEBASE
+                            elif mybases == 2:
+                                plan = self.Gameplan.TWOBASE
+                            elif mybases == 3:
+                                plan = self.Gameplan.THREEBASE
+                            elif mybases >= 4:
+                                plan = self.Gameplan.FOURBASE
                 else:  # no agression
                     plan = self.Gameplan.GREED
                 if plan:
