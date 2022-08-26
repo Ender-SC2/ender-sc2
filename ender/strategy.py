@@ -372,8 +372,8 @@ class Strategy(Tech):
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 6
             self.result_plan[UnitTypeId.EXTRACTOR] = 8
-            self.result_plan[UnitTypeId.ZERGLING] = 10
-            self.result_plan[UnitTypeId.BANELING] = 20
+            self.result_plan[UnitTypeId.ZERGLING] = 15
+            self.result_plan[UnitTypeId.BANELING] = 15
             self.result_plan[UnitTypeId.ROACH] = 30
             self.result_plan[UnitTypeId.RAVAGER] = 10
         elif gameplan == self.Gameplan.TO_LAIR:
@@ -381,7 +381,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = 4
             self.result_plan[UnitTypeId.LAIR] = 1
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
-            self.result_plan[UnitTypeId.BANELING] = 10
+            self.result_plan[UnitTypeId.ZERGLING] = 5
+            self.result_plan[UnitTypeId.BANELING] = 5
             self.result_plan[UnitTypeId.ROACH] = 20
             self.result_plan[UnitTypeId.RAVAGER] = 10
         elif gameplan == self.Gameplan.SWARM:
@@ -389,6 +390,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = 5
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
             self.result_plan[UnitTypeId.SWARMHOSTMP] = 20
+            self.result_plan[UnitTypeId.ZERGLING] = 2
             self.result_plan[UnitTypeId.BANELING] = 2
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
         elif gameplan == self.Gameplan.TO_SPIRE:
@@ -433,8 +435,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = 6
             self.result_plan[UnitTypeId.HIVE] = 1
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
-            self.result_plan[UnitTypeId.ZERGLING] = 6
-            self.result_plan[UnitTypeId.BANELING] = 16
+            self.result_plan[UnitTypeId.ZERGLING] = 11
+            self.result_plan[UnitTypeId.BANELING] = 11
             self.result_plan[UnitTypeId.ROACH] = 16
             self.result_plan[UnitTypeId.RAVAGER] = 6
             self.result_plan[UnitTypeId.HYDRALISK] = 16
@@ -445,7 +447,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.iffadd_result(UnitTypeId.ULTRALISKCAVERN, UnitTypeId.ULTRALISK, 1)
-            self.iffadd_result(UnitTypeId.BANELINGNEST, UnitTypeId.BANELING, 3)
+            self.iffadd_result(UnitTypeId.BANELINGNEST, UnitTypeId.ZERGLING, 2)
+            self.iffadd_result(UnitTypeId.BANELINGNEST, UnitTypeId.BANELING, 2)
             self.iffadd_result(UnitTypeId.ROACHWARREN, UnitTypeId.ROACH, 5)
             self.iffadd_result(UnitTypeId.HYDRALISKDEN, UnitTypeId.HYDRALISK, 5)
             if len(self.structures(UnitTypeId.HYDRALISKDEN).ready) > 0:

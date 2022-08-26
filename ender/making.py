@@ -66,7 +66,7 @@ class Making(Map_if, Resources, Strategy):
     expiration_of_builder = {}  # it is a temporal job
     example = UnitTypeId.SCV  # for debugging, e.g. EXTRACTOR. To silence: SCV
     # emergency in common.py
-    do_emergencies = True  # False to test greed without emergency spores
+    do_emergencies = True  # True. False to test greed without emergency spores
     supplytrick_phase = "no"
     supplytrick_end = 0
     rallied = set()
@@ -185,6 +185,7 @@ class Making(Map_if, Resources, Strategy):
             UnitTypeId.LURKERDENMP,
             UnitTypeId.SPIRE,
             UnitTypeId.NYDUSNETWORK,
+            UnitTypeId.NYDUSCANAL,
             UnitTypeId.GREATERSPIRE,
             UnitTypeId.ULTRALISKCAVERN,
             UnitTypeId.SPORECRAWLER,
@@ -652,6 +653,12 @@ class Making(Map_if, Resources, Strategy):
                             pos = stru.position
                             expiration = self.frame + self.buildplan_timeout
                             self.buildplan[typ] = (self.notag, pos, expiration)
+                    elif typ == UnitTypeId.NYDUSCANAL:
+                        pos = self.map_center # experimenting
+                        pos = self.map_around(pos, size)
+                        self.map_plan(pos, size)
+                        expiration = self.frame + self.buildplan_timeout
+                        self.buildplan[typ] = (self.notag, pos, expiration)
                     elif typ in self.all_sporetypes:
                         abasepos = self.structures(UnitTypeId.HATCHERY).random.position
                         # give extra chance to offensive placement
@@ -997,6 +1004,11 @@ class Making(Map_if, Resources, Strategy):
                     if unty == self.example:
                         logger.info("example " + self.example.name + " waits for hall without queen")
                     return False
+        # less banes than zerglings
+        if unty == UnitTypeId.BANELING:
+            tobanes = len(self.units(UnitTypeId.BANELING)) + len(self.units(UnitTypeId.BANELINGCOCOON))
+            if len(self.units(UnitTypeId.ZERGLING)) < tobanes:
+                return False
         #
         max_count = 200
         if unty == UnitTypeId.DRONE:
