@@ -1024,7 +1024,7 @@ class Attack(Map_if, Tech):
             if self.frame < landframe:
                 if distance(bileposition, enepos) < itsradius + 0.5:
                     itshealth -= biledamage
-        return (itshealth < 0)
+        return itshealth < 0
 
     def willdie_unit(self, ene) -> bool:
         # enemy unit will die because of biles if it does not move.
@@ -1036,7 +1036,7 @@ class Attack(Map_if, Tech):
             if self.frame < landframe:
                 if distance(bileposition, enepos) < itsradius + 0.5:
                     itshealth -= biledamage
-        return (itshealth < 0)
+        return itshealth < 0
 
     async def guards(self):
         if self.frame < 5 * self.minutes:

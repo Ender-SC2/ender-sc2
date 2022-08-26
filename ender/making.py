@@ -654,7 +654,7 @@ class Making(Map_if, Resources, Strategy):
                             expiration = self.frame + self.buildplan_timeout
                             self.buildplan[typ] = (self.notag, pos, expiration)
                     elif typ == UnitTypeId.NYDUSCANAL:
-                        pos = self.map_center # experimenting
+                        pos = self.map_center  # experimenting
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
                         expiration = self.frame + self.buildplan_timeout
