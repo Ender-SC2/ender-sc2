@@ -168,7 +168,7 @@ class Queens(Common):
                         bestdist = 20
                         for halltype in self.all_halltypes:
                             for hall in self.structures(halltype):
-                                halltag == hall.tag
+                                halltag = hall.tag
                                 canmatch = False
                                 if halltag in self.queen_of_hall:
                                     if self.queen_of_hall[halltag] == self.notag:  # not yet born

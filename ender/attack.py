@@ -38,6 +38,7 @@ class Attack(Map_if, Tech):
     kite_back = set()  # of unittype
     master = {}  # per slavetag a mastertag
     biles = set()  # enemy and own ravager biles
+    bile_positions = set()  # positions where a bile will land (or has landed)
     bilecool = {}  # per ravager, when it is ready to bile
     biletarget_buildings = {
         UnitTypeId.PHOTONCANNON,
@@ -129,7 +130,7 @@ class Attack(Map_if, Tech):
                     bestdist = dist
                     self.enemynatural = pos
         # bigattack_end
-        self.bigattack_end = self.minutes  # this sets earliest bigattack at 2 minutes, and latest migattack.
+        self.bigattack_end = self.minutes  # this sets earliest bigattack at 2 minutes.
         #
         self.biletarget_no |= self.all_changelings
         #
@@ -912,6 +913,15 @@ class Attack(Map_if, Tech):
                             unt(AbilityId.BURROWUP_ROACH)
 
     async def dodge_biles(self):
+        # new biles
+        # will also be used in function 'bile'.
+        for effect in self.state.effects:
+            if effect.id == EffectId.RAVAGERCORROSIVEBILECP:
+                for bileposition in effect.positions:
+                    if bileposition not in self.bile_positions:
+                        self.bile_positions.add(bileposition)
+                        self.biles.add((bileposition, self.frame + 60))
+                        # how to detect a bile at the same position as an older bile?
         if self.function_listens("admin_biles", 25):
             # delete old biles
             todel = set()
@@ -919,20 +929,16 @@ class Attack(Map_if, Tech):
                 if self.frame > landframe:
                     todel.add((pos, landframe))
             self.biles -= todel
+            if len(self.biles) == 0:
+                self.bile_positions = set()
         if self.function_listens("dodge_biles", 5):
-            # new biles
-            for effect in self.state.effects:
-                if effect.id == EffectId.RAVAGERCORROSIVEBILECP:
-                    for bileposition in effect.positions:
-                        if bileposition not in self.biles:
-                            self.biles.add((bileposition, self.frame + 60))
             # dodge biles
             if len(self.biles) > 0:
                 for typ in self.all_armytypes:
                     for unt in self.units(typ):
                         mustflee = False
                         for (bileposition, landframe) in self.biles:
-                            if distance(bileposition, unt.position) < 1:
+                            if distance(bileposition, unt.position) < unt.radius + 0.5:
                                 if landframe - 2 * self.seconds < self.frame < landframe:
                                     mustflee = True
                                     abile = bileposition
@@ -960,7 +966,8 @@ class Attack(Map_if, Tech):
                                 throwat = ravpos.towards(enepos, 9)
                             else:
                                 throwat = enepos
-                            targets.append((3, -eneworth, throwat))
+                            if not self.willdie_structure(enetyp, enepos):
+                                targets.append((3, -eneworth, throwat))
                     for ene in self.enemy_units:
                         enepos = ene.position
                         if ene.type_id not in self.biletarget_no:
@@ -970,7 +977,8 @@ class Attack(Map_if, Tech):
                                     throwat = ravpos.towards(enepos, 9)
                                 else:
                                     throwat = enepos
-                                targets.append((2, -eneworth, throwat))
+                                if not self.willdie_unit(ene):
+                                    targets.append((2, -eneworth, throwat))
                     for postag in self.enemy_struc_mem:
                         (enetyp, enepos) = self.enemy_struc_mem[postag]
                         if distance(ravpos, enepos) < 9.5 + self.size_of_structure[enetyp] / 2:
@@ -980,7 +988,8 @@ class Attack(Map_if, Tech):
                                     throwat = ravpos.towards(enepos, 9)
                                 else:
                                     throwat = enepos
-                                targets.append((1, -eneworth, throwat))
+                                if not self.willdie_structure(enetyp, enepos):
+                                    targets.append((1, -eneworth, throwat))
                     for ene in self.enemy_units:
                         enepos = ene.position
                         if distance(ravpos, ene.position) < 9.5 + ene.radius:
@@ -990,26 +999,44 @@ class Attack(Map_if, Tech):
                                     throwat = ravpos.towards(enepos, 9)
                                 else:
                                     throwat = enepos
-                                targets.append((0, -eneworth, throwat))
+                                if not self.willdie_unit(ene):
+                                    targets.append((0, -eneworth, throwat))
                     if len(targets) > 0:
                         targets.sort()
-                        (urgency, eworth, besttargetpos) = targets[0]
-                        # do not bile double (except on sieged tank)
-                        if urgency > 0:  # target not sieged tank
-                            targetfound = False
-                            for (urgency, eworth, targetpos) in targets:
-                                if not targetfound:
-                                    double = False
-                                    for (bileposition, landframe) in self.biles:
-                                        if self.frame < landframe:
-                                            if distance(targetpos, bileposition) < 1:
-                                                double = True
-                                    if not double:
-                                        targetfound = True
-                                        besttargetpos = targetpos
-                        #
-                        rav(AbilityId.EFFECT_CORROSIVEBILE, besttargetpos)
+                        (urgency, eworth, bileposition) = targets[0]
+                        rav(AbilityId.EFFECT_CORROSIVEBILE, bileposition)
                         self.bilecool[tag] = self.frame + 7.5 * self.seconds
+                        # add to known biles
+                        self.bile_positions.add(bileposition)
+                        self.biles.add((bileposition, self.frame + 60))
+
+    def willdie_structure(self, enetyp, enepos) -> bool:
+        # enemy structure will die because of biles
+        # usually the structure is visible
+        biledamage = 60
+        itshealth = 1000
+        itsradius = self.size_of_structure[enetyp] / 2
+        for stru in self.enemy_structures(enetyp):
+            if stru.position == enepos:
+                itshealth = stru.health + stru.shield
+                itsradius = stru.radius
+        for (bileposition, landframe) in self.biles:
+            if self.frame < landframe:
+                if distance(bileposition, enepos) < itsradius + 0.5:
+                    itshealth -= biledamage
+        return itshealth < 0
+
+    def willdie_unit(self, ene) -> bool:
+        # enemy unit will die because of biles if it does not move.
+        biledamage = 60
+        itshealth = ene.health + ene.shield
+        itsradius = ene.radius
+        enepos = ene.position
+        for (bileposition, landframe) in self.biles:
+            if self.frame < landframe:
+                if distance(bileposition, enepos) < itsradius + 0.5:
+                    itshealth -= biledamage
+        return itshealth < 0
 
     async def guards(self):
         if self.frame < 5 * self.minutes:
