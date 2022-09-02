@@ -419,9 +419,9 @@ class Making(Map_if, Resources, Strategy):
                 self.make_plan[UnitTypeId.SPORECRAWLER] += 20
             # log
             # for thing in self.make_plan:
-                # amount = self.make_plan[thing]
-                # if amount > 0:
-                    # logger.info('I must still make ' + str(amount) + ' ' + thing.name)
+            # amount = self.make_plan[thing]
+            # if amount > 0:
+            # logger.info('I must still make ' + str(amount) + ' ' + thing.name)
 
     async def calc_groupclaim(self):
         self.zero_groupclaim()
@@ -510,7 +510,7 @@ class Making(Map_if, Resources, Strategy):
                 xid = order.ability.exact_id
             self.framecache_exact_id[tag] = xid
             return xid
-        
+
     def atleast_started(self, thing) -> int:
         if thing in self.framecache_atleast_started:
             return self.framecache_atleast_started[thing]
@@ -769,7 +769,8 @@ class Making(Map_if, Resources, Strategy):
                     if typ == UnitTypeId.NYDUSCANAL:
                         visi = self.is_visible(buildpos)
                     hascreep = self.has_creep(buildpos)
-                    if typ in [UnitTypeId.HATCHERY,
+                    if typ in [
+                        UnitTypeId.HATCHERY,
                         UnitTypeId.NYDUSCANAL,
                         UnitTypeId.EXTRACTOR,
                     ]:

@@ -18,7 +18,7 @@ from ender.behavior.combat import (
 from ender.job import Job
 from ender.map_if import Map_if
 from ender.tech import Tech
-from ender.nydus import Nydus 
+from ender.nydus import Nydus
 from ender.utils.point_utils import distance
 from sc2.constants import TARGET_AIR
 from sc2.ids.ability_id import AbilityId

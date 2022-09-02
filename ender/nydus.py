@@ -33,7 +33,7 @@ class Nydus(Common):
     # nydees also have an attackgoal
     nydus_queue = []  # unittags in fifo order. For nydees Nytravel.SUCCED or Nytravel.IN or Nytravel.SPIT
     now_spitting = False  # an unload_all command is given
-    now_spitter = None  # the nydusport that is the exit (if now_spitting) 
+    now_spitter = None  # the nydusport that is the exit (if now_spitting)
 
     def __step0(self):
         pass
@@ -116,7 +116,7 @@ class Nydus(Common):
                         self.nydees[tag] = Nytravel.IN
             if len(self.nydus_queue) == 0:
                 self.now_spitting = False
-            else: # there are units in the nydus_queue
+            else:  # there are units in the nydus_queue
                 tag = self.nydus_queue[0]
                 if self.nydees[tag] == Nytravel.IN:
                     ntotag = self.nydus_out_tag[tag]
@@ -135,11 +135,11 @@ class Nydus(Common):
                                                 port(AbilityId.STOP_STOP)
                                                 self.now_spitting = False
                                                 self.listenframe_of_structure[ntotag] = self.frame + 0.9 * self.seconds
-                                    else: # wrong one spits
+                                    else:  # wrong one spits
                                         port(AbilityId.STOP_STOP)
                                         self.now_spitting = False
                                         self.listenframe_of_structure[ntotag] = self.frame + 0.9 * self.seconds
-                        else: # not now_spitting
+                        else:  # not now_spitting
                             for port in self.nydus_ports:
                                 if port.tag == ntotag:
                                     self.now_spitting = True
@@ -196,7 +196,7 @@ class Nydus(Common):
                                             port(AbilityId.LOAD_NYDUSWORM, unt)
                                         self.nydus_queue.append(tag)
                                         self.listenframe_of_structure[nydus_in_tag] = self.frame + 0.18 * self.seconds
-                                    else: # not near port
+                                    else:  # not near port
                                         if len(unt.orders) == 0:
                                             unt.attack(port.position)
                                             self.listenframe_of_unit[tag] = self.frame + 5

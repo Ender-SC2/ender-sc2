@@ -29,4 +29,4 @@ class Job(Enum):
     SPY = auto()  # changeling
     SCOUT = auto()
     SACRIFICIAL_SCOUT = auto()
-    NYDUSUSER = auto() 
+    NYDUSUSER = auto()
