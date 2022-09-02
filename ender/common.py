@@ -28,6 +28,7 @@ class Common(BotAI, IUnitInterface):
     game_step = 4  # the amount of frames between program-step-runs
     enemymain = nowhere
     ourmain = nowhere
+    ournatural = nowhere
     seconds = 22.4
     minutes = seconds * 60
     expansion_locations = []
@@ -240,6 +241,16 @@ class Common(BotAI, IUnitInterface):
             del self.expansion_locations[self.expansion_locations.index(mispoint)]
             self.expansion_locations.append(correctpoint)
         #
+        # find natural
+        bestdist = 99999
+        walkstart = self.ourmain.towards(self.map_center, 4)
+        for expo in self.expansion_locations:
+            if 10 < distance(expo, self.ourmain) < 100:
+                walkdist = await self.client.query_pathing(walkstart, expo)
+                if walkdist is not None:
+                    if walkdist < bestdist:
+                        bestdist = walkdist
+                        self.ournatural = expo
 
     async def on_start(self):
         self.client.game_step = self.game_step
@@ -443,7 +454,7 @@ class Common(BotAI, IUnitInterface):
         self._unit_interface.queue_command(unit, command)
 
     async def execute(self):
-        self._unit_interface.execute()
+        await self._unit_interface.execute()
 
     def job_of_unit(self, unit: Unit) -> Job:
         return self._unit_interface.job_of_unit(unit)
