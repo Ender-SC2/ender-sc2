@@ -4,6 +4,7 @@ from loguru import logger
 from enum import Enum, auto
 
 from ender.common import Common
+from ender.job import Job
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
 from sc2.position import Point2
@@ -22,6 +23,7 @@ class Nydus(Common):
 
     __did_step0 = False
     #
+    attackgoal = {}  # for units pointattacking, where it is going
     nydus_ports = set()  # Ready canals and networks. Multiframe units so use only position and tag.
     future_nydus_ports = set()  # same, but need not be ready.
     nydus_ports_hash = 0  # detect changes
@@ -30,6 +32,8 @@ class Nydus(Common):
     nydees = {}  # per unittag the Nytravel
     # nydees also have an attackgoal
     nydus_queue = []  # unittags in fifo order. For nydees Nytravel.SUCCED or Nytravel.IN or Nytravel.SPIT
+    now_spitting = False  # an unload_all command is given
+    now_spitter = None  # the nydusport that is the exit (if now_spitting) 
 
     def __step0(self):
         pass
@@ -49,7 +53,7 @@ class Nydus(Common):
             ports = self.structures(UnitTypeId.NYDUSNETWORK).ready | self.structures(UnitTypeId.NYDUSCANAL).ready
             ports_hash = 0
             for port in ports:
-                ports_hash += port.position.x
+                ports_hash += port.tag
             if self.nydus_ports_hash != ports_hash:
                 self.nydus_ports_hash = ports_hash
                 self.nydus_ports = ports
@@ -78,49 +82,97 @@ class Nydus(Common):
                             self.attack_via_nydus(unt)
 
     async def do_nydus(self):
+        ### log
+        if len(self.nydees) > 0:
+            stri = "nydees: "
+            for tag in self.nydees:
+                stri += self.nydees[tag].name + " "
+            logger.info(stri)
+        if len(self.nydus_queue) > 0:
+            stri = "nydus_queue: "
+            for tag in self.nydus_queue:
+                if tag in self.nydees:
+                    stri += self.nydees[tag].name + " "
+                else:
+                    stri += str(tag) + " "
+            logger.info(stri)
+        ###
         if len(self.future_nydus_ports) == 0:
             # loose all passengers
             self.nydus_queue = []
-            self.nydees = []
+            self.nydees = {}
             self.nydus_in_tag = {}
             self.nydus_out_tag = {}
+        if len(self.future_nydus_ports) == 1:
+            # everybody out!
+            porttag = self.future_nydus_ports[0].tag
+            for tag in self.nydees:
+                if self.nydees[tag] == Nytravel.IN:
+                    self.nydus_out_tag[tag] = porttag
         if len(self.future_nydus_ports) >= 2:
             for tag in self.nydees:
                 if self.nydees[tag] == Nytravel.SUCCED:
                     if tag not in self.living:
-                        self.nydees[tag] == Nytravel.IN
-            if len(self.nydus_queue) > 0:
+                        self.nydees[tag] = Nytravel.IN
+            if len(self.nydus_queue) == 0:
+                self.now_spitting = False
+            else: # there are units in the nydus_queue
                 tag = self.nydus_queue[0]
                 if self.nydees[tag] == Nytravel.IN:
                     ntotag = self.nydus_out_tag[tag]
-                    if self.frame >= self.listenframe_of_unit[ntotag]:
-                        for port in self.nydus_ports:
-                            if port.tag == ntotag:
-                                self.nydees[tag] = Nytravel.SPIT
-                                port(AbilityId.SMART)  # out
-                                self.listenframe_of_unit[ntotag] = self.frame + 0.9 * self.seconds
-                                self.listenframe_of_unit[tag] = self.frame + 5
+                    if self.frame >= self.listenframe_of_structure[ntotag]:
+                        if self.now_spitting:
+                            for port in self.nydus_ports:
+                                if port.tag == self.now_spitter:
+                                    if self.now_spitter == ntotag:
+                                        self.nydees[tag] = Nytravel.SPIT
+                                        self.listenframe_of_unit[tag] = self.frame + 5
+                                        # stop-ahead:
+                                        if len(self.nydus_queue) >= 2:
+                                            nexttag = self.nydus_queue[1]
+                                            nextntotag = self.nydus_out_tag[nexttag]
+                                            if self.now_spitter != nextntotag:
+                                                port(AbilityId.STOP_STOP)
+                                                self.now_spitting = False
+                                                self.listenframe_of_structure[ntotag] = self.frame + 0.9 * self.seconds
+                                    else: # wrong one spits
+                                        port(AbilityId.STOP_STOP)
+                                        self.now_spitting = False
+                                        self.listenframe_of_structure[ntotag] = self.frame + 0.9 * self.seconds
+                        else: # not now_spitting
+                            for port in self.nydus_ports:
+                                if port.tag == ntotag:
+                                    self.now_spitting = True
+                                    self.now_spitter = ntotag
+                                    if port.type_id == UnitTypeId.NYDUSNETWORK:
+                                        port(AbilityId.UNLOADALL_NYDASNETWORK)
+                                    else:
+                                        port(AbilityId.UNLOADALL_NYDUSWORM)
+                                    self.listenframe_of_structure[ntotag] = self.frame + 0.9 * self.seconds
                         seen = False
                         for port in self.future_nydus_ports:
                             if port.tag == ntotag:
                                 seen = True
                         if not seen:
                             # repair for a lost port
-                            goal = self.attack_goal[tag]
+                            goal = self.attackgoal[tag]
                             # len(self.nydus_ports) >= 2
                             distbb = 99999
                             for nydus in self.future_nydus_ports:
-                                dist = distance(nydus, goal)
+                                dist = distance(nydus.position, goal)
                                 if dist < distbb:
                                     distbb = dist
                                     nydus_out = nydus
                             if distbb < 99999:
                                 self.nydus_out_tag[tag] = nydus_out.tag
+                elif self.nydees[tag] == Nytravel.SPIT:
+                    if not self.now_spitting:
+                        self.nydees[tag] == Nytravel.IN
             for unt in self.units:
                 tag = unt.tag
                 if tag in self.nydees:
                     pos = unt.position
-                    goal = self.attack_goal[tag]
+                    goal = self.attackgoal[tag]
                     stat = self.nydees[tag]
                     nydus_in_tag = self.nydus_in_tag[tag]
                     if stat == Nytravel.PLANNED:
@@ -130,16 +182,24 @@ class Nydus(Common):
                                     unt.attack(port.position)
                                     self.nydees[tag] = Nytravel.TOWARDS
                                     self.listenframe_of_unit[tag] = self.frame + 5
+                                    self.set_job_of_unittag(tag, Job.NYDUSUSER)
                     elif stat == Nytravel.TOWARDS:
-                        if self.frame >= self.listenframe_of_unit[nydus_in_tag]:
+                        if self.frame >= self.listenframe_of_structure[nydus_in_tag]:
                             for port in self.nydus_ports:
                                 if port.tag == nydus_in_tag:
                                     margin = 0.2
                                     if distance(pos, port.position) < 1.5 + unt.radius + margin:
                                         self.nydees[tag] = Nytravel.SUCCED
-                                        port(AbilityId.LOAD_NYDUSNETWORK, unt)
+                                        if port.type_id == UnitTypeId.NYDUSNETWORK:
+                                            port(AbilityId.LOAD_NYDUSNETWORK, unt)
+                                        else:
+                                            port(AbilityId.LOAD_NYDUSWORM, unt)
                                         self.nydus_queue.append(tag)
-                                        self.listenframe_of_unit[nydus_in_tag] = self.frame + 0.18 * self.seconds
+                                        self.listenframe_of_structure[nydus_in_tag] = self.frame + 0.18 * self.seconds
+                                    else: # not near port
+                                        if len(unt.orders) == 0:
+                                            unt.attack(port.position)
+                                            self.listenframe_of_unit[tag] = self.frame + 5
                     elif stat == Nytravel.SPIT:
                         if self.frame > self.listenframe_of_unit[tag]:
                             unt.attack(goal)
@@ -148,6 +208,7 @@ class Nydus(Common):
                             del self.nydus_out_tag[tag]
                             del self.nydus_queue[self.nydus_queue.index(tag)]  # usually 0
                             self.listenframe_of_unit[tag] = self.frame + 5
+                            self.set_job_of_unittag(tag, Job.UNCLEAR)
                     elif stat == Nytravel.IN:
                         # Must be spit out of order. Repair.
                         amspit = 0
@@ -163,7 +224,7 @@ class Nydus(Common):
         # attackgoal position must be set
         tag = unt.tag
         pos = unt.position
-        goal = self.attack_goal[tag]
+        goal = self.attackgoal[tag]
         nyd = len(self.future_nydus_ports) >= 2
         if unt.is_flying:
             nyd = False

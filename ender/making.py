@@ -66,7 +66,7 @@ class Making(Map_if, Resources, Strategy):
     expiration_of_builder = {}  # it is a temporal job
     example = UnitTypeId.SCV  # for debugging, e.g. EXTRACTOR. To silence: SCV
     # emergency in common.py
-    do_emergencies = True  # True. False to test greed without emergency spores
+    do_emergencies = False  # True. False to test greed without emergency spores
     supplytrick_phase = "no"
     supplytrick_end = 0
     rallied = set()
@@ -88,8 +88,15 @@ class Making(Map_if, Resources, Strategy):
     learnsum = 0  # sum of (abs change of walkframe)
     thisgame = []  # of (typ, pos, betterwalk)
     buildplan_nr = 0
-
+    nydusnetcool = {}
+    eggtags = set()  # tags of all eggs
+    egg_id = {}  # per egg the order.ability.exact_id
+    framecache_exact_id = {}  # this frame, for some units, the order.ability.exact_id
+    framecache_atleast_started = {}  # this frame, for some unittypes, the atleast_started value
+    framecache_started = {}  # this frame, for some unittypes, the started value
+    framecache_we_finished_a = {}  # this frame, for some things, the we_started_a value
     #
+
     def __step0(self):
         self.buildplan_timeout = 2.5 * self.minutes
         #
@@ -166,6 +173,12 @@ class Making(Map_if, Resources, Strategy):
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
+        #
+        self.framecache_exact_id = {}
+        self.framecache_started = {}
+        self.framecache_atleast_started = {}
+        self.framecache_we_finished_a = {}
+        await self.egg_admin()
         #
         await self.do_make_plan()
         #
@@ -372,6 +385,19 @@ class Making(Map_if, Resources, Strategy):
             for stru in self.structures(UnitTypeId.LAIR).ready.idle:
                 if stru.position == buildpos:
                     stru.train(typ)
+        elif typ == UnitTypeId.NYDUSCANAL:
+            # builder is nydusnetwork, needs vision
+            first = True
+            for him in self.structures(UnitTypeId.NYDUSNETWORK).ready:
+                # nydusnetcool
+                if him.tag not in self.nydusnetcool:
+                    self.nydusnetcool[him.tag] = 0
+                if self.frame >= self.nydusnetcool[him.tag]:
+                    if first:
+                        first = False
+                        self.map_build(buildpos, size, typ)
+                        him.build(typ, buildpos)
+                        self.nydusnetcool[him.tag] = self.frame + 14 * self.seconds
         else:
             if self.map_can_build(buildpos, size):
                 for him in self.units(UnitTypeId.DRONE):
@@ -380,22 +406,22 @@ class Making(Map_if, Resources, Strategy):
                         him.build(typ, buildpos)
 
     async def do_make_plan(self):
-        self.make_plan = self.zero_plan.copy()
-        for thing in self.result_plan:
-            amount = self.result_plan[thing]
-            if amount > 0:
-                tomake = amount - self.atleast_started(thing)
-                if tomake > 0:
-                    self.make_plan[thing] = tomake
-        if self.supplytricking:
-            self.make_plan[UnitTypeId.ZERGLING] += 40
-            self.make_plan[UnitTypeId.SPORECRAWLER] += 20
-        # log
-        for thing in self.make_plan:
-            amount = self.make_plan[thing]
-            if amount > 0:
-                pass
-                # logger.info('I must still make ' + str(amount) + ' ' + thing.name)
+        if self.function_listens("do_make_plan", 13):
+            self.make_plan = self.zero_plan.copy()
+            for thing in self.result_plan:
+                amount = self.result_plan[thing]
+                if amount > 0:
+                    tomake = amount - self.atleast_started(thing)
+                    if tomake > 0:
+                        self.make_plan[thing] = tomake
+            if self.supplytricking:
+                self.make_plan[UnitTypeId.ZERGLING] += 40
+                self.make_plan[UnitTypeId.SPORECRAWLER] += 20
+            # log
+            # for thing in self.make_plan:
+                # amount = self.make_plan[thing]
+                # if amount > 0:
+                    # logger.info('I must still make ' + str(amount) + ' ' + thing.name)
 
     async def calc_groupclaim(self):
         self.zero_groupclaim()
@@ -405,6 +431,8 @@ class Making(Map_if, Resources, Strategy):
                 self.add_groupclaim(thing, amount)
 
     def started(self, thing) -> int:
+        if thing in self.framecache_started:
+            return self.framecache_started[thing]
         sol = 0
         for claim in self.orderdelay:
             (typ, resources, importance, expiration) = claim
@@ -413,46 +441,86 @@ class Making(Map_if, Resources, Strategy):
         cocoon = self.creator[thing]
         if cocoon == UnitTypeId.LARVA:
             cocoon = UnitTypeId.EGG  # be aware: tagchange on ending cocoon state.
-            # an egg can become different units; check its order.ability.exact_id
-        if thing == UnitTypeId.OVERLORDTRANSPORT:
+            # an egg can become different units
+            creation = self.creation[thing]
+            for tag in self.eggtags:
+                if self.egg_id[tag] == creation:
+                    sol += 1
+        elif thing == UnitTypeId.OVERLORDTRANSPORT:
             cocoon = UnitTypeId.TRANSPORTOVERLORDCOCOON
-            return sol + len(self.units(cocoon))
-        if thing == UnitTypeId.OVERSEER:
+            sol += len(self.units(cocoon))
+        elif thing == UnitTypeId.OVERSEER:
             cocoon = UnitTypeId.OVERLORDCOCOON
-            return sol + len(self.units(cocoon))
-        if thing == UnitTypeId.LURKERMP:
+            sol += len(self.units(cocoon))
+        elif thing == UnitTypeId.LURKERMP:
             cocoon = UnitTypeId.LURKERMPEGG
-            return sol + len(self.units(cocoon))
-        if thing == UnitTypeId.BROODLORD:
+            sol += len(self.units(cocoon))
+        elif thing == UnitTypeId.BROODLORD:
             cocoon = UnitTypeId.BROODLORDCOCOON
-            return sol + len(self.units(cocoon))
-        if thing == UnitTypeId.RAVAGER:
+            sol += len(self.units(cocoon))
+        elif thing == UnitTypeId.RAVAGER:
             cocoon = UnitTypeId.RAVAGERCOCOON
-            return sol + len(self.units(cocoon))
-        if thing == UnitTypeId.BANELING:
+            sol += len(self.units(cocoon))
+        elif thing == UnitTypeId.BANELING:
             cocoon = UnitTypeId.BANELINGCOCOON  # be aware: tagchange on ending cocoon state.
-            return sol + len(self.units(cocoon))
-        if thing == UnitTypeId.CHANGELING:
+            sol += len(self.units(cocoon))
+        elif thing == UnitTypeId.CHANGELING:
             # can change automatic
             for chtyp in self.all_changelings:
                 for unt in self.units(chtyp):
                     if unt.age_in_frames < self.seconds:
                         sol += 1
-        creation = self.creation[thing]
-        for unt in self.units(cocoon) + self.structures(cocoon):
-            for order in unt.orders:
-                if creation == order.ability.exact_id:
+        elif cocoon == UnitTypeId.DRONE:
+            creation = self.creation[thing]
+            for unt in self.units(cocoon):
+                if self.job_of_unittag(unt.tag) == Job.BUILDER:
+                    if creation == self.exact_id(unt):
+                        sol += 1
+        else:
+            for unt in self.units(cocoon) + self.structures(cocoon):
+                creation = self.creation[thing]
+                if creation == self.exact_id(unt):
                     sol += 1
+        self.framecache_started[thing] = sol
         return sol
 
+    async def egg_admin(self):
+        # egg_id[eggtag] = order.ability.exact_id
+        # Done here to remember over programruns, as asking order.ability.exact_id is slow.
+        neweggtags = set()
+        for unt in self.units(UnitTypeId.EGG):
+            tag = unt.tag
+            neweggtags.add(tag)
+            if tag not in self.eggtags:
+                for order in unt.orders:
+                    self.egg_id[tag] = order.ability.exact_id
+                    self.eggtags.add(tag)
+        todel = self.eggtags - neweggtags
+        for tag in todel:
+            del self.egg_id[tag]
+            self.eggtags.remove(tag)
+
+    def exact_id(self, unt):
+        tag = unt.tag
+        if tag in self.framecache_exact_id:
+            return self.framecache_exact_id[tag]
+        else:
+            xid = -1
+            for order in unt.orders:
+                xid = order.ability.exact_id
+            self.framecache_exact_id[tag] = xid
+            return xid
+        
     def atleast_started(self, thing) -> int:
+        if thing in self.framecache_atleast_started:
+            return self.framecache_atleast_started[thing]
         am = 0
         am += self.started(thing)
-        if thing in self.state.upgrades:
-            am += 1
         if type(thing) == UnitTypeId:
             am += len(self.structures(thing))
             am += len(self.units(thing))
+        elif thing in self.state.upgrades:
+            am += 1
         if thing == UnitTypeId.HATCHERY:
             am += len(self.structures(UnitTypeId.LAIR))
             am += len(self.structures(UnitTypeId.HIVE))
@@ -465,34 +533,8 @@ class Making(Map_if, Resources, Strategy):
         for mor in self.morph:
             if self.morph[mor] == thing:
                 am += len(self.units(mor))
+        self.framecache_atleast_started[thing] = am
         return am
-
-    def atleast_some_started(self, thing) -> bool:
-        # to speed up
-        if thing in self.state.upgrades:
-            return True
-        if type(thing) == UnitTypeId:
-            if len(self.structures(thing)) > 0:
-                return True
-            if len(self.units(thing)) > 0:
-                return True
-        if thing == UnitTypeId.HATCHERY:
-            if len(self.structures(UnitTypeId.LAIR)) > 0:
-                return True
-            if len(self.structures(UnitTypeId.HIVE)) > 0:
-                return True
-        if thing == UnitTypeId.LAIR:
-            if len(self.structures(UnitTypeId.HIVE)) > 0:
-                return True
-        if thing == UnitTypeId.SPIRE:
-            if len(self.structures(UnitTypeId.GREATERSPIRE)) > 0:
-                return True
-        if thing == UnitTypeId.EXTRACTOR:
-            if len(self.structures(UnitTypeId.EXTRACTORRICH)) > 0:
-                return True
-        if self.started(thing) > 0:
-            return True
-        return False
 
     async def expand(self):
         if self.next_expansion == self.nowhere:
@@ -653,8 +695,14 @@ class Making(Map_if, Resources, Strategy):
                             pos = stru.position
                             expiration = self.frame + self.buildplan_timeout
                             self.buildplan[typ] = (self.notag, pos, expiration)
+                    elif typ == UnitTypeId.NYDUSNETWORK:
+                        pos = self.ournatural.towards(self.map_center, 25)
+                        pos = self.map_around(pos, size)
+                        self.map_plan(pos, size)
+                        expiration = self.frame + self.buildplan_timeout
+                        self.buildplan[typ] = (self.somedrone, pos, expiration)
                     elif typ == UnitTypeId.NYDUSCANAL:
-                        pos = self.map_center  # experimenting
+                        pos = self.map_center.towards(self.enemymain, 20)  # experimenting
                         pos = self.map_around(pos, size)
                         self.map_plan(pos, size)
                         expiration = self.frame + self.buildplan_timeout
@@ -717,7 +765,16 @@ class Making(Map_if, Resources, Strategy):
                     (histag, buildpos, expiration) = self.buildplan[typ]
                     there = self.walk_finished(typ)
                     reso = self.check_resources(typ, importance)
-                    if there and reso:
+                    visi = True
+                    if typ == UnitTypeId.NYDUSCANAL:
+                        visi = self.is_visible(buildpos)
+                    hascreep = self.has_creep(buildpos)
+                    if typ in [UnitTypeId.HATCHERY,
+                        UnitTypeId.NYDUSCANAL,
+                        UnitTypeId.EXTRACTOR,
+                    ]:
+                        hascreep = True
+                    if there and reso and visi and hascreep:
                         self.spend_resources(typ)
                         self.now_make_a_building(typ, histag, buildpos)
                         del self.buildplan[typ]
@@ -941,32 +998,36 @@ class Making(Map_if, Resources, Strategy):
                     self.learn_walk[tag] = self.frame
 
     def we_finished_a(self, thing) -> bool:
-        if thing in self.state.upgrades:
-            return True
+        if thing in self.framecache_we_finished_a:
+            return self.framecache_we_finished_a[thing]
+        res = False
         if type(thing) == UnitTypeId:
             if len(self.structures(thing).ready) > 0:
-                return True
+                res = True
             if len(self.units(thing)) > 0:
-                return True
+                res = True
+        elif thing in self.state.upgrades:
+            res = True
         if thing == UnitTypeId.HATCHERY:
             if len(self.structures(UnitTypeId.LAIR)) > 0:
-                return True
+                res = True
             if len(self.structures(UnitTypeId.HIVE)) > 0:
-                return True
-        if thing == UnitTypeId.LAIR:
+                res = True
+        elif thing == UnitTypeId.LAIR:
             if len(self.structures(UnitTypeId.HIVE)) > 0:
-                return True
-        if thing == UnitTypeId.SPIRE:
+                res = True
+        elif thing == UnitTypeId.SPIRE:
             if len(self.structures(UnitTypeId.GREATERSPIRE)) > 0:
-                return True
-        if thing == UnitTypeId.EXTRACTOR:
+                res = True
+        elif thing == UnitTypeId.EXTRACTOR:
             if len(self.structures(UnitTypeId.EXTRACTORRICH)) > 0:
-                return True
+                res = True
         for mor in self.morph:
             if self.morph[mor] == thing:
                 if len(self.units(mor)) > 0:
-                    return True
-        return False
+                    res = True
+        self.framecache_we_finished_a[thing] = res
+        return res
 
     def tech_check(self, the_thing) -> bool:
         creator = self.creator[the_thing]
@@ -1062,7 +1123,7 @@ class Making(Map_if, Resources, Strategy):
             for thing in self.structype_order:
                 seen = seen or (thing == unty)
                 if not seen:  # before
-                    if not self.atleast_some_started(thing):
+                    if self.atleast_started(thing) == 0:
                         if (self.make_plan[thing] > 0) or (self.make_plan[unty] == 0):
                             if unty == self.example:
                                 logger.info(
@@ -1089,7 +1150,7 @@ class Making(Map_if, Resources, Strategy):
         return True
 
     def i_could_upgrade(self, typ, importance) -> bool:
-        if not self.atleast_some_started(typ):
+        if self.atleast_started(typ) == 0:
             if self.tech_check(typ):
                 creator = self.creator[typ]
                 resource = self.resource_of_buildingtype[creator]

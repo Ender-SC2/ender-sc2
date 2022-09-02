@@ -18,6 +18,7 @@ from ender.behavior.combat import (
 from ender.job import Job
 from ender.map_if import Map_if
 from ender.tech import Tech
+from ender.nydus import Nydus 
 from ender.utils.point_utils import distance
 from sc2.constants import TARGET_AIR
 from sc2.ids.ability_id import AbilityId
@@ -27,10 +28,10 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 
 
-class Attack(Map_if, Tech):
+class Attack(Map_if, Tech, Nydus):
 
     __did_step0 = False
-    attackgoal = {}  # for units pointattacking, where it is going
+    # attackgoal is in nydus.py. For units pointattacking, where it is going
     defendgoal = None
     spray = {}
     casts = set()  # of (spellkind, pos, expiration)
@@ -138,12 +139,15 @@ class Attack(Map_if, Tech):
     async def on_step(self, iteration: int):
         await Map_if.on_step(self, iteration)
         await Tech.on_step(self, iteration)
+        await Nydus.on_step(self, iteration)
         if not self.__did_step0:
             self.__step0()
             self.__did_step0 = True
         #
         await self.set_big_attack()
-        await self.big_attack()
+        await self.big_attack1()
+        await self.big_attack2()
+        await self.big_attack3()
         for behavior in self.behaviors:
             await behavior.on_step(iteration)
         await self.renew_defendgoal()
@@ -232,7 +236,7 @@ class Attack(Map_if, Tech):
                                     if self.job_of_unit(unt) == Job.DEFENDATTACK:
                                         self.attackgoal[tag] = self.defendgoal
                                         if distance(unt.position, self.defendgoal) > 8:
-                                            unt.attack(self.defendgoal)
+                                            self.attack_via_nydus(unt)
                                             self.listenframe_of_unit[tag] = self.frame + 5
             # dismiss full energy queens
             for unt in self.units(UnitTypeId.QUEEN):
@@ -340,69 +344,78 @@ class Attack(Map_if, Tech):
                         self.bigattack_end = self.frame + 30 * self.seconds
                         logger.info("earliest bigattack moment will be " + str(self.frame + self.minutes))
 
-    async def big_attack(self):
+    async def big_attack1(self):
         if self.bigattacking:
-            # get some bigattack units, gather them
-            for typ in self.all_armytypes:
-                if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}:  # too slow
+            if self.function_listens("big_attack1", 19):
+                # get some bigattack units, gather them
+                for typ in self.all_armytypes:
+                    if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}:  # too slow
+                        for unt in self.units(typ):
+                            tag = unt.tag
+                            if self.frame >= self.listenframe_of_unit[tag]:
+                                if self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
+                                    dist = distance(unt.position, self.bigattackgoal)
+                                    speed = self.speed[typ] / self.seconds
+                                    duration = dist / speed
+                                    gathermoment = self.frame + duration + self.gathertime
+                                    attackmoment = self.frame + duration
+                                    if attackmoment < self.bigattack_end:
+                                        if gathermoment >= self.bigattack_moment:
+                                            # print('debug ' + unt.name + ' starts walking ' + str(duration))
+                                            self.set_job_of_unit(unt, Job.BIGATTACK)
+                                            self.attackgoal[tag] = self.gatherpoint
+                                            self.attack_via_nydus(unt)
+                                            self.listenframe_of_unit[tag] = self.frame + 5
+                                            self.attack_started[tag] = False
+
+    async def big_attack2(self):
+        if self.bigattacking:
+            if self.function_listens("big_attack2", 19):
+                # bigattack
+                for typ in self.all_armytypes:
                     for unt in self.units(typ):
                         tag = unt.tag
                         if self.frame >= self.listenframe_of_unit[tag]:
-                            if self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
-                                dist = distance(unt.position, self.bigattackgoal)
-                                speed = self.speed[typ] / self.seconds
-                                duration = dist / speed
-                                gathermoment = self.frame + duration + self.gathertime
-                                attackmoment = self.frame + duration
-                                if attackmoment < self.bigattack_end:
-                                    if gathermoment >= self.bigattack_moment:
-                                        # print('debug ' + unt.name + ' starts walking ' + str(duration))
-                                        self.set_job_of_unit(unt, Job.BIGATTACK)
-                                        self.attackgoal[tag] = self.gatherpoint
-                                        unt.attack(self.gatherpoint)
-                                        self.listenframe_of_unit[tag] = self.frame + 5
-                                        self.attack_started[tag] = False
-            # bigattack
-            for typ in self.all_armytypes:
-                for unt in self.units(typ):
-                    tag = unt.tag
-                    if self.frame >= self.listenframe_of_unit[tag]:
-                        if self.job_of_unit(unt) == Job.BIGATTACK:
-                            if not self.attack_started[tag]:
-                                dist = distance(unt.position, self.bigattackgoal)
-                                speed = self.speed[typ] / self.seconds
-                                duration = dist / speed
-                                attackmoment = self.frame + duration
-                                if attackmoment < self.bigattack_end:
-                                    if attackmoment >= self.bigattack_moment:
-                                        # print('debug ' + unt.name + ' starts walking ' + str(duration))
-                                        self.attackgoal[tag] = self.bigattackgoal
-                                        unt.attack(self.bigattackgoal)
-                                        self.listenframe_of_unit[tag] = self.frame + 5
-                                        self.attack_started[tag] = True
-            # whip them (or release them)
-            for typ in self.all_armytypes:
-                for unt in self.units(typ).idle:
-                    tag = unt.tag
-                    if self.job_of_unit(unt) == Job.BIGATTACK:
-                        if self.attack_started[tag]:
-                            if self.frame >= self.listenframe_of_unit[tag]:
-                                if self.frame >= self.bigattack_end:
-                                    self.set_job_of_unit(unt, Job.UNCLEAR)
-                                else:
-                                    # why does it idle?
-                                    goal = self.attackgoal[tag]
-                                    dist = distance(unt.position, goal)
-                                    if dist < 5:
-                                        # it reached its goal
-                                        if self.attackgoal[tag] != self.bigattackgoal:
+                            if self.job_of_unit(unt) == Job.BIGATTACK:
+                                if not self.attack_started[tag]:
+                                    dist = distance(unt.position, self.bigattackgoal)
+                                    speed = self.speed[typ] / self.seconds
+                                    duration = dist / speed
+                                    attackmoment = self.frame + duration
+                                    if attackmoment < self.bigattack_end:
+                                        if attackmoment >= self.bigattack_moment:
+                                            # print('debug ' + unt.name + ' starts walking ' + str(duration))
                                             self.attackgoal[tag] = self.bigattackgoal
-                                            unt.attack(self.bigattackgoal)
+                                            self.attack_via_nydus(unt)
                                             self.listenframe_of_unit[tag] = self.frame + 5
+                                            self.attack_started[tag] = True
+
+    async def big_attack3(self):
+        if self.bigattacking:
+            if self.function_listens("big_attack3", 19):
+                # whip them (or release them)
+                for typ in self.all_armytypes:
+                    for unt in self.units(typ).idle:
+                        tag = unt.tag
+                        if self.job_of_unit(unt) == Job.BIGATTACK:
+                            if self.attack_started[tag]:
+                                if self.frame >= self.listenframe_of_unit[tag]:
+                                    if self.frame >= self.bigattack_end:
+                                        self.set_job_of_unit(unt, Job.UNCLEAR)
                                     else:
-                                        # it was distracted
-                                        unt.attack(goal)
-                                        self.listenframe_of_unit[tag] = self.frame + 5
+                                        # why does it idle?
+                                        goal = self.attackgoal[tag]
+                                        dist = distance(unt.position, goal)
+                                        if dist < 5:
+                                            # it reached its goal
+                                            if self.attackgoal[tag] != self.bigattackgoal:
+                                                self.attackgoal[tag] = self.bigattackgoal
+                                                unt.attack(self.bigattackgoal)
+                                                self.listenframe_of_unit[tag] = self.frame + 5
+                                        else:
+                                            # it was distracted
+                                            unt.attack(goal)
+                                            self.listenframe_of_unit[tag] = self.frame + 5
 
     async def berserk(self):
         # berserkers are units that will fight to die to free supply
