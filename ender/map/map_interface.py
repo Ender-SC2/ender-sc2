@@ -20,7 +20,7 @@ class MapInterface(IMapInterface):
         self._bot_ai = bot_ai
 
     def spell_map(self) -> InfluenceMap:
-        pass
+        raise NotImplementedError()
 
     def unit_map(self) -> InfluenceMap:
-        pass
+        raise NotImplementedError()

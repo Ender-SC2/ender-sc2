@@ -6,32 +6,11 @@ from loguru import logger
 
 from ender.job import Job
 from ender.tech import Tech
+from ender.utils.unit_creation_utils import unit_created_from
 from sc2.ids.unit_typeid import UnitTypeId
 
 
 class Resources(Tech):
-
-    __did_step0 = False
-    # a claim is needed to make a LAIR, as it needs money and a hatchery not making a queen.
-    # claimtype = (typ,resources,importance,expiration)
-    claims = []  # of claimtype. Typ will be unique.
-    orderdelay = []  # of claimtype. The order has been given but did not arrive yet.
-    groupclaim = None  # things, in make_plan but not started, hold a claim at importance 700.
-    example = UnitTypeId.SCV  # SCV if you want no example logged
-    resource_now_tags = {}  # for resources that are a unit, tags are stored this frame. Not geysers
-
-    def __step0(self):
-        self.init_resources()
-
-    async def on_step(self, iteration: int):
-        await Tech.on_step(self, iteration)
-        if not self.__did_step0:
-            self.__step0()
-            self.__did_step0 = True
-        #
-        await self.calc_resource_now()
-        await self.claim_administration()
-
     class Resource(Enum):
         MINERALS = auto()
         VESPENE = auto()
@@ -59,7 +38,28 @@ class Resources(Tech):
         ULTRALISKCAVERNS = auto()
         OVERSEER50S = auto()
 
-    zero_resources = dict((res, 0) for res in Resource)  # always .copy()
+    __did_step0 = False
+    # a claim is needed to make a LAIR, as it needs money and a hatchery not making a queen.
+    # claimtype = (typ,resources,importance,expiration)
+    claims = []  # of claimtype. Typ will be unique.
+    orderdelay = []  # of claimtype. The order has been given but did not arrive yet.
+    groupclaim: dict[Resource, float] = {}  # things, in make_plan but not started, hold a claim at importance 700.
+    example = UnitTypeId.SCV  # SCV if you want no example logged
+    resource_now_tags = {}  # for resources that are a unit, tags are stored this frame. Not geysers
+
+    def __step0(self):
+        self.init_resources()
+
+    async def on_step(self, iteration: int):
+        await Tech.on_step(self, iteration)
+        if not self.__did_step0:
+            self.__step0()
+            self.__did_step0 = True
+        #
+        await self.calc_resource_now()
+        await self.claim_administration()
+
+    zero_resources: dict[Resource, float] = dict((res, 0) for res in Resource)  # always .copy()
     claimed = []  # of (typ, resources, importance, expiration)
     resource_cost = {}  # per typ: resource
     resource_now_amount = {}  # in step init. Per resource, the amount.
@@ -71,7 +71,9 @@ class Resources(Tech):
         self.resource_cost = {}
         for typ in self.all_types:
             if typ not in self.all_eggtypes:
-                creator = self.creator[typ]
+                if typ not in unit_created_from:
+                    continue
+                creator = unit_created_from[typ]
                 resources = self.zero_resources.copy()
                 if typ not in {UnitTypeId.LARVA, UnitTypeId.EXTRACTORRICH, UnitTypeId.BROODLING}:
                     if typ not in self.all_changelings:
@@ -220,12 +222,10 @@ class Resources(Tech):
         #
         # in claims?
         inclaims = False
-        claimindex = 0
         for (ix, hclaim) in enumerate(self.claims):
             (htyp, hresource, himportance, hexpiration) = hclaim
             if htyp == typ:
                 inclaims = True
-                claimindex = ix
         if inclaims:
             # claims with importance above mine
             vipclaimed = self.zero_resources.copy()
@@ -293,13 +293,15 @@ class Resources(Tech):
         logger.info("Making a " + typ.name)
         lex = 9999999
         expiration = self.frame + 5
+        old_claim = None
+        new_claim = None
         for hclaim in self.orderdelay:
             (htyp, hresources, himportance, hexpiration) = hclaim
             if (htyp == typ) and (expiration < hexpiration < lex):
                 lex = hexpiration
                 old_claim = hclaim
                 new_claim = (htyp, hresources, himportance, expiration)
-        if lex < 9999999:
+        if old_claim and new_claim:
             self.orderdelay[self.orderdelay.index(old_claim)] = new_claim
 
     def have_free_resource(self, res, importance) -> bool:

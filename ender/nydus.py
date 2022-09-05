@@ -1,14 +1,15 @@
 # nydus.py, Ender
 
-from loguru import logger
 from enum import Enum, auto
+
+from loguru import logger
 
 from ender.common import Common
 from ender.job import Job
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.ability_id import AbilityId
-from sc2.position import Point2
 from ender.utils.point_utils import distance
+from sc2.ids.ability_id import AbilityId
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.units import Units
 
 
 class Nytravel(Enum):
@@ -24,8 +25,8 @@ class Nydus(Common):
     __did_step0 = False
     #
     attackgoal = {}  # for units pointattacking, where it is going
-    nydus_ports = set()  # Ready canals and networks. Multiframe units so use only position and tag.
-    future_nydus_ports = set()  # same, but need not be ready.
+    nydus_ports: Units  # Ready canals and networks. Multiframe units so use only position and tag.
+    future_nydus_ports: Units  # same, but need not be ready.
     nydus_ports_hash = 0  # detect changes
     nydus_in_tag = {}  # per unittag: tag of a nydus_port
     nydus_out_tag = {}  # per unittag: tag of a nydus_port
@@ -49,8 +50,13 @@ class Nydus(Common):
 
     async def check_ports(self):
         if self.function_listens("check_ports", 10):
-            self.future_nydus_ports = self.structures(UnitTypeId.NYDUSNETWORK) | self.structures(UnitTypeId.NYDUSCANAL)
-            ports = self.structures(UnitTypeId.NYDUSNETWORK).ready | self.structures(UnitTypeId.NYDUSCANAL).ready
+            self.future_nydus_ports = self.structures.of_type(UnitTypeId.NYDUSNETWORK) | self.structures.of_type(
+                UnitTypeId.NYDUSCANAL
+            )
+            ports = (
+                self.structures.of_type(UnitTypeId.NYDUSNETWORK).ready
+                | self.structures.of_type(UnitTypeId.NYDUSCANAL).ready
+            )
             ports_hash = 0
             for port in ports:
                 ports_hash += port.tag
@@ -82,7 +88,7 @@ class Nydus(Common):
                             self.attack_via_nydus(unt)
 
     async def do_nydus(self):
-        ### log
+        # log
         if len(self.nydees) > 0:
             stri = "nydees: "
             for tag in self.nydees:
@@ -158,16 +164,17 @@ class Nydus(Common):
                             goal = self.attackgoal[tag]
                             # len(self.nydus_ports) >= 2
                             distbb = 99999
+                            nydus_out = None
                             for nydus in self.future_nydus_ports:
                                 dist = distance(nydus.position, goal)
                                 if dist < distbb:
                                     distbb = dist
                                     nydus_out = nydus
-                            if distbb < 99999:
+                            if nydus_out:
                                 self.nydus_out_tag[tag] = nydus_out.tag
                 elif self.nydees[tag] == Nytravel.SPIT:
                     if not self.now_spitting:
-                        self.nydees[tag] == Nytravel.IN
+                        self.nydees[tag] = Nytravel.IN
             for unt in self.units:
                 tag = unt.tag
                 if tag in self.nydees:
@@ -212,11 +219,12 @@ class Nydus(Common):
                     elif stat == Nytravel.IN:
                         # Must be spit out of order. Repair.
                         amspit = 0
+                        spittag = None
                         for atag in self.nydees:
                             if self.nydees[atag] == Nytravel.SPIT:
                                 amspit += 1
                                 spittag = atag
-                        if amspit == 1:
+                        if amspit == 1 and spittag:
                             self.nydees[spittag] = Nytravel.IN
                         self.nydees[tag] = Nytravel.SPIT
 
@@ -233,6 +241,8 @@ class Nydus(Common):
         if nyd:
             distland = distance(pos, goal)
             distaa = 99999
+            nydus_in = None
+            nydus_out = None
             for nydus in self.future_nydus_ports:
                 dist = distance(pos, nydus.position)
                 if dist < distaa:
@@ -245,7 +255,7 @@ class Nydus(Common):
                     distbb = dist
                     nydus_out = nydus
             # in next line, distance 5 estimates nydusloadtime distance
-            if distaa + distbb + 5 < distland:
+            if distaa + distbb + 5 < distland and nydus_in and nydus_out:
                 # travel via nydus
                 self.nydees[tag] = Nytravel.PLANNED
                 self.nydus_in_tag[tag] = nydus_in.tag

@@ -1,12 +1,15 @@
-from typing import Iterable
+from typing import TypeVar
+from typing import Union
 
 from loguru import logger
 
+T = TypeVar("T")
 
-def convert_into_iterable(obj):
+
+def convert_into_iterable(obj: Union[T, list[T]]) -> list[T]:
     if not obj:
         raise Exception("Possible a issue on setup.")
-    if not isinstance(obj, Iterable):
+    if not isinstance(obj, list):
         return [obj]
     return obj
 

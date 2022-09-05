@@ -2,7 +2,7 @@
 
 from ender.common import Common
 from ender.job import Job
-from ender.utils.point_utils import distance
+from ender.utils.point_utils import distance, towards
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -166,6 +166,7 @@ class Queens(Common):
                 if self.job_of_unit(que) == Job.UNCLEAR:
                     if que.tag not in self.queen_of_hall.values():
                         bestdist = 20
+                        besthall = None
                         for halltype in self.all_halltypes:
                             for hall in self.structures(halltype):
                                 halltag = hall.tag
@@ -180,7 +181,7 @@ class Queens(Common):
                                     if dist < bestdist:
                                         bestdist = dist
                                         besthall = hall
-                        if bestdist < 20:
+                        if besthall:
                             self.queen_of_hall[besthall.tag] = que.tag
                             que.move(besthall.position)
             # assign free hall to the closest free queen
@@ -196,6 +197,7 @@ class Queens(Common):
                         for hall in self.structures(halltype):
                             if hall.tag == halltag:
                                 bestdist = 60
+                                bestqueen = None
                                 for que in self.units(UnitTypeId.QUEEN):
                                     if self.job_of_unit(que) != Job.NURSE:
                                         if que.tag not in self.queen_of_hall.values():
@@ -203,7 +205,7 @@ class Queens(Common):
                                             if dist < bestdist:
                                                 bestdist = dist
                                                 bestqueen = que
-                                if bestdist < 60:
+                                if bestqueen:
                                     que = bestqueen
                                     self.queen_of_hall[halltag] = que.tag
                                     self.set_job_of_unit(que, Job.UNCLEAR)
@@ -222,7 +224,7 @@ class Queens(Common):
         if expos in self.mineralside:
             return self.mineralside[expos]
         else:
-            return expos.towards(self.map_center, 4)
+            return towards(expos, self.map_center, 4)
 
     def hall_makes_queen(self, hall) -> bool:
         makes = False
@@ -261,12 +263,13 @@ class Queens(Common):
                                                 if que.energy < 15:
                                                     # this queen could transfer
                                                     bestdist = 99999
+                                                    besttohall = None
                                                     for tohall in tohalls:
                                                         dist = distance(que.position, tohall.position)
                                                         if dist < bestdist:
                                                             bestdist = dist
                                                             besttohall = tohall
-                                                    if bestdist < 99999:
+                                                    if besttohall:
                                                         # transfer
                                                         self.queen_of_hall[hall.tag] = self.notag
                                                         self.queen_of_hall[besttohall.tag] = que.tag

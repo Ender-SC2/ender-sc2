@@ -10,13 +10,9 @@ from ender.behavior.combat import (
     AttackCenterBehavior,
     UprampBehavior,
 )
-from ender.behavior.combat.attack_closest_enemy_behavior import (
-    AttackClosestEnemyBehavior,
-)
+from ender.behavior.combat.attack_closest_enemy_behavior import AttackClosestEnemyBehavior
 from ender.behavior.combat.spell_casting_behavior import SpellCastingBehavior
-from ender.behavior.combat.spell_effect_dodging_behavior import (
-    SpellEffectDodgingBehavior,
-)
+from ender.behavior.combat.spell_effect_dodging_behavior import SpellEffectDodgingBehavior
 from ender.game_plan.condition import Any, No, HaveUnit, AfterTime
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -37,18 +33,14 @@ class TestHydraRavager(unittest.TestCase):
                 LessRangeBehavior(),
                 SidewardsBehavior(),
                 FocusFireCombatBehavior(),
-                # UprampBehavior(),
+                UprampBehavior(),
                 SpellEffectDodgingBehavior(),
             ],
             CreateUnitsTestSetup(UnitTypeId.HYDRALISK, 3, Point2([-10, -10])),
             Any([No(HaveUnit()), AfterTime(60)]),
         )
         loser = EnderTestBot(
-            [
-                AttackCenterBehavior(),
-                AttackClosestEnemyBehavior(),
-                SpellCastingBehavior(),
-            ],
+            [AttackCenterBehavior(), AttackClosestEnemyBehavior(), SpellCastingBehavior()],
             CreateUnitsTestSetup(UnitTypeId.RAVAGER, 2, Point2([10, 10])),
             No(HaveUnit()),
         )
@@ -72,11 +64,7 @@ class TestHydraRavager(unittest.TestCase):
             Any([No(HaveUnit()), AfterTime(180)]),
         )
         loser = EnderTestBot(
-            [
-                AttackCenterBehavior(),
-                AttackClosestEnemyBehavior(),
-                SpellCastingBehavior(),
-            ],
+            [AttackCenterBehavior(), AttackClosestEnemyBehavior(), SpellCastingBehavior()],
             CreateUnitsTestSetup(UnitTypeId.RAVAGER, 10, Point2([10, 10])),
             No(HaveUnit()),
         )
@@ -100,11 +88,7 @@ class TestHydraRavager(unittest.TestCase):
             Any([No(HaveUnit()), AfterTime(180)]),
         )
         loser = EnderTestBot(
-            [
-                AttackCenterBehavior(),
-                AttackClosestEnemyBehavior(),
-                SpellCastingBehavior(),
-            ],
+            [AttackCenterBehavior(), AttackClosestEnemyBehavior(), SpellCastingBehavior()],
             CreateUnitsTestSetup(UnitTypeId.RAVAGER, 20, Point2([10, 10])),
             No(HaveUnit()),
         )

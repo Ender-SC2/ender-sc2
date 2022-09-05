@@ -5,7 +5,8 @@ from typing import Optional
 
 from ender.job import Job
 from ender.map_if import Map_if
-from ender.utils.point_utils import distance
+from ender.utils.point_utils import distance, towards
+from ender.utils.unit_creation_utils import unit_creation_ability
 from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -169,7 +170,7 @@ class Creep(Map_if):
             if self.job_of_unit(unt) == Job.CREEPER:
                 if self.frame >= self.listenframe_of_unit[unt.tag]:
                     itshatch = self.structures(UnitTypeId.HATCHERY).closest_to(unt.position)
-                    itsspot = itshatch.position.towards(self.map_center, 9)
+                    itsspot = towards(itshatch.position, self.map_center, 9)
                     dist = distance(unt.position, itsspot)
                     if dist > 4:
                         unt.move(itsspot)
@@ -202,7 +203,7 @@ class Creep(Map_if):
                         if ok and (radius < 5):
                             it = UnitTypeId.CREEPTUMORQUEEN
                             pos = altpoint
-                            unt(self.creation[it], pos)
+                            unt(unit_creation_ability[it], pos)
                             self.map_plan(pos, 1)
                         self.set_job_of_unit(unt, Job.UNCLEAR)
                         self.listenframe_of_unit[unt.tag] = self.frame + 100
@@ -276,7 +277,6 @@ class Creep(Map_if):
                         if ok:
                             for stru in self.structures(UnitTypeId.CREEPTUMORBURROWED):
                                 if stru.tag == tag:
-                                    it = UnitTypeId.CREEPTUMOR
                                     pos = altpoint
                                     stru(AbilityId.BUILD_CREEPTUMOR_TUMOR, pos)
                                     self.listenframe_of_structure[tag] = self.frame + 5 * self.seconds
@@ -398,6 +398,7 @@ class Creep(Map_if):
             if goodpoint:
                 # send one close to point
                 bestdist = 99999
+                bestlord = None
                 for typ in {UnitTypeId.OVERLORD}:
                     for lord in self.units(typ):
                         tag = lord.tag
@@ -408,7 +409,7 @@ class Creep(Map_if):
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestlord = lord
-                if bestdist < 99999:
+                if bestlord:
                     lord = bestlord
                     tag = lord.tag
                     self.creeplord_state[tag] = "moving"

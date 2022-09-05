@@ -10,7 +10,6 @@ class PlaceBuildingPerBase(IAction):
     def __init__(
         self, unit_type: UnitTypeId, building_positioning: Positioning = RandomPositioning(), amount: int = 1
     ):
-        self.common = None
         self.unit_type = unit_type
         self.building_positioning = building_positioning
         self.actions = {}

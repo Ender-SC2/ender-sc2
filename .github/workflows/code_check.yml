@@ -6,10 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v1
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Install dev tools
         run: |
           pip install -r requirements.dev.txt
@@ -28,3 +28,5 @@ jobs:
           git push
       - name: Run flake8
         run: flake8
+      - name: Run pyright
+        run: pyright .

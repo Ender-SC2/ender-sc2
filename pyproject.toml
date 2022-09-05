@@ -12,3 +12,10 @@ exclude = '''
 pythonpath = [
     "ender",
 ]
+[tool.pyright]
+pythonVersion= "3.9"
+exclude = [
+    "sc2"
+]
+reportUnusedExpression="error"
+reportUnusedCoroutine="error"

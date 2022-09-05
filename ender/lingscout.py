@@ -1,13 +1,9 @@
 # lingscout.py, Ender
 
-import os
-
-from loguru import logger
-
 from ender.common import Common
 from ender.job import Job
-from sc2.ids.unit_typeid import UnitTypeId
 from ender.utils.point_utils import distance
+from sc2.ids.unit_typeid import UnitTypeId
 
 
 class Lingscout(Common):
@@ -43,7 +39,7 @@ class Lingscout(Common):
                 for unittype in [UnitTypeId.ZERGLING, UnitTypeId.DRONE]:
                     for unt in self.units(unittype):
                         if unt.tag == self.lingscout_tag:
-                            if self.job_of_unit(unt) == Job.SCOUT:
+                            if self.job_of_unit(unt) == Job.SCOUT and self.scout_nextgoal:
                                 dist = distance(unt.position, self.scout_nextgoal)
                                 idling = len(unt.orders) == 0
                                 if (dist < 2) or idling:
@@ -100,11 +96,13 @@ class Lingscout(Common):
         nowpos = startpos
         while len(toscoutpos) > 0:
             bestdist = 99999
+            bestpos = None
             for apos in toscoutpos:
                 dist = distance(apos, nowpos)
                 if dist < bestdist:
                     bestdist = dist
                     bestpos = apos
-            toscoutpos.remove(bestpos)
-            self.scoutplan.append(bestpos)
-            nowpos = bestpos
+            if bestpos:
+                toscoutpos.remove(bestpos)
+                self.scoutplan.append(bestpos)
+                nowpos = bestpos

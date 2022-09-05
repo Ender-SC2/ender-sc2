@@ -26,7 +26,7 @@ from sc2.units import Units
 class SpellEffectDodgingBehavior(CommandUtils):
     supported_spells: list[EffectId] = [EffectId.RAVAGERCORROSIVEBILECP, EffectId.PSISTORMPERSISTENT]
     extra_dodge_range = 1
-    spells: dict[(Point2, EffectId), list[float]] = {}  # Position, Effect, Expected end time
+    spells: dict[tuple[Point2, EffectId], list[float]] = {}  # Position, Effect, Expected end time
 
     async def on_step_units(self, units: Units):
         my_units = self.bot_ai.units.filter(
@@ -86,6 +86,6 @@ class SpellEffectDodgingBehavior(CommandUtils):
                 if ability_damage_type[ability] == AbilityDamageType.PERSISTENT:
                     damage = ability_damage[ability] * ((1 - time_to_end) ** 2)
                 else:
-                    damage = ability_damage[ability] * (time_to_end**2)
+                    damage = ability_damage[ability] * (time_to_end ** 2)
                 influence_map.add_point(position, ability_radius[ability] + self.extra_dodge_range, -damage)
         return influence_map

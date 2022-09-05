@@ -21,7 +21,7 @@ class MakeUnit(IAction):
 
     def execute(self):
         wanted_amount = self.wanted_amount()
-        if wanted_amount < self.count_units():
+        if wanted_amount <= self.count_units():
             return False
         logger.info(f"Asking for {self.unit_type}:{wanted_amount}")
         self.common.emergency.emergency_queue[id(self)] = EmergencyUnit(self.unit_type, wanted_amount)

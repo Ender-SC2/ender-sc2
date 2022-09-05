@@ -74,17 +74,16 @@ class Strategy(Tech):
         Gameplan.RAVATHREE,
         Gameplan.GREED,
     }
-    gameplan = None
+    gameplan: Gameplan
     followup = {}  # per gameplan the next gameplan
     last_wave_count = 0
     zero_plan = {}  # 0 for every unit, structure, or upgrade
-    result_plan = {}
-    new_plan = None
     structures_at_hatches = 0
     dont_shift = 0  # some greed under constant agression
     auto_upgrade = True
     auto_homequeen = True
     auto_tech = False  # tech asap to greaterspire
+    new_plan: GamePlan
 
     async def __step0(self):
         #
@@ -166,16 +165,12 @@ class Strategy(Tech):
                 ConditionalAction(
                     "Enemy roach reaction",
                     EnemyUnit(UnitTypeId.ROACH),
-                    ActionSequence(
-                        [MakeUnit(UnitTypeId.ROACH, UnitTypeId.ROACH, 0.6)],
-                    ),
+                    ActionSequence([MakeUnit(UnitTypeId.ROACH, UnitTypeId.ROACH, 0.6)],),
                 ),
                 ConditionalAction(
                     "Enemy lings reaction",
                     EnemyUnit(UnitTypeId.ZERGLING),
-                    ActionSequence(
-                        [MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],
-                    ),
+                    ActionSequence([MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],),
                 ),
                 ConditionalAction("13 drone scout", HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]
@@ -275,7 +270,7 @@ class Strategy(Tech):
             doing += len(self.structures(UnitTypeId.EXTRACTORRICH))
         return doing
 
-    def set_gameplan(self, gameplan):
+    def set_gameplan(self, gameplan: Gameplan):
         self.gameplan = gameplan
         self.result_plan = self.zero_plan.copy()
         self.standard_needhatches()

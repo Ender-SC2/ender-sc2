@@ -1,6 +1,6 @@
 from ender.unit import MoveCommand
 from ender.utils.command_utils import CommandUtils
-from ender.utils.point_utils import distance
+from ender.utils.point_utils import distance, towards
 from ender.utils.unit_utils import range_vs
 from sc2.units import Units
 
@@ -22,5 +22,5 @@ class LessRangeBehavior(CommandUtils):
                         touchdist = unit.radius + target.radius
                         if touchdist > 0:
                             step = min(1.0, touchdist)
-                            goal = unit.position.towards(target.position, step)
+                            goal = towards(unit.position, target.position, step)
                             self.unit_interface.set_command(unit, MoveCommand(goal, "LessRange"))

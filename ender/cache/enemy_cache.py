@@ -3,6 +3,7 @@ from typing import Dict, List
 from ender.cache.cache_entry import CacheEntry, UnitInfo
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 
 
 class EnemyCache:
@@ -11,6 +12,7 @@ class EnemyCache:
     """
 
     cache: Dict[int, CacheEntry]
+    cache_location: Dict[int, int]
 
     def __init__(self):
         self.cache = {}
@@ -40,3 +42,6 @@ class EnemyCache:
 
     def of_type(self, unit_type: UnitTypeId) -> List[UnitInfo]:
         return [entry.unit_info for entry in self.cache.values() if entry.unit_info.unit_type == unit_type]
+
+    def position_index(self, position: Point2) -> int:
+        return round(400 * position.x + 2 * position.y)

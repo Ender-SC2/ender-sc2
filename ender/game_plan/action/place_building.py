@@ -20,7 +20,7 @@ class PlaceBuilding(IAction):
         unit_type: UnitTypeId,
         positioning: Positioning = RandomPositioning(),
         amount: int = 1,
-        on_base: Point2 = None,
+        on_base: Optional[Point2] = None,
     ):
         super().__init__()
         self.request_time = 0
@@ -40,8 +40,8 @@ class PlaceBuilding(IAction):
             return False
         position = self.get_position()
         if position:
-            logger.info(f"Asking for {self.unit_type} on {self.get_position()}")
-            self.common.emergency.emergency_queue[id(self)] = EmergencyStructure(self.unit_type, self.get_position())
+            logger.info(f"Asking for {self.unit_type} on {position}")
+            self.common.emergency.emergency_queue[id(self)] = EmergencyStructure(self.unit_type, position)
         self.request_time = self.common.time
         return False
 

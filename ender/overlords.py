@@ -7,7 +7,8 @@ from loguru import logger
 
 from ender.common import Common
 from ender.job import Job
-from ender.utils.point_utils import distance
+from ender.utils.map_utils import family
+from ender.utils.point_utils import distance, towards
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -86,7 +87,7 @@ class Overlords(Common):
                 if not self.readoverlord:
                     self.readoverlord = True
                     #
-                    mapname = self.family(self.game_info.map_name)
+                    mapname = family(self.game_info.map_name)
                     startx = str(self.ourmain.x)
                     starty = str(self.ourmain.y)
                     #
@@ -154,7 +155,7 @@ class Overlords(Common):
                         lambda ene: distance(ene.position, ovi.position) < 13
                     ).filter(lambda ene: ene.can_attack_air)
                     if enemies:
-                        goal = ovi.position.towards(enemies.center, -ovi.sight_range)
+                        goal = towards(ovi.position, enemies.center, -ovi.sight_range)
                         ovi.move(goal)
 
     def in_trips_passenger(self, tag) -> bool:
@@ -216,6 +217,7 @@ class Overlords(Common):
                     if typ in self.all_halltypes:
                         goals.append(pos)
                 goal = random.choice(goals)
+                bestlord = None
                 bestdist = 99999
                 for lor in self.units(UnitTypeId.OVERLORDTRANSPORT):
                     if self.frame >= self.listenframe_of_unit[lor.tag]:
@@ -228,6 +230,8 @@ class Overlords(Common):
                                         bestlord = lor
                 if bestdist < 99999:
                     bestdist = 99999
+                    bestpas = None
+                    bestgoal = None
                     for pastype in self.passenger_types:
                         for pas in self.units(pastype):
                             if self.job_of_unit(pas) in {Job.UNCLEAR, Job.VOLUNTEER, Job.MIMMINER, Job.DEFENDATTACK}:
@@ -239,7 +243,7 @@ class Overlords(Common):
                                         bestgoal = goal.towards(self.ourmain, 4)
                                     else:
                                         bestgoal = goal.towards(self.map_center, -4)
-                    if bestdist < 99999:
+                    if bestpas and bestlord and bestgoal:
                         self.set_job_of_unit(bestpas, Job.TRANSPORTER)
                         self.set_job_of_unit(bestlord, Job.TRANSPORTER)
                         trip = (bestpas.tag, bestlord.tag)

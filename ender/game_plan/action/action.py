@@ -4,10 +4,11 @@ from ender.common import Common
 
 
 class IAction(ABC):
-    @abstractmethod
+    common: Common
+
     def setup(self, common: Common):
-        pass
+        self.common = common
 
     @abstractmethod
     def execute(self) -> bool:
-        pass
+        raise NotImplementedError()

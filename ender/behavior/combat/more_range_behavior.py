@@ -2,6 +2,7 @@ from math import sqrt
 
 from ender.unit import MoveCommand
 from ender.utils.command_utils import CommandUtils
+from ender.utils.point_utils import towards
 from ender.utils.unit_utils import range_vs
 from sc2.position import Point2
 from sc2.units import Units
@@ -15,7 +16,7 @@ class MoreRangeBehavior(CommandUtils):
                 if not enemies_around.empty:
                     closest_enemy = enemies_around.closest_to(unit)
                     if 0 < range_vs(closest_enemy, unit) < range_vs(unit, closest_enemy) - 0.5:  # I have more range
-                        position = unit.position.towards(enemies_around.center, -1)
+                        position = towards(unit.position, enemies_around.center, -1)
                         position = self.circling(position)
                         self.unit_interface.set_command(unit, MoveCommand(position, "MoreRange"))
 

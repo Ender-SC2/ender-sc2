@@ -35,17 +35,10 @@ def run_ladder_game(bot):
     # Add opponent_id to the bot class (accessed through self.opponent_id)
     bot.ai.opponent_id = args.OpponentId
 
-    # Versus Computer doesn't work yet
-    computer_opponent = False
-    if args.ComputerOpponent:
-        computer_opponent = True
-        computer_race = args.ComputerRace
-        computer_difficulty = args.ComputerDifficulty
-
     # Port config
     ports = [lan_port + p for p in range(1, 6)]
 
-    portconfig = sc2.portconfig.Portconfig()
+    portconfig = sc2.portconfig.Portconfig()  # pyright: ignore [reportGeneralTypeIssues]
     portconfig.shared = ports[0]  # Not used
     portconfig.server = [ports[1], ports[2]]
     portconfig.players = [[ports[3], ports[4]]]
@@ -68,7 +61,9 @@ async def join_ladder_game(
     client = Client(ws_connection)
 
     try:
-        result = await sc2.main._play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit)
+        result = await sc2.main._play_game(  # pyright: ignore [reportGeneralTypeIssues]
+            players[0], client, realtime, portconfig, step_time_limit, game_time_limit
+        )
         if save_replay_as is not None:
             await client.save_replay(save_replay_as)
 
@@ -76,10 +71,6 @@ async def join_ladder_game(
         logging.error("Connection was closed before the game ended")
         return None
     finally:
-        # await ws_connection.close() ?
-
-        # __init__.py:81: RuntimeWarning: coroutine 'ClientWebSocketResponse.close' was never awaited
-        # ws_connection.close()
-        ws_connection.close()
+        await ws_connection.close()
 
     return result

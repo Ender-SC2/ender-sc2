@@ -21,7 +21,7 @@ class TestEnvironment:
     def test(self, map: str, winner: EnderTestBot, loser: EnderTestBot) -> Result:
         try:
             return run_game(
-                sc2.maps.get(map),
+                sc2.maps.get(map),  # pyright: ignore
                 [Bot(Race.Random, winner), Bot(Race.Random, loser)],
                 realtime=False,
             )

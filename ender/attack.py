@@ -1,6 +1,7 @@
 # attack.py, Ender
 
 import random
+from collections import defaultdict
 from math import cos, sin, pi
 from typing import List
 
@@ -19,7 +20,8 @@ from ender.job import Job
 from ender.map_if import Map_if
 from ender.tech import Tech
 from ender.nydus import Nydus
-from ender.utils.point_utils import distance
+from ender.utils.point_utils import distance, towards
+from ender.utils.structure_utils import structure_radius
 from sc2.constants import TARGET_AIR
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
@@ -118,7 +120,7 @@ class Attack(Map_if, Tech, Nydus):
         #
         #
         #
-        self.defendgoal = self.ourmain.towards(self.map_center, 8)
+        self.defendgoal = towards(self.ourmain, self.map_center, 8)
         self.kite_back = {UnitTypeId.BROODLORD, UnitTypeId.INFESTOR}
         for behavior in self.behaviors:
             behavior.setup(self, self)
@@ -178,9 +180,10 @@ class Attack(Map_if, Tech, Nydus):
                 goals.append((1, dist, pos))
             for postag in self.enemy_struc_mem:
                 (typ, pos) = self.enemy_struc_mem[postag]
-                if typ in self.all_halltypes:
-                    dist = distance(pos, self.defendgoal)
-                    goals.append((0, dist, pos))
+                if self.defendgoal:
+                    if typ in self.all_halltypes:
+                        dist = distance(pos, self.defendgoal)
+                        goals.append((0, dist, pos))
             goals.sort()
             (dumbness, dist_to_enemymain, pos) = goals[0]
             pos = self.improve_flyer_point(pos)
@@ -197,21 +200,23 @@ class Attack(Map_if, Tech, Nydus):
                 n += 1
             center = center / n
             bestval = 99999
+            bestpos = None
             for hall in self.townhalls:
                 pos = hall.position
                 val = distance(pos, center)
                 if val < bestval:
                     bestval = val
                     bestpos = pos
-            if bestval < 99999:
-                self.defendgoal = bestpos.towards(self.map_center, 8)
+            if bestpos:
+                self.defendgoal = towards(bestpos, self.map_center, 8)
                 self.calc_gatherpoint()
 
     def calc_gatherpoint(self):
-        gp = (2 * self.bigattackgoal + self.defendgoal) / 3
-        gp = self.map_around(gp, 4)
-        self.gatherpoint = gp
-        self.gathertime = 6 * self.seconds
+        if self.bigattackgoal and self.defendgoal:
+            gp = (2 * self.bigattackgoal + self.defendgoal) / 3
+            gp = self.map_around(gp, 4)
+            self.gatherpoint = gp
+            self.gathertime = 6 * self.seconds
 
     async def defend(self):
         if self.function_listens("defend", 20):
@@ -234,10 +239,11 @@ class Attack(Map_if, Tech, Nydus):
                                         self.set_job_of_unit(unt, Job.DEFENDATTACK)
                                     # act
                                     if self.job_of_unit(unt) == Job.DEFENDATTACK:
-                                        self.attackgoal[tag] = self.defendgoal
-                                        if distance(unt.position, self.defendgoal) > 8:
-                                            self.attack_via_nydus(unt)
-                                            self.listenframe_of_unit[tag] = self.frame + 5
+                                        if self.defendgoal:
+                                            self.attackgoal[tag] = self.defendgoal
+                                            if distance(unt.position, self.defendgoal) > 8:
+                                                self.attack_via_nydus(unt)
+                                                self.listenframe_of_unit[tag] = self.frame + 5
             # dismiss full energy queens
             for unt in self.units(UnitTypeId.QUEEN):
                 if self.job_of_unit(unt) == Job.DEFENDATTACK:
@@ -326,7 +332,7 @@ class Attack(Map_if, Tech, Nydus):
                         for typ in self.all_armytypes:
                             if typ not in {UnitTypeId.OVERSEERSIEGEMODE, UnitTypeId.QUEEN}:  # too slow
                                 for unt in self.units(typ):
-                                    if self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
+                                    if self.bigattackgoal and self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
                                         dist = distance(unt.position, self.bigattackgoal)
                                         speed = self.speed[typ] / self.seconds
                                         duration = dist / speed
@@ -353,7 +359,7 @@ class Attack(Map_if, Tech, Nydus):
                         for unt in self.units(typ):
                             tag = unt.tag
                             if self.frame >= self.listenframe_of_unit[tag]:
-                                if self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
+                                if self.bigattackgoal and self.job_of_unit(unt) in {Job.UNCLEAR, Job.DEFENDATTACK}:
                                     dist = distance(unt.position, self.bigattackgoal)
                                     speed = self.speed[typ] / self.seconds
                                     duration = dist / speed
@@ -377,7 +383,7 @@ class Attack(Map_if, Tech, Nydus):
                         tag = unt.tag
                         if self.frame >= self.listenframe_of_unit[tag]:
                             if self.job_of_unit(unt) == Job.BIGATTACK:
-                                if not self.attack_started[tag]:
+                                if self.bigattackgoal and not self.attack_started[tag]:
                                     dist = distance(unt.position, self.bigattackgoal)
                                     speed = self.speed[typ] / self.seconds
                                     duration = dist / speed
@@ -408,7 +414,7 @@ class Attack(Map_if, Tech, Nydus):
                                         dist = distance(unt.position, goal)
                                         if dist < 5:
                                             # it reached its goal
-                                            if self.attackgoal[tag] != self.bigattackgoal:
+                                            if self.bigattackgoal and self.attackgoal[tag] != self.bigattackgoal:
                                                 self.attackgoal[tag] = self.bigattackgoal
                                                 unt.attack(self.bigattackgoal)
                                                 self.listenframe_of_unit[tag] = self.frame + 5
@@ -434,9 +440,10 @@ class Attack(Map_if, Tech, Nydus):
                                     self.set_job_of_unittag(tag, Job.BERSERKER)
                                     self.berserkers.add(tag)
                                     self.find_bigattackgoal()
-                                    self.attackgoal[tag] = self.bigattackgoal
-                                    unt.attack(self.bigattackgoal)
-                                    self.listenframe_of_unit[tag] = self.frame + 5
+                                    if self.bigattackgoal:
+                                        self.attackgoal[tag] = self.bigattackgoal
+                                        unt.attack(self.bigattackgoal)
+                                        self.listenframe_of_unit[tag] = self.frame + 5
             # whip them
             for typ in self.all_armytypes:
                 for unt in self.units(typ).idle:
@@ -449,10 +456,11 @@ class Attack(Map_if, Tech, Nydus):
                             if dist < 5:
                                 # it reached its goal
                                 self.find_bigattackgoal()
-                                unt.attack(self.bigattackgoal)
-                                self.listenframe_of_unit[tag] = self.frame + 5
-                                self.attackgoal[tag] = self.bigattackgoal
-                            else:
+                                if self.bigattackgoal:
+                                    unt.attack(self.bigattackgoal)
+                                    self.listenframe_of_unit[tag] = self.frame + 5
+                                    self.attackgoal[tag] = self.bigattackgoal
+                            elif self.bigattackgoal:
                                 # it was distracted
                                 unt.attack(self.bigattackgoal)
                                 self.listenframe_of_unit[tag] = self.frame + 5
@@ -468,6 +476,7 @@ class Attack(Map_if, Tech, Nydus):
                         if distance(unt.position, goal) < 6:
                             abi = AbilityId.CAUSTICSPRAY_CAUSTICSPRAY
                             canspray = True
+                            target = None
                             if tag in self.spray:
                                 canspray = self.frame >= self.spray[tag]
                             if canspray:
@@ -478,7 +487,7 @@ class Attack(Map_if, Tech, Nydus):
                                         if ene.health >= 200:
                                             canspray = True
                                             target = ene
-                            if canspray:
+                            if canspray and target:
                                 sprayers += 1
                                 unt(abi, target)
                                 self.spray[tag] = self.frame + 32.14 * self.seconds
@@ -487,7 +496,7 @@ class Attack(Map_if, Tech, Nydus):
             # end sprayer
             for unt in self.units(UnitTypeId.CORRUPTOR).idle:
                 if self.job_of_unit(unt) == Job.SPRAYER:
-                    if self.frame >= self.listenframe_of_unit[tag]:
+                    if self.frame >= self.listenframe_of_unit[unt.tag]:
                         self.set_job_of_unit(unt, Job.UNCLEAR)
 
     async def infest(self):
@@ -516,9 +525,7 @@ class Attack(Map_if, Tech, Nydus):
             blind = AbilityId.BLINDINGCLOUD_BLINDINGCLOUD  # range 11 rad 2 eng 100
             draw = AbilityId.EFFECT_ABDUCT  # range 9 eng 75
             attackair = AbilityId.PARASITICBOMB_PARASITICBOMB  # range 8 rad 3 eng 125
-            load = AbilityId.VIPERCONSUMESTRUCTURE_VIPERCONSUME  # 200 damage 50 eng 14 sec
             for vip in self.units(UnitTypeId.VIPER):
-                tag = vip.tag
                 pos = vip.position
                 # blind
                 if vip.energy >= 100:
@@ -541,6 +548,7 @@ class Attack(Map_if, Tech, Nydus):
                     if self.job_of_unit(vip) == Job.SLAVE:
                         enes = self.enemy_units.closer_than(9, vip.position)
                         bestworth = 400
+                        bestene = None
                         for ene in enes:  # DEBUG must exclude larva etc
                             if ene.tag not in self.drawn:
                                 self.drawn[ene.tag] = 0
@@ -549,7 +557,7 @@ class Attack(Map_if, Tech, Nydus):
                                 if worth > bestworth:
                                     bestworth = worth
                                     bestene = ene
-                        if bestworth > 400:
+                        if bestene:
                             vip(draw, bestene)
                             self.drawn[bestene.tag] = self.frame
                 # back
@@ -560,9 +568,6 @@ class Attack(Map_if, Tech, Nydus):
 
     async def vipers_slow(self):
         if self.function_listens("vipers_slow", 77):
-            blind = AbilityId.BLINDINGCLOUD_BLINDINGCLOUD  # range 11 rad 2 eng 100
-            draw = AbilityId.EFFECT_ABDUCT  # range 9 eng 75
-            attackair = AbilityId.PARASITICBOMB_PARASITICBOMB  # range 8 rad 3 eng 125
             load = AbilityId.VIPERCONSUMESTRUCTURE_VIPERCONSUME  # 200 damage 50 eng 14 sec
             # administration
             todel = set()
@@ -593,6 +598,7 @@ class Attack(Map_if, Tech, Nydus):
                         self.set_job_of_unit(vip, Job.UNCLEAR)
                     if vip.tag not in self.succer:
                         bestdist = 99999
+                        bestdonor = None
                         for donor in donors:
                             dist = distance(donor.position, vip.position)
                             if dist < bestdist:
@@ -600,7 +606,7 @@ class Attack(Map_if, Tech, Nydus):
                                 bestdonor = donor
                         if vip.energy >= 150:
                             self.set_job_of_unit(vip, Job.UNCLEAR)
-                        elif bestdist < 99999:
+                        elif bestdonor:
                             # succ
                             donors.remove(bestdonor)
                             vip(load, bestdonor)
@@ -615,6 +621,7 @@ class Attack(Map_if, Tech, Nydus):
         if self.function_listens("set_sh_goal", 9 * self.seconds):
             self.sh_goal = self.enemymain
             mindist = 99999
+            target = None
             for postag in self.enemy_struc_mem:
                 (typ, pos) = self.enemy_struc_mem[postag]
                 if typ in self.all_halltypes:
@@ -622,11 +629,11 @@ class Attack(Map_if, Tech, Nydus):
                     if dist < mindist:
                         mindist = dist
                         target = pos
-            if mindist < 99999:
+            if target:
                 self.sh_goal = target
 
     async def swarmhosts(self):
-        if self.function_listens("swarmhosts", 9):
+        if self.function_listens("swarmhosts", 9) and self.sh_goal:
             for sh in self.units(UnitTypeId.SWARMHOSTMP):
                 tag = sh.tag
                 if self.frame >= self.listenframe_of_unit[tag]:
@@ -646,12 +653,12 @@ class Attack(Map_if, Tech, Nydus):
                         if self.sh_forward[tag]:
                             if self.sh_indiv_goal[tag] != self.sh_goal:
                                 self.sh_indiv_goal[tag] = self.sh_goal
-                                goal = self.sh_goal.towards(self.ourmain, 15)
+                                goal = towards(self.sh_goal, self.ourmain, 15)
                                 sh.move(goal)
                         else:
                             self.sh_forward[tag] = True
                             self.sh_indiv_goal[tag] = self.sh_goal
-                            goal = self.sh_goal.towards(self.ourmain, 15)
+                            goal = towards(self.sh_goal, self.ourmain, 15)
                             sh.move(goal)
             for sh in self.units(UnitTypeId.SWARMHOSTMP) | self.units(UnitTypeId.SWARMHOSTBURROWEDMP):
                 tag = sh.tag
@@ -716,17 +723,18 @@ class Attack(Map_if, Tech, Nydus):
             targets -= todel
             #
             if len(targets) >= musthit:
-                hit = dict((throw, 0) for throw in throws)
+                hit: dict[Point2, int] = dict((throw, 0) for throw in throws)
                 for throw in throws:
                     for target in targets:
                         if distance(throw, target) < radius:
                             hit[throw] += 1
                 hits = 0
+                bestthrow = None
                 for throw in throws:
                     if hit[throw] > hits:
                         bestthrow = throw
                         hits = hit[throw]
-                if hits > 0:
+                if hits > 0 and bestthrow:
                     result = bestthrow
                     self.casts.add((kind, bestthrow, self.frame + duration * self.seconds))
                     #
@@ -763,17 +771,18 @@ class Attack(Map_if, Tech, Nydus):
             targets -= todel
             #
             if len(targets) >= musthit:
-                hit = dict((target, 0) for target in targets)
+                hit = defaultdict()
                 for throwtarget in targets:
                     for target in targets:
                         if distance(throwtarget.position, target.position) < radius:
                             hit[throwtarget] += 1
                 hits = 0
+                besttarget = None
                 for target in targets:
                     if hit[target] > hits:
                         besttarget = target
                         hits = hit[target]
-                if hits > 0:
+                if hits > 0 and besttarget:
                     result = besttarget
                     self.casts.add((kind, besttarget.position, self.frame + duration * self.seconds))
                     #
@@ -866,13 +875,14 @@ class Attack(Map_if, Tech, Nydus):
                 for sla in self.units(typ):
                     if self.job_of_unit(sla) == Job.SLAVE:
                         bestdist = 99999
+                        bestpos = None
                         for mas in self.units(UnitTypeId.BROODLORD):
                             if mas.tag == self.master[sla.tag]:
                                 dist = distance(mas.position, sla.position)
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestpos = mas.position
-                        if 3 < bestdist < 99999:
+                        if 3 < bestdist and bestpos:
                             sla.move(bestpos)
 
     async def wounded(self):
@@ -903,8 +913,8 @@ class Attack(Map_if, Tech, Nydus):
                                 enepos = self.enemy_units.closest_to(unt.position).position
                             else:
                                 enepos = self.enemymain
-                            away = unt.position.towards(enepos, -4)
-                            away = away.towards(self.hospital, 5)
+                            away = towards(unt.position, enepos, -4)
+                            away = towards(away, self.hospital, 5)
                             unt.move(away)
                             unt.move(self.hospital, queue=True)
         if self.function_listens("wounded", 63):
@@ -950,17 +960,18 @@ class Attack(Map_if, Tech, Nydus):
                 for typ in self.all_armytypes:
                     for unt in self.units(typ):
                         mustflee = False
+                        abile = None
                         for (bileposition, landframe) in self.biles:
                             if distance(bileposition, unt.position) < unt.radius + 0.5:
                                 if landframe - 2 * self.seconds < self.frame < landframe:
                                     mustflee = True
                                     abile = bileposition
-                        if mustflee:
+                        if mustflee and abile:
                             if abile == unt.position:
-                                topoint = abile.towards(self.ourmain, 2)
+                                to_point = towards(abile, self.ourmain, 2)
                             else:
-                                topoint = abile.towards(unt.position, 2)
-                            unt(AbilityId.MOVE_MOVE, topoint)
+                                to_point = towards(abile, unt.position, 2)
+                            unt(AbilityId.MOVE_MOVE, to_point)
 
     async def bile(self):
         if self.function_listens("bile", 19):
@@ -973,7 +984,7 @@ class Attack(Map_if, Tech, Nydus):
                     targets = []
                     for postag in self.enemy_struc_mem:
                         (enetyp, enepos) = self.enemy_struc_mem[postag]
-                        if distance(ravpos, enepos) < 9.5 + self.size_of_structure[enetyp] / 2:
+                        if distance(ravpos, enepos) < 9.5 + structure_radius[enetyp] / 2:
                             eneworth = self.worth(enetyp)
                             if distance(ravpos, enepos) > 9:
                                 throwat = ravpos.towards(enepos, 9)
@@ -994,7 +1005,7 @@ class Attack(Map_if, Tech, Nydus):
                                     targets.append((2, -eneworth, throwat))
                     for postag in self.enemy_struc_mem:
                         (enetyp, enepos) = self.enemy_struc_mem[postag]
-                        if distance(ravpos, enepos) < 9.5 + self.size_of_structure[enetyp] / 2:
+                        if distance(ravpos, enepos) < 9.5 + structure_radius[enetyp] / 2:
                             if enetyp in self.biletarget_buildings:
                                 eneworth = self.worth(enetyp)
                                 if distance(ravpos, enepos) > 9:
@@ -1028,7 +1039,7 @@ class Attack(Map_if, Tech, Nydus):
         # usually the structure is visible
         biledamage = 60
         itshealth = 1000
-        itsradius = self.size_of_structure[enetyp] / 2
+        itsradius = structure_radius[enetyp] / 2
         for stru in self.enemy_structures(enetyp):
             if stru.position == enepos:
                 itshealth = stru.health + stru.shield
@@ -1265,14 +1276,16 @@ class Attack(Map_if, Tech, Nydus):
                         if distance(expo, stru.position) < 10:
                             if expo in self.dried:
                                 mindist = 99999
+                                goal = None
                                 for to_expo in self.fresh:
                                     dist = distance(to_expo, expo)
                                     if dist < mindist:
                                         mindist = dist
                                         goal = to_expo
-                                point = goal.towards(expo, 8)
-                                stru.move(point)
-                                self.listenframe_of_structure[tag] = self.frame + 5
+                                if goal:
+                                    point = goal.towards(expo, 8)
+                                    stru.move(point)
+                                    self.listenframe_of_structure[tag] = self.frame + 5
                             else:
                                 # rooting is in making.py
                                 self.to_root.add(tag)
@@ -1282,6 +1295,7 @@ class Attack(Map_if, Tech, Nydus):
             # half of the changelings get Job.SPY
             n = 0
             nspies = 0
+            anunt = None
             for chtyp in self.all_changelings:
                 for unt in self.units(chtyp):
                     n += 1
@@ -1289,7 +1303,7 @@ class Attack(Map_if, Tech, Nydus):
                         nspies += 1
                     else:
                         anunt = unt
-            if 2 * nspies < n:
+            if 2 * nspies < n and anunt:
                 unt = anunt
                 self.set_job_of_unit(unt, Job.SPY)
             # follow
@@ -1297,13 +1311,14 @@ class Attack(Map_if, Tech, Nydus):
                 for unt in self.units(chtyp).idle:
                     if self.job_of_unit(unt) == Job.SPY:
                         bestdist = 30
+                        bestene = None
                         for enetyp in {UnitTypeId.ZERGLING, UnitTypeId.ZEALOT, UnitTypeId.MARINE}:
                             for ene in self.enemy_units(enetyp):
                                 dist = distance(ene.position, unt.position)
                                 if dist < bestdist:
                                     bestdist = dist
                                     bestene = ene
-                        if bestdist < 30:
+                        if bestene:
                             unt.attack(bestene)
                         else:
                             goal = self.random_mappoint()

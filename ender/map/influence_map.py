@@ -104,13 +104,13 @@ class InfluenceMap:
                 ):
                     if local_center != position:
                         result = self._local_to_global(position)
-                        return result.towards(center, -dodge_radius)
+                        return Point2(result.towards(center, -dodge_radius))
                     else:
                         return center
         return None
 
     def max_value(self) -> float:
-        return self._map.argmax()
+        return self._map.argmax()  # pyright: ignore[reportGeneralTypeIssues]
 
     def _to_global(self, x: int, y: int) -> Point2:
         return Point2((x * self._map_radius, y * self._map_radius))

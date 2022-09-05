@@ -1,5 +1,5 @@
 import unittest
-from unittest import IsolatedAsyncioTestCase
+from unittest import IsolatedAsyncioTestCase, mock
 from unittest.mock import Mock
 
 from ender.job import Job
@@ -12,7 +12,7 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         unit = Mock()
         target = Point2()
         sut = UnitInterface()
-        sut.set_command(unit, AttackCommand(target))
+        sut.set_command(unit, AttackCommand(target, "test"))
         await sut.execute()
         unit.attack.assert_called_once()
 
@@ -20,9 +20,9 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         unit = Mock()
         target = Point2()
         sut = UnitInterface()
-        sut.set_command(unit, AttackCommand(target))
+        sut.set_command(unit, AttackCommand(target, "test"))
         await sut.execute()
-        sut.set_command(unit, AttackCommand(target))
+        sut.set_command(unit, AttackCommand(target, "test"))
         await sut.execute()
         unit.attack.assert_called_once()
 
@@ -31,9 +31,9 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         unit2 = Mock()
         target = Point2()
         sut = UnitInterface()
-        sut.set_command(unit1, AttackCommand(target))
+        sut.set_command(unit1, AttackCommand(target, "test"))
         await sut.execute()
-        sut.set_command(unit2, AttackCommand(target))
+        sut.set_command(unit2, AttackCommand(target, "test"))
         await sut.execute()
         unit2.attack.assert_called_once()
 
@@ -41,9 +41,9 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         unit1 = Mock()
         target = Point2()
         sut = UnitInterface()
-        sut.set_command(unit1, AttackCommand(target))
+        sut.set_command(unit1, AttackCommand(target, "test"))
         await sut.execute()
-        sut.set_command(unit1, MoveCommand(target))
+        sut.set_command(unit1, MoveCommand(target, "test"))
         await sut.execute()
         unit1.move.assert_called_once()
 
@@ -52,10 +52,10 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         target1 = Point2()
         target2 = Point2("100, 0")
         sut = UnitInterface()
-        sut.set_command(unit1, AttackCommand(target1))
+        sut.set_command(unit1, AttackCommand(target1, "test"))
         await sut.execute()
         unit1.reset_mock()
-        sut.set_command(unit1, AttackCommand(target2))
+        sut.set_command(unit1, AttackCommand(target2, "test"))
         await sut.execute()
         unit1.attack.assert_called_once()
 
@@ -64,8 +64,8 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         target1 = Point2()
         target2 = Point2("100, 0")
         sut = UnitInterface()
-        sut.set_command(unit1, AttackCommand(target1))
-        sut.set_command(unit1, MoveCommand(target2))
+        sut.set_command(unit1, AttackCommand(target1, "test"))
+        sut.set_command(unit1, MoveCommand(target2, "test"))
         await sut.execute()
         unit1.attack.assert_not_called()
         unit1.move.assert_called_once()
@@ -75,11 +75,11 @@ class TestUnitInterface(IsolatedAsyncioTestCase):
         target1 = Point2()
         target2 = Point2("100, 0")
         sut = UnitInterface()
-        sut.set_command(unit1, AttackCommand(target1))
-        sut.queue_command(unit1, MoveCommand(target2))
+        sut.set_command(unit1, AttackCommand(target1, "test"))
+        sut.queue_command(unit1, MoveCommand(target2, "test"))
         await sut.execute()
-        unit1.attack.assert_called_once_with(unittest.mock.ANY, False)
-        unit1.move.assert_called_once_with(unittest.mock.ANY, True)
+        unit1.attack.assert_called_once_with(mock.ANY, False)
+        unit1.move.assert_called_once_with(mock.ANY, True)
 
     async def test_job_counter_no_job_assigned(self):
         sut = UnitInterface()
