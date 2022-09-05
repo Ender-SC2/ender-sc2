@@ -10,7 +10,10 @@ from test.setup import ITestSetup
 
 class EnderTestBot(BotAI):
     def __init__(
-        self, behaviors: List[IBehavior], test_setup: ITestSetup, stop_condition: ICondition,
+        self,
+        behaviors: List[IBehavior],
+        test_setup: ITestSetup,
+        stop_condition: ICondition,
     ):
         super().__init__()
         self.setup = False

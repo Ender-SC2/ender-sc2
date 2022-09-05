@@ -165,12 +165,16 @@ class Strategy(Tech):
                 ConditionalAction(
                     "Enemy roach reaction",
                     EnemyUnit(UnitTypeId.ROACH),
-                    ActionSequence([MakeUnit(UnitTypeId.ROACH, UnitTypeId.ROACH, 0.6)],),
+                    ActionSequence(
+                        [MakeUnit(UnitTypeId.ROACH, UnitTypeId.ROACH, 0.6)],
+                    ),
                 ),
                 ConditionalAction(
                     "Enemy lings reaction",
                     EnemyUnit(UnitTypeId.ZERGLING),
-                    ActionSequence([MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],),
+                    ActionSequence(
+                        [MakeUnit(UnitTypeId.ZERGLING, UnitTypeId.ZERGLING, 0.8)],
+                    ),
                 ),
                 ConditionalAction("13 drone scout", HaveUnit(UnitTypeId.DRONE, 13), WorkerScoutAction()),
             ]
