@@ -7,6 +7,7 @@ from loguru import logger
 
 from ender.common import Common
 from ender.rocks_if import Rocks_if
+from ender.utils.structure_utils import structure_radius
 from sc2.position import Point2
 
 
@@ -24,7 +25,6 @@ class Map_if(Common):
         PLAN = auto()  # reserved, overwriting free
         GAS = auto()  # geyser without building
 
-    map = None
     plans = set()  # of (pos, size, expiration, oldcolor)
     drawings = set()  # of (pos, size, typ) to enable erasing if not in self.structures
     _last_structures_hash = 0  # to react on changes
@@ -32,11 +32,11 @@ class Map_if(Common):
     _last_enemy_struc_mem_hash = 0  # to react on changes
     plan_timeout = 0
     gaspositions = set()
+    map = numpy.ndarray(shape=(200, 200), dtype=Mapcolor)
     #
 
     def __step0(self):
         self.plan_timeout = 3 * self.minutes
-        self.map = numpy.ndarray(shape=(200, 200), dtype=self.Mapcolor)
         for right in range(200):
             for up in range(200):
                 if (self.map_left <= right < self.map_right) and (self.map_bottom <= up < self.map_top):
@@ -127,7 +127,7 @@ class Map_if(Common):
                 can = can and (self.read_map(px, py) == self.Mapcolor.GAS)
         return can
 
-    def map_nocreep(self, pos, size):
+    def map_nocreep(self, pos: Point2, size: int):
         # Call with half-pos when size is odd.
         disx = size / 2
         disy = size / 2
@@ -405,7 +405,7 @@ class Map_if(Common):
                 # draw enemy buildings
                 for postag in self.enemy_struc_mem:
                     (typ, position) = self.enemy_struc_mem[postag]
-                    size = self.size_of_structure[typ]
+                    size = structure_radius[typ]
                     cons = (position, size, typ)
                     if cons not in self.enemy_drawings:
                         self.map_enemy_build(position, size, typ)

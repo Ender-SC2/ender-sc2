@@ -2,6 +2,7 @@
 
 import os
 import random
+
 from loguru import logger
 
 from ender.job import Job
@@ -9,8 +10,9 @@ from ender.map_if import Map_if
 from ender.production.emergency import EmergencyStructure, EmergencyUnit
 from ender.resources import Resources
 from ender.strategy import Strategy
-from ender.utils.point_utils import distance
-import sc2
+from ender.utils.point_utils import distance, towards
+from ender.utils.structure_utils import structure_radius
+from ender.utils.unit_creation_utils import unit_creation_ability, unit_created_from
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -19,8 +21,6 @@ from sc2.position import Point2
 
 class Making(Map_if, Resources, Strategy):
 
-    #
-    creation = {}  # per unittype the ability of making it. One source, so misses unburrows.
     #
     # upgrade_chain to start upgrades in this order (provided creatable)
     upgrade_chain = [
@@ -130,37 +130,6 @@ class Making(Map_if, Resources, Strategy):
         self.subimportance[UnitTypeId.VIPER] = 14
         self.subimportance[UnitTypeId.BROODLORD] = 15
         self.subimportance[UnitTypeId.ULTRALISK] = 16
-        #
-        # creation
-        for bartype in sc2.dicts.unit_research_abilities.RESEARCH_INFO:
-            for martype in sc2.dicts.unit_research_abilities.RESEARCH_INFO[bartype]:
-                abi = sc2.dicts.unit_research_abilities.RESEARCH_INFO[bartype][martype]["ability"]
-                self.creation[martype] = abi
-        for bartype in sc2.dicts.unit_train_build_abilities.TRAIN_INFO:
-            for martype in sc2.dicts.unit_train_build_abilities.TRAIN_INFO[bartype]:
-                abi = sc2.dicts.unit_train_build_abilities.TRAIN_INFO[bartype][martype]["ability"]
-                self.creation[martype] = abi
-        for typ in self.all_changelings:
-            self.creation[typ] = AbilityId.BURROWDOWN_RAVAGER  # intentionally wrong
-        self.creation[UnitTypeId.CHANGELING] = AbilityId.SPAWNCHANGELING_SPAWNCHANGELING
-        self.creation[UnitTypeId.LURKERMPBURROWED] = AbilityId.BURROWDOWN_LURKER
-        self.creation[UnitTypeId.ULTRALISKBURROWED] = AbilityId.BURROWDOWN_ULTRALISK
-        self.creation[UnitTypeId.DRONEBURROWED] = AbilityId.BURROWDOWN_DRONE
-        self.creation[UnitTypeId.CREEPTUMOR] = AbilityId.BUILD_CREEPTUMOR_TUMOR
-        self.creation[UnitTypeId.OVERSEERSIEGEMODE] = AbilityId.MORPH_OVERSIGHTMODE
-        self.creation[UnitTypeId.OVERSEER] = AbilityId.MORPH_OVERSEER
-        self.creation[UnitTypeId.OVERLORDTRANSPORT] = AbilityId.MORPH_OVERLORDTRANSPORT
-        self.creation[UnitTypeId.QUEENBURROWED] = AbilityId.BURROWDOWN_QUEEN
-        self.creation[UnitTypeId.RAVAGERBURROWED] = AbilityId.BURROWDOWN_RAVAGER
-        self.creation[UnitTypeId.ROACHBURROWED] = AbilityId.BURROWDOWN_ROACH
-        self.creation[UnitTypeId.SPINECRAWLERUPROOTED] = AbilityId.SPINECRAWLERUPROOT_SPINECRAWLERUPROOT
-        self.creation[UnitTypeId.SPORECRAWLERUPROOTED] = AbilityId.SPORECRAWLERUPROOT_SPORECRAWLERUPROOT
-        self.creation[UnitTypeId.SWARMHOSTBURROWEDMP] = AbilityId.BURROWDOWN_SWARMHOST
-        self.creation[UnitTypeId.ULTRALISKBURROWED] = AbilityId.BURROWDOWN_ULTRALISK
-        self.creation[UnitTypeId.ZERGLINGBURROWED] = AbilityId.BURROWDOWN_ZERGLING
-        self.creation[UnitTypeId.BANELINGBURROWED] = AbilityId.BURROWDOWN_BANELING
-        self.creation[UnitTypeId.LOCUSTMP] = AbilityId.EFFECT_LOCUSTSWOOP
-        self.creation[UnitTypeId.BROODLING] = AbilityId.BURROWDOWN_RAVAGER  # intentionally wrong
         #
         self.init_expansions()
         self.next_expansion = self.nowhere
@@ -273,7 +242,11 @@ class Making(Map_if, Resources, Strategy):
             larf.train(typ)
             self.listenframe_of_unit[larf.tag] = self.frame + 5
         if typ in self.all_armytypes:
-            crea = self.creator[typ]
+            if typ not in unit_created_from:
+                logger.warning(f"{typ} creator not found")
+                return
+            crea = unit_created_from[typ]
+            justone = None
             for unt in self.units(crea) | self.structures(crea):
                 if unt.tag in self.resourcetags(typ):
                     justone = unt
@@ -283,11 +256,13 @@ class Making(Map_if, Resources, Strategy):
                 self.listenframe_of_unit[larf.tag] = self.frame + 5
             elif crea == UnitTypeId.OVERSEER:
                 if typ == UnitTypeId.CHANGELING:
-                    justone(AbilityId.SPAWNCHANGELING_SPAWNCHANGELING)
-                    self.listenframe_of_unit[justone.tag] = self.frame + 5
+                    if justone:
+                        justone(AbilityId.SPAWNCHANGELING_SPAWNCHANGELING)
+                        self.listenframe_of_unit[justone.tag] = self.frame + 5
                 else:
-                    justone.train(typ)
-                    self.listenframe_of_unit[justone.tag] = self.frame + 5
+                    if justone:
+                        justone.train(typ)
+                        self.listenframe_of_unit[justone.tag] = self.frame + 5
             elif typ == UnitTypeId.QUEEN:
                 wanting = set()
                 for halltype in self.all_halltypes:
@@ -296,9 +271,12 @@ class Making(Map_if, Resources, Strategy):
                             if hall.build_progress >= 0.5:
                                 wanting.add(hall)
                 bestwantdist = 99999
+                bestwanthall = None
+                justone = None
                 for halltype in self.all_halltypes:
                     for hall in self.structures(halltype).ready.idle:
                         itsdist = 99999
+                        itshall = None
                         for wanthall in wanting:
                             dist = distance(hall.position, wanthall.position)
                             if dist < itsdist:
@@ -308,19 +286,21 @@ class Making(Map_if, Resources, Strategy):
                             bestwantdist = itsdist
                             bestwanthall = itshall
                             justone = hall
-                justone.train(typ)
-                self.listenframe_of_structure[justone.tag] = self.frame + 5
-                if bestwantdist < 99999:
-                    logger.info(
-                        "building a queen at "
-                        + self.t_of_p(justone.position)
-                        + " for "
-                        + self.t_of_p(bestwanthall.position)
-                    )
-                    self.queen_of_hall[bestwanthall.tag] = self.notag
+                if justone:
+                    justone.train(typ)
+                    self.listenframe_of_structure[justone.tag] = self.frame + 5
+                    if bestwanthall:
+                        logger.info(
+                            "building a queen at "
+                            + self.t_of_p(justone.position)
+                            + " for "
+                            + self.t_of_p(bestwanthall.position)
+                        )
+                        self.queen_of_hall[bestwanthall.tag] = self.notag
             elif len(self.structures(crea).ready.idle) > 0:
                 # best at a distance
                 bestdist = -1
+                bestunt = None
                 for unt in self.structures(crea).idle:
                     if unt.tag in self.resourcetags(typ):
                         itsdist = 9999
@@ -330,22 +310,30 @@ class Making(Map_if, Resources, Strategy):
                         if itsdist > bestdist:
                             bestdist = itsdist
                             bestunt = unt
-                bestunt.train(typ)
-                self.listenframe_of_structure[bestunt.tag] = self.frame + 5
+                if bestunt:
+                    bestunt.train(typ)
+                    self.listenframe_of_structure[bestunt.tag] = self.frame + 5
             elif crea == UnitTypeId.SWARMHOSTMP:
-                justone.train(typ)
-                self.cooldown_sh[justone.tag] = self.frame + 43 * self.seconds + 10
-                self.listenframe_of_unit[justone.tag] = self.frame + 5
+                if justone:
+                    justone.train(typ)
+                    self.cooldown_sh[justone.tag] = self.frame + 43 * self.seconds + 10
+                    self.listenframe_of_unit[justone.tag] = self.frame + 5
             else:
-                justone.train(typ)
-                self.listenframe_of_unit[justone.tag] = self.frame + 5
+                if justone:
+                    justone.train(typ)
+                    self.listenframe_of_unit[justone.tag] = self.frame + 5
         if typ in self.all_upgrades:
-            crea = self.creator[typ]
-            for unt in self.structures(crea).idle:
+            if typ not in unit_created_from:
+                logger.warning(f"{typ} creator not found")
+                return
+            crea = unit_created_from[typ]
+            justone = None
+            for unt in self.structures.of_type(crea).idle:
                 if unt.tag in self.resourcetags(typ):
                     justone = unt
-            justone(self.creation[typ])
-            self.listenframe_of_structure[justone.tag] = self.frame + 5
+            if justone:
+                justone(unit_creation_ability[typ])
+                self.listenframe_of_structure[justone.tag] = self.frame + 5
 
     def now_make_a_building(self, typ, histag, buildpos):
         # within the protocoll, just after check_resources
@@ -355,7 +343,7 @@ class Making(Map_if, Resources, Strategy):
 
     def makecommand_building(self, typ, histag, buildpos):
         # called by now_make_a_building
-        size = self.size_of_structure[typ]
+        size = structure_radius[typ]
         if histag in self.living:
             self.set_job_of_unittag(histag, Job.BUILDER)
             self.expiration_of_builder[histag] = self.frame + 8 * self.seconds  # shortens it
@@ -438,13 +426,13 @@ class Making(Map_if, Resources, Strategy):
             (typ, resources, importance, expiration) = claim
             if typ == thing:
                 sol += 1
-        cocoon = self.creator[thing]
+        cocoon = unit_created_from[thing]
         if cocoon == UnitTypeId.LARVA:
             cocoon = UnitTypeId.EGG  # be aware: tagchange on ending cocoon state.
             # an egg can become different units
-            creation = self.creation[thing]
+            ability = unit_creation_ability[thing]
             for tag in self.eggtags:
-                if self.egg_id[tag] == creation:
+                if self.egg_id[tag] == ability:
                     sol += 1
         elif thing == UnitTypeId.OVERLORDTRANSPORT:
             cocoon = UnitTypeId.TRANSPORTOVERLORDCOCOON
@@ -471,15 +459,15 @@ class Making(Map_if, Resources, Strategy):
                     if unt.age_in_frames < self.seconds:
                         sol += 1
         elif cocoon == UnitTypeId.DRONE:
-            creation = self.creation[thing]
+            ability = unit_creation_ability[thing]
             for unt in self.units(cocoon):
                 if self.job_of_unittag(unt.tag) == Job.BUILDER:
-                    if creation == self.exact_id(unt):
+                    if ability == self.exact_id(unt):
                         sol += 1
         else:
             for unt in self.units(cocoon) + self.structures(cocoon):
-                creation = self.creation[thing]
-                if creation == self.exact_id(unt):
+                ability = unit_creation_ability[thing]
+                if ability == self.exact_id(unt):
                     sol += 1
         self.framecache_started[thing] = sol
         return sol
@@ -565,9 +553,6 @@ class Making(Map_if, Resources, Strategy):
 
     async def make_army_unit(self, typ):
         if self.function_listens("make_" + typ.name, 10):
-            if typ == self.example:
-                if len(self.structures(UnitTypeId.HYDRALISKDEN).ready) > 0:
-                    breakthis = True
             if not self.structures.of_type(UnitTypeId.SPAWNINGPOOL).ready.exists:
                 if typ == self.example:
                     logger.info("example " + self.example.name + " waits for spawningpool")
@@ -661,7 +646,7 @@ class Making(Map_if, Resources, Strategy):
                                 break
                 self.claim_resources(typ, importance)
                 if typ not in self.buildplan:
-                    size = self.size_of_structure[typ]
+                    size = structure_radius[typ]
                     if typ == UnitTypeId.EXTRACTOR:
                         gey = random.choice(self.freegeysers)
                         pos = gey.position
@@ -715,11 +700,13 @@ class Making(Map_if, Resources, Strategy):
                         pos = abasepos.towards(self.map_center, 3)
                         # for supplytrick, place spores under a miner
                         if self.supplytricking:
+                            gooddrone = None
                             for drone in self.units(UnitTypeId.DRONE):
                                 if self.job_of_unit(drone) == Job.MIMMINER:
                                     gooddrone = drone
-                            pos = gooddrone.position
-                            self.set_job_of_unit(gooddrone, Job.UNCLEAR)
+                            if gooddrone:
+                                pos = gooddrone.position
+                                self.set_job_of_unit(gooddrone, Job.UNCLEAR)
                         # emergency position
                         if self.do_emergencies:
                             emergency_id = None
@@ -892,6 +879,7 @@ class Making(Map_if, Resources, Strategy):
                 self.experience = []
                 self.valid_oldgames = set()
                 nr = 0
+                oldgame = []
                 for aline in self.part_expers:
                     woord = aline.split()
                     if len(woord) > 0:
@@ -902,6 +890,7 @@ class Making(Map_if, Resources, Strategy):
                             self.valid_oldgames.add(nr)
                             nr += 1
                         elif len(woord) == 4:
+                            typ = None
                             for atype in self.all_structuretypes:
                                 if atype.name == woord[0]:
                                     typ = atype
@@ -909,7 +898,8 @@ class Making(Map_if, Resources, Strategy):
                             posy = float(woord[2])
                             pos = Point2((posx, posy))
                             walk = float(woord[3])
-                            oldgame.append((typ, pos, walk))
+                            if typ:
+                                oldgame.append((typ, pos, walk))
 
     def walk_finished(self, typ) -> bool:
         (histag, buildpos, expiration) = self.buildplan[typ]
@@ -932,16 +922,18 @@ class Making(Map_if, Resources, Strategy):
                 walkdrone = None
                 have_experience = False
                 if not self.disturbed:
+                    walkframe = None
                     for (ix, oldgame) in enumerate(self.experience):
                         if ix in self.valid_oldgames:
                             for (atype, apos, awalk) in oldgame:
                                 if (atype == typ) and (apos == buildpos) and (awalk != -1):
                                     have_experience = True
                                     walkframe = awalk
-                    if have_experience:
+                    if have_experience and walkframe:
                         if self.frame >= walkframe:
                             # get closest drone (not yet a walker)
                             bestdist = 99999
+                            bestdrone = None
                             for drone in self.units(UnitTypeId.DRONE):
                                 tag = drone.tag
                                 if self.job_of_unittag(tag) not in {Job.WALKER, Job.BUILDER, Job.SCOUT}:
@@ -949,12 +941,13 @@ class Making(Map_if, Resources, Strategy):
                                     if dist < bestdist:
                                         bestdist = dist
                                         bestdrone = drone
-                            if bestdist < 99999:
+                            if bestdrone:
                                 walknow = True
                                 walkdrone = bestdrone
                 if not have_experience:
                     # get closest drone (not yet a walker)
                     bestdist = 99999
+                    bestdrone = None
                     for drone in self.units(UnitTypeId.DRONE):
                         tag = drone.tag
                         if self.job_of_unittag(tag) not in {Job.WALKER, Job.BUILDER, Job.SCOUT}:
@@ -962,7 +955,7 @@ class Making(Map_if, Resources, Strategy):
                             if dist < bestdist:
                                 bestdist = dist
                                 bestdrone = drone
-                    if bestdist < 99999:
+                    if bestdrone:
                         drone = bestdrone
                         tag = drone.tag
                         dist = distance(drone.position, buildpos)
@@ -985,7 +978,7 @@ class Making(Map_if, Resources, Strategy):
                             walknow = True
                             walkdrone = drone
                 #
-                if walknow:
+                if walknow and walkdrone:
                     drone = walkdrone
                     tag = drone.tag
                     self.set_job_of_unittag(tag, Job.WALKER)
@@ -1030,22 +1023,25 @@ class Making(Map_if, Resources, Strategy):
         self.framecache_we_finished_a[thing] = res
         return res
 
-    def tech_check(self, the_thing) -> bool:
-        creator = self.creator[the_thing]
+    def tech_check(self, typ: UnitTypeId) -> bool:
+        if typ not in unit_created_from:
+            logger.warning(f"{typ} creator not found")
+            return False
+        creator = unit_created_from[typ]
         if not self.we_finished_a(creator):
             return False
         for tech_chain in self.tech_chains:
-            if the_thing in tech_chain:
+            if typ in tech_chain:
                 canstart = True
                 seen = False
                 for thing in tech_chain:
-                    seen = seen or (thing == the_thing)
+                    seen = seen or (thing == typ)
                     if not seen:  # before
                         if not self.we_finished_a(thing):
                             canstart = False
                 if not canstart:
                     return False
-        if self.resource_cost[the_thing][self.Resource.VESPENE] > 0:
+        if self.resource_cost[typ][self.Resource.VESPENE] > 0:
             if self.vespene == 0:
                 return False
         return True
@@ -1153,7 +1149,10 @@ class Making(Map_if, Resources, Strategy):
     def i_could_upgrade(self, typ, importance) -> bool:
         if self.atleast_started(typ) == 0:
             if self.tech_check(typ):
-                creator = self.creator[typ]
+                if typ not in unit_created_from:
+                    logger.warning(f"{typ} creator not found")
+                    return False
+                creator = unit_created_from[typ]
                 resource = self.resource_of_buildingtype[creator]
                 if self.have_free_resource(resource, importance):
                     return True
@@ -1176,8 +1175,6 @@ class Making(Map_if, Resources, Strategy):
 
     async def upgrade(self, typ):
         if self.function_listens("upgrade_" + typ.name, 2 * self.seconds):
-            if typ == UpgradeId.EVOLVEGROOVEDSPINES:
-                breaktodebug = True
             importance = self.importance["upgrade"]
             if (self.make_plan[typ] > 0) or self.auto_upgrade:
                 importance += 1000
@@ -1393,7 +1390,7 @@ class Making(Map_if, Resources, Strategy):
             for hat in self.structures(UnitTypeId.HATCHERY):
                 if hat.tag not in self.rallied:
                     self.rallied.add(hat.tag)
-                    point = hat.position.towards(self.map_center, 3)
+                    point = towards(hat.position, self.map_center, 3)
                     hat(AbilityId.RALLY_BUILDING, point)
 
     async def check_disturbed(self):

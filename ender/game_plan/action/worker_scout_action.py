@@ -32,20 +32,20 @@ class WorkerScoutAction(IAction):
         self.circle_points: list[Point2] = self.create_circle_points(self.CIRCLE_STEPS)
         self.worker_tag: Optional[int] = None
         self.state: WorkerScoutState = WorkerScoutState.INITIAL
-        self.behaviors: dict[WorkerScoutState, ()] = {
-            WorkerScoutState.INITIAL: self.start_scouting,
-            WorkerScoutState.SCOUTING_MAIN: self.scouting_main,
-            WorkerScoutState.SCOUTING_EXPANSIONS: self.scouting_expansions,
-            WorkerScoutState.MOVING_BACK: self.moving_back,
-            WorkerScoutState.DONE: self.do_nothing,
-        }
         self.circle_step = 0
 
     def setup(self, common: Common):
         self.common = common
 
     def execute(self):
-        self.behaviors[self.state]()
+        if self.state == WorkerScoutState.INITIAL:
+            self.start_scouting()
+        elif self.state == WorkerScoutState.SCOUTING_MAIN:
+            self.scouting_main()
+        elif self.state == WorkerScoutState.SCOUTING_EXPANSIONS:
+            self.scouting_expansions()
+        elif self.state == WorkerScoutState.MOVING_BACK:
+            self.moving_back()
         return self.state == WorkerScoutState.DONE
 
     def start_scouting(self):
@@ -53,11 +53,13 @@ class WorkerScoutAction(IAction):
             lambda worker: self.common.job_of_unit(worker) in [Job.MIMMINER] and not worker.is_carrying_resource
         ).closest_to(self.common.enemymain)
         self.worker_tag = worker.tag
-        self.common.set_job_of_unittag(self.worker_tag, Job.SCOUT)
+        self.common.set_job_of_unittag(worker.tag, Job.SCOUT)
         self.state = WorkerScoutState.SCOUTING_MAIN
         worker.move(self.next_point())
 
     def get_worker(self) -> Optional[Unit]:
+        if not self.worker_tag:
+            return None
         worker = self.common.units.find_by_tag(self.worker_tag)
         if not worker:
             self.state = WorkerScoutState.DONE
@@ -70,8 +72,8 @@ class WorkerScoutAction(IAction):
             if len(worker.orders) < 3:
                 point = Point2(
                     (
-                        self.common.enemymain.x + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].x,
-                        self.common.enemymain.y + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].y,
+                        self.common.enemymain[0] + self.CIRCLE_RADIUS * self.circle_points[self.circle_step][0],
+                        self.common.enemymain[1] + self.CIRCLE_RADIUS * self.circle_points[self.circle_step][1],
                     )
                 )
                 self.circle_step = (self.circle_step + 1) % self.CIRCLE_STEPS
@@ -99,11 +101,8 @@ class WorkerScoutAction(IAction):
         worker = self.get_worker()
         if worker:
             if worker.is_idle:
-                self.common.set_job_of_unittag(self.worker_tag, Job.UNCLEAR)
+                self.common.set_job_of_unittag(worker.tag, Job.UNCLEAR)
                 self.state = WorkerScoutState.DONE
-
-    def do_nothing(self):
-        pass
 
     @staticmethod
     def create_circle_points(points: int) -> list[Point2]:
@@ -114,11 +113,11 @@ class WorkerScoutAction(IAction):
             circle_points.append(point)
         return circle_points
 
-    def next_point(self):
+    def next_point(self) -> Point2:
         point = Point2(
             (
-                self.common.enemymain.x + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].x,
-                self.common.enemymain.y + self.CIRCLE_RADIUS * self.circle_points[self.circle_step].y,
+                self.common.enemymain[0] + self.CIRCLE_RADIUS * self.circle_points[self.circle_step][0],
+                self.common.enemymain[1] + self.CIRCLE_RADIUS * self.circle_points[self.circle_step][1],
             )
         )
 

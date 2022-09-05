@@ -6,10 +6,7 @@ from loguru import logger
 
 from ender.common import Common
 from ender.utils.type_utils import get_version
-from ender.job import Job
 from sc2.data import Race
-from sc2.ids.unit_typeid import UnitTypeId
-from ender.utils.point_utils import distance
 
 
 class Parts(Common):
@@ -39,7 +36,7 @@ class Parts(Common):
     async def show(self):
         logger.info("---------------- " + str(self.frame) + "--------------------")
         lines = []
-        for unt in self.units():
+        for unt in self.units:
             pos = unt.position
             job = self.job_of_unit(unt)
             ord = ""
@@ -49,9 +46,9 @@ class Parts(Common):
         for stru in self.structures:
             pos = stru.position
             lines.append(stru.type_id.name + "   " + str(pos.x) + "," + str(pos.y) + "   " + str(stru.tag))
-        for claim in self.claims:
-            (typ, resources, importance, expiration) = claim
-            lines.append("<" + typ.name + "   " + str(expiration) + ">")
+        # for claim in self.claims:
+        #     (typ, resources, importance, expiration) = claim
+        #     lines.append("<" + typ.name + "   " + str(expiration) + ">")
         lines.sort()
         for line in lines:
             logger.info(line)
@@ -101,10 +98,3 @@ class Parts(Common):
                 version = get_version()
                 logger.info("Tag:" + version)
                 await self.client.chat_send("Tag:" + version, team_only=False)
-
-    def family(self, mapname):
-        mapfamily = ""
-        for ch in mapname.replace("LE", "").replace("AIE", ""):
-            if ("a" <= ch <= "z") or ("A" <= ch <= "Z"):
-                mapfamily += ch.lower()
-        return mapfamily

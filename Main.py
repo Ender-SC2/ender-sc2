@@ -73,7 +73,7 @@ def main():
     # opponentspecies = Race.Terran
     # VeryEasy/Easy/Medium/Hard/VeryHard
     run_game(
-        sc2.maps.get(map),
+        sc2.maps.get(map),  # pyright: ignore
         [Bot(Race.Zerg, Ender()), Computer(opponentspecies, Difficulty.VeryHard)],
         save_replay_as=f"{datetime.utcnow().strftime('%Y%m%d_%H%M')}.SC2Replay",
         realtime=False,

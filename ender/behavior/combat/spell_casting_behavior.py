@@ -15,7 +15,7 @@ class SpellCastingBehavior(CommandUtils):
     supported_units: typing.Dict[UnitTypeId, typing.List[AbilityId]] = {
         UnitTypeId.RAVAGER: [AbilityId.EFFECT_CORROSIVEBILE]
     }
-    DEFAULT_STRUCTURE_VALUE: 5
+    DEFAULT_STRUCTURE_VALUE = 5
     SPECIAL_STRUCTURE_VALUE: typing.Dict[UnitTypeId, int] = {
         UnitTypeId.PHOTONCANNON: 20,
         UnitTypeId.MISSILETURRET: 20,

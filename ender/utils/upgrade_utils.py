@@ -3,9 +3,9 @@ from typing import List, Dict, Optional
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
-upgrade_research_at: Dict[UpgradeId, List[UnitTypeId]]
-upgrade_requirement_buildings: Dict[UpgradeId, List[UnitTypeId]]
-upgrade_requirement_upgrades: Dict[UpgradeId, UpgradeId]
+upgrade_research_at: Dict[UpgradeId, List[UnitTypeId]] = {}
+upgrade_requirement_buildings: Dict[UpgradeId, List[UnitTypeId]] = {}
+upgrade_requirement_upgrades: Dict[UpgradeId, UpgradeId] = {}
 
 
 def _init_upgrade(
@@ -16,7 +16,8 @@ def _init_upgrade(
 ):
     upgrade_research_at[upgrade] = research_at
     upgrade_requirement_buildings[upgrade] = requirement_buildings
-    upgrade_requirement_upgrades[upgrade] = requirement_upgrade
+    if requirement_upgrade:
+        upgrade_requirement_upgrades[upgrade] = requirement_upgrade
 
 
 _init_upgrade(UpgradeId.BURROW, [UnitTypeId.HATCHERY, UnitTypeId.LAIR, UnitTypeId.HIVE], [], None)

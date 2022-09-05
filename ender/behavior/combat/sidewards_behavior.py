@@ -2,7 +2,7 @@
 
 from ender.unit import MoveCommand
 from ender.utils.command_utils import CommandUtils
-from ender.utils.point_utils import distance
+from ender.utils.point_utils import distance, towards
 from sc2.units import Units
 
 
@@ -34,7 +34,7 @@ class SidewardsBehavior(CommandUtils):
                         if distance(unit.position, mygrouppos) > 1:
                             oppo = enemies.closest_to(unit)
                             spread = unit.position.towards(mygrouppos, -2)
-                            position = self.next_position(oppo).towards(spread, avgdist + self.back)
+                            position = towards(self.next_position(oppo), spread, avgdist + self.back)
                             self.unit_interface.set_command(unit, MoveCommand(position, "Sidewards"))
         self.back = min(-0.5, self.back - 0.02 * self.bot_ai.client.game_step)
         self.save_position()

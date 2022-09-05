@@ -1,7 +1,9 @@
 from math import sqrt
+from typing import Union
 
 from sc2.bot_ai import BotAI
-from sc2.position import Point2
+from sc2.position import Point2, Pointlike
+from sc2.unit import Unit
 
 
 # Don't overuse it as it does a game request
@@ -11,7 +13,7 @@ async def closest_in_path(bot_ai: BotAI, point_list: list[Point2], reference: Po
     ]
     # NOTE: Offsetting the position trying to not be on top of buildings
     distances = [
-        await bot_ai.client.query_pathing(point.towards(reference, 3), reference.towards(point, 3))
+        await bot_ai.client.query_pathing(towards(point, reference, 3), towards(reference, point, 3))
         for point in point_list
     ]
     dist_dict = {unit: dist for unit, dist in zip(point_list, distances) if dist}
@@ -39,3 +41,7 @@ def center(point_list: list[Point2]) -> Point2:
             sum(point.y for point in point_list) / amount,
         )
     )
+
+
+def towards(origin: Point2, goal: Union[Unit, Pointlike], distance: float) -> Point2:
+    return Point2(origin.towards(goal, distance))  # pyright: ignore[reportGeneralTypeIssues]

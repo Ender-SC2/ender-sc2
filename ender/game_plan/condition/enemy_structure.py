@@ -1,4 +1,4 @@
-from typing import Optional, Union, Iterable
+from typing import Optional, Union
 
 from ender.game_plan.condition.condition import ICondition
 from ender.utils.type_utils import convert_into_iterable
@@ -12,7 +12,7 @@ class EnemyStructure(ICondition):
 
     def __init__(
         self,
-        unit_type: Union[UnitTypeId, Iterable[UnitTypeId]],
+        unit_type: Union[UnitTypeId, list[UnitTypeId]],
         amount: int = 1,
         position: Optional[Point2] = None,
         distance: float = 11,

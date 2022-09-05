@@ -19,7 +19,7 @@ class IUnitInterface(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def execute(self):
+    async def execute(self):
         raise NotImplementedError()
 
     @abstractmethod

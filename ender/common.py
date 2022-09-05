@@ -7,8 +7,8 @@ from ender.job import Job
 from ender.production.emergency import EmergencyQueue
 from ender.unit.unit_command import IUnitCommand
 from ender.unit.unit_interface import IUnitInterface, UnitInterface
-from ender.utils.point_utils import distance
-from sc2.bot_ai import BotAI  # parent class we inherit from
+from ender.utils.point_utils import distance, towards
+from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -31,7 +31,7 @@ class Common(BotAI, IUnitInterface):
     ournatural = nowhere
     seconds = 22.4
     minutes = seconds * 60
-    expansion_locations = []
+    expansion_locations: list[Point2] = []
     all_halltypes = {
         UnitTypeId.COMMANDCENTER,
         UnitTypeId.ORBITALCOMMAND,
@@ -162,12 +162,7 @@ class Common(BotAI, IUnitInterface):
     map_top = 0
     map_right = 0
     map_bottom = 0
-    #
-    builddura_of_structure = {}
-    size_of_structure = {}
-    species_of_structure = {}
-    #
-    #
+
     # constant in the step (after init_step):
     did_common_onstep = False
     did_map_onstep = False
@@ -186,7 +181,7 @@ class Common(BotAI, IUnitInterface):
     living = set()  # all tags of own units and structures
     last_living = set()  # last programrun
     last_health = {}
-    hospital = None
+    hospital: Point2
     extractors = []  # extractors not empty
     drones_supply_used = 12
     queens_supply_used = 0
@@ -217,18 +212,19 @@ class Common(BotAI, IUnitInterface):
     _last_structures_len = 0  # internal speedup
     _last_enemy_struc_mem_len = 0  # internal speedup
     emergency: EmergencyQueue = EmergencyQueue()  # A thing in emergency will build with 2000 importance.
+    result_plan = {}
 
     async def __step0(self):
-        self.enemymain = self.enemy_start_locations[0].position
+        self.enemymain = self.enemy_start_locations[0]
         self.ourmain = self.start_location
         postag = self.postag_of_pos(self.enemymain)
         self.enemy_struc_mem[postag] = (UnitTypeId.COMMANDCENTER, self.enemymain)
         self.map_center = self.game_info.map_center
-        self.map_left = self.game_info.playable_area.x
-        self.map_right = self.game_info.playable_area.width + self.game_info.playable_area.x
-        self.map_bottom = self.game_info.playable_area.y
-        self.map_top = self.game_info.playable_area.height + self.game_info.playable_area.y
-        self.hospital = self.ourmain.towards(self.map_center, -7)
+        self.map_left = int(self.game_info.playable_area.x)
+        self.map_right = int(self.game_info.playable_area.width + self.game_info.playable_area.x)
+        self.map_bottom = int(self.game_info.playable_area.y)
+        self.map_top = int(self.game_info.playable_area.height + self.game_info.playable_area.y)
+        self.hospital = towards(self.ourmain, self.map_center, -7)
         self.expansion_locations = self.expansion_locations_list.copy()
         # mapspecific
         if self.game_info.map_name == "2000 Atmospheres AIE":
@@ -243,7 +239,7 @@ class Common(BotAI, IUnitInterface):
         #
         # find natural
         bestdist = 99999
-        walkstart = self.ourmain.towards(self.map_center, 4)
+        walkstart = towards(self.ourmain, self.map_center, 4)
         for expo in self.expansion_locations:
             if 10 < distance(expo, self.ourmain) < 100:
                 walkdist = await self.client.query_pathing(walkstart, expo)

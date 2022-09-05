@@ -26,7 +26,7 @@ from sc2.units import Units
 class SpellEffectDodgingBehavior(CommandUtils):
     supported_spells: list[EffectId] = [EffectId.RAVAGERCORROSIVEBILECP, EffectId.PSISTORMPERSISTENT]
     extra_dodge_range = 1
-    spells: dict[(Point2, EffectId), list[float]] = {}  # Position, Effect, Expected end time
+    spells: dict[tuple[Point2, EffectId], list[float]] = {}  # Position, Effect, Expected end time
 
     async def on_step_units(self, units: Units):
         my_units = self.bot_ai.units.filter(

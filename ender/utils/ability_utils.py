@@ -19,7 +19,7 @@ ability_cooldown: Dict[AbilityId, float] = {}
 ability_radius: Dict[AbilityId, float] = {}
 ability_duration: Dict[AbilityId, float] = {}
 ability_damage: Dict[AbilityId, float] = {}
-ability_damage_type: Dict[AbilityId, float] = {}
+ability_damage_type: Dict[AbilityId, AbilityDamageType] = {}
 
 
 def _init_ability(

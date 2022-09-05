@@ -8,9 +8,7 @@ from ender.behavior.combat import (
     SameRangeBehavior,
     LessRangeBehavior,
 )
-from ender.behavior.combat.attack_closest_enemy_behavior import (
-    AttackClosestEnemyBehavior,
-)
+from ender.behavior.combat.attack_closest_enemy_behavior import AttackClosestEnemyBehavior
 from ender.game_plan.condition import Any, No, HaveUnit, AfterTime
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
