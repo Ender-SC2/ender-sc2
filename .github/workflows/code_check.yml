@@ -3,6 +3,7 @@ name: Code check
 on: [pull_request]
 jobs:
   build:
+    name: Code check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
