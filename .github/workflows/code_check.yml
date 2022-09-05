@@ -13,6 +13,7 @@ jobs:
       - name: Install dev tools
         run: |
           pip install -r requirements.dev.txt
+          pip install -r requirements.txt
       - name: Run black check
         run: |
           black --check .
