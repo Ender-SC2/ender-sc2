@@ -114,7 +114,7 @@ class Attack(Map_if, Tech, Nydus):
     succer = {}  # viper loading
     succed = {}  # viper loading
     drawn = {}  # viper abducted
-    
+
     #
     def __step0(self):
         #
@@ -682,7 +682,7 @@ class Attack(Map_if, Tech, Nydus):
         if path == 25:
             path = 20
             pos = hatchpos.towards(self.ourmain, path)
-        else: # otherheight pos
+        else:  # otherheight pos
             pos = hatchpos.towards(self.ourmain, path)
             pos = self.map_around_notheight(pos, hatchheight)
         return pos

@@ -90,7 +90,7 @@ class Nydus(Common):
                             self.attack_via_nydus(unt)
 
     async def do_nydus(self):
-        ### log
+        # log
         if len(self.nydees) > 0:
             stri = "nydees: "
             for tag in self.nydees:
@@ -110,7 +110,7 @@ class Nydus(Common):
                         if tag not in net.passengers_tags:
                             stri += "X  "
             logger.info(stri)
-        ###
+        #
         if len(self.future_nydus_ports) == 0:
             # loose all passengers
             self.nydus_queue = []
@@ -225,7 +225,9 @@ class Nydus(Common):
                                             else:
                                                 port(AbilityId.LOAD_NYDUSWORM, unt)
                                             self.nydus_queue.append(tag)
-                                            self.listenframe_of_structure[nydus_in_tag] = self.frame + 0.18 * self.seconds
+                                            self.listenframe_of_structure[nydus_in_tag] = (
+                                                self.frame + 0.18 * self.seconds
+                                            )
                                         else:  # not near port
                                             if len(unt.orders) == 0:
                                                 unt.attack(port.position)
