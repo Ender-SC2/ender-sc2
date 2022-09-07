@@ -183,6 +183,7 @@ class Nydus(Common):
                             goal = self.attackgoal[tag]
                             # len(self.nydus_ports) >= 2
                             distbb = 99999
+                            nydus_out = None
                             for nydus in self.future_nydus_ports:
                                 dist = distance(nydus.position, goal)
                                 if dist < distbb:
@@ -192,7 +193,7 @@ class Nydus(Common):
                                 self.nydus_out_tag[tag] = nydus_out.tag
                 elif self.nydees[tag] == Nytravel.SPIT:
                     if not self.now_spitting:
-                        self.nydees[tag] == Nytravel.IN
+                        self.nydees[tag] = Nytravel.IN
             types = set()
             for tag in self.nydees_typ:
                 types.add(self.nydees_typ[tag])
@@ -245,6 +246,7 @@ class Nydus(Common):
                         elif stat == Nytravel.IN:
                             # Must be spit out of order. Repair.
                             amspit = 0
+                            spittag = -1
                             for atag in self.nydees:
                                 if self.nydees[atag] == Nytravel.SPIT:
                                     amspit += 1
@@ -267,12 +269,14 @@ class Nydus(Common):
         if nyd:
             distland = distance(pos, goal)
             distaa = 99999
+            nydus_in = None
             for nydus in self.future_nydus_ports:
                 dist = distance(pos, nydus.position)
                 if dist < distaa:
                     distaa = dist
                     nydus_in = nydus
             distbb = 99999
+            nydus_out = None
             for nydus in self.future_nydus_ports:
                 dist = distance(nydus.position, goal)
                 if dist < distbb:

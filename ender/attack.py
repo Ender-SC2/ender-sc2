@@ -275,10 +275,11 @@ class Attack(Map_if, Tech, Nydus):
                                         self.set_job_of_unit(unt, Job.DEFENDATTACK)
                                     # act
                                     if self.job_of_unit(unt) == Job.DEFENDATTACK:
-                                        self.attackgoal[tag] = self.defendgoal
-                                        if distance(unt.position, self.defendgoal) > 8:
-                                            self.attack_via_nydus(unt)
-                                            self.listenframe_of_unit[tag] = self.frame + 5
+                                        if self.defendgoal:
+                                            self.attackgoal[tag] = self.defendgoal
+                                            if distance(unt.position, self.defendgoal) > 8:
+                                                self.attack_via_nydus(unt)
+                                                self.listenframe_of_unit[tag] = self.frame + 5
             # dismiss full energy queens
             for unt in self.units(UnitTypeId.QUEEN):
                 if self.job_of_unit(unt) == Job.DEFENDATTACK:
@@ -668,22 +669,22 @@ class Attack(Map_if, Tech, Nydus):
             if target:
                 self.sh_goal = target
 
-    def sh_throwspot(self, hatchpos):
+    def sh_throwspot(self, hatchpos: Point2) -> Point2:
         # for swarmhosts
         hatchheight = self.height(hatchpos)
         path = 15
-        pos = hatchpos.towards(self.ourmain, path)
+        pos = towards(hatchpos, self.ourmain, path)
         posheight = self.height(pos)
         while (path < 25) and (posheight == hatchheight):
             path += 1
-            pos = hatchpos.towards(self.ourmain, path)
+            pos = towards(hatchpos, self.ourmain, path)
             posheight = self.height(pos)
         # if at max, go back to normal
         if path == 25:
             path = 20
-            pos = hatchpos.towards(self.ourmain, path)
+            pos = towards(hatchpos, self.ourmain, path)
         else:  # otherheight pos
-            pos = hatchpos.towards(self.ourmain, path)
+            pos = towards(hatchpos, self.ourmain, path)
             pos = self.map_around_notheight(pos, hatchheight)
         return pos
 
