@@ -114,7 +114,7 @@ class Attack(Map_if, Tech, Nydus):
     succer = {}  # viper loading
     succed = {}  # viper loading
     drawn = {}  # viper abducted
-
+    
     #
     def __step0(self):
         #
@@ -136,6 +136,8 @@ class Attack(Map_if, Tech, Nydus):
         self.bigattack_end = self.minutes  # this sets earliest bigattack at 2 minutes.
         #
         self.biletarget_no |= self.all_changelings
+        #
+        self.gathertime = 6 * self.seconds
         #
 
     async def on_step(self, iteration: int):
@@ -192,13 +194,34 @@ class Attack(Map_if, Tech, Nydus):
 
     async def renew_defendgoal(self):
         # sometimes renew defendgoal
-        if self.function_listens("renew_defendgoal", self.minutes):
+        if self.function_listens("renew_defendgoal", 8 * self.seconds):
+            # myworth defenders
+            myworth = 0.0
+            for typ in self.all_armytypes:
+                worth = self.worth(typ)
+                for unt in self.units(typ):
+                    if self.job_of_unit(unt) == Job.DEFENDATTACK:
+                        myworth += worth
+            # center of our halls
             n = -0.51
             center = n * self.ourmain
             for hall in self.townhalls:
                 center = center + hall.position
                 n += 1
             center = center / n
+            # enecenter of enemy units on our half
+            enecenter = self.ourmain
+            eneworth = 1.0
+            for tag in self.enemy_unit_mem:
+                (typ, pos) = self.enemy_unit_mem[tag]
+                if distance(pos, self.ourmain) < distance(pos, self.enemymain):
+                    worth = self.worth(typ)
+                    enecenter += worth * pos
+                    eneworth += worth
+            enecenter = enecenter / eneworth
+            if eneworth < myworth < 4.0 * eneworth:
+                center = enecenter
+            # closest own hall
             bestval = 99999
             bestpos = None
             for hall in self.townhalls:
@@ -216,13 +239,20 @@ class Attack(Map_if, Tech, Nydus):
             gp = (2 * self.bigattackgoal + self.defendgoal) / 3
             gp = self.map_around(gp, 4)
             self.gatherpoint = gp
-            self.gathertime = 6 * self.seconds
 
     async def defend(self):
         if self.function_listens("defend", 20):
             if self.frame >= self.bigattack_end:
+                thereisblue = False
+                for unt in self.units(UnitTypeId.OVERSEER).idle:
+                    tag = unt.tag
+                    if self.blue_half(tag):
+                        thereisblue = True
                 for typ in self.all_armytypes:
-                    if typ not in {UnitTypeId.OVERSEERSIEGEMODE}:  # too slow
+                    if typ not in [
+                        UnitTypeId.OVERSEERSIEGEMODE,
+                        UnitTypeId.OVERLORDTRANSPORT,
+                    ]:  # too slow
                         for unt in self.units(typ).idle:
                             tag = unt.tag
                             canrecruit = True
@@ -232,18 +262,23 @@ class Attack(Map_if, Tech, Nydus):
                                 if unt.energy == 200:
                                     # full energy queen better lay a tumor
                                     canrecruit = False
+                            if typ == UnitTypeId.OVERSEER:
+                                if self.blue_half(tag) != thereisblue:
+                                    canrecruit = False
                             if canrecruit:
                                 if self.frame >= self.listenframe_of_unit[tag]:
                                     # recruit
-                                    if self.job_of_unit(unt) == Job.UNCLEAR:
+                                    if self.job_of_unit(unt) in [
+                                        Job.UNCLEAR,
+                                        Job.HANGER,
+                                    ]:
                                         self.set_job_of_unit(unt, Job.DEFENDATTACK)
                                     # act
                                     if self.job_of_unit(unt) == Job.DEFENDATTACK:
-                                        if self.defendgoal:
-                                            self.attackgoal[tag] = self.defendgoal
-                                            if distance(unt.position, self.defendgoal) > 8:
-                                                self.attack_via_nydus(unt)
-                                                self.listenframe_of_unit[tag] = self.frame + 5
+                                        self.attackgoal[tag] = self.defendgoal
+                                        if distance(unt.position, self.defendgoal) > 8:
+                                            self.attack_via_nydus(unt)
+                                            self.listenframe_of_unit[tag] = self.frame + 5
             # dismiss full energy queens
             for unt in self.units(UnitTypeId.QUEEN):
                 if self.job_of_unit(unt) == Job.DEFENDATTACK:
@@ -618,6 +653,7 @@ class Attack(Map_if, Tech, Nydus):
                                 self.set_job_of_unit(vip, Job.UNCLEAR)
 
     async def set_sh_goal(self):
+        # for swarmhosts
         if self.function_listens("set_sh_goal", 9 * self.seconds):
             self.sh_goal = self.enemymain
             mindist = 99999
@@ -631,6 +667,25 @@ class Attack(Map_if, Tech, Nydus):
                         target = pos
             if target:
                 self.sh_goal = target
+
+    def sh_throwspot(self, hatchpos):
+        # for swarmhosts
+        hatchheight = self.height(hatchpos)
+        path = 15
+        pos = hatchpos.towards(self.ourmain, path)
+        posheight = self.height(pos)
+        while (path < 25) and (posheight == hatchheight):
+            path += 1
+            pos = hatchpos.towards(self.ourmain, path)
+            posheight = self.height(pos)
+        # if at max, go back to normal
+        if path == 25:
+            path = 20
+            pos = hatchpos.towards(self.ourmain, path)
+        else: # otherheight pos
+            pos = hatchpos.towards(self.ourmain, path)
+            pos = self.map_around_notheight(pos, hatchheight)
+        return pos
 
     async def swarmhosts(self):
         if self.function_listens("swarmhosts", 9) and self.sh_goal:
@@ -653,13 +708,13 @@ class Attack(Map_if, Tech, Nydus):
                         if self.sh_forward[tag]:
                             if self.sh_indiv_goal[tag] != self.sh_goal:
                                 self.sh_indiv_goal[tag] = self.sh_goal
-                                goal = towards(self.sh_goal, self.ourmain, 15)
-                                sh.move(goal)
+                                throwspot = self.sh_throwspot(self.sh_goal)
+                                sh.move(throwspot)
                         else:
                             self.sh_forward[tag] = True
                             self.sh_indiv_goal[tag] = self.sh_goal
-                            goal = towards(self.sh_goal, self.ourmain, 15)
-                            sh.move(goal)
+                            throwspot = self.sh_throwspot(self.sh_goal)
+                            sh.move(throwspot)
             for sh in self.units(UnitTypeId.SWARMHOSTMP) | self.units(UnitTypeId.SWARMHOSTBURROWEDMP):
                 tag = sh.tag
                 self.set_job_of_unit(sh, Job.WALKER)

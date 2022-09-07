@@ -86,7 +86,7 @@ class Map_if(Common):
                     dy = -radius
                     dx = -radius
                     if radius == 25:
-                        logger.error("hanging in around()")
+                        logger.error("hanging in map_around()")
             point = Point2((center.x + dx, center.y + dy))
             ok = self.map_can_plan(point, size)
         return point
@@ -409,3 +409,31 @@ class Map_if(Common):
                     cons = (position, size, typ)
                     if cons not in self.enemy_drawings:
                         self.map_enemy_build(position, size, typ)
+
+    def height(self, point: Point2) -> int:
+        roundpos = Point2((round(point.x), round(point.y)))
+        return self.game_info.terrain_height[roundpos]
+
+    def map_around_notheight(self, pos, notheight) -> Point2:
+        # search a 2x2 position not at some given height.
+        size = 2
+        point = self.map_grid(pos, size)
+        ok = self.map_can_plan(point, size) and (self.height(point) != notheight)
+        radius = 0
+        dx = 0
+        dy = 0
+        center = point
+        while not ok:
+            dx += 1
+            if dx > radius:
+                dy += 1
+                dx = -radius
+                if dy > radius:
+                    radius += 1
+                    dy = -radius
+                    dx = -radius
+                    if radius == 25:
+                        logger.error("hanging in map_around_notheight()")
+            point = Point2((center.x + dx, center.y + dy))
+            ok = self.map_can_plan(point, size) and (self.height(point) != notheight)
+        return point
