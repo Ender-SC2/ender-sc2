@@ -225,7 +225,9 @@ class Nydus(Common):
                                             else:
                                                 port(AbilityId.LOAD_NYDUSWORM, unt)
                                             self.nydus_queue.append(tag)
-                                            self.listenframe_of_structure[nydus_in_tag] = self.frame + 0.18 * self.seconds
+                                            self.listenframe_of_structure[nydus_in_tag] = (
+                                                self.frame + 0.18 * self.seconds
+                                            )
                                         else:  # not near port
                                             if len(unt.orders) == 0:
                                                 unt.attack(port.position)
