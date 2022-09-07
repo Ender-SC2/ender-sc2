@@ -36,9 +36,10 @@ class Nydus(Common):
     nydus_queue = []  # unittags in fifo order. For nydees Nytravel.SUCCED or Nytravel.IN or Nytravel.SPIT
     now_spitting = False  # an unload_all command is given
     now_spitter = None  # the nydusport that is the exit (if now_spitting)
+    dummyunit = None
 
     def __step0(self):
-        pass
+        self.dummyunit = self.structures(UnitTypeId.HATCHERY).random
 
     async def on_step(self, iteration: int):
         await Common.on_step(self, iteration)
@@ -183,7 +184,7 @@ class Nydus(Common):
                             goal = self.attackgoal[tag]
                             # len(self.nydus_ports) >= 2
                             distbb = 99999
-                            nydus_out = None
+                            nydus_out = self.dummyunit
                             for nydus in self.future_nydus_ports:
                                 dist = distance(nydus.position, goal)
                                 if dist < distbb:
@@ -269,14 +270,14 @@ class Nydus(Common):
         if nyd:
             distland = distance(pos, goal)
             distaa = 99999
-            nydus_in = None
+            nydus_in = self.dummyunit
             for nydus in self.future_nydus_ports:
                 dist = distance(pos, nydus.position)
                 if dist < distaa:
                     distaa = dist
                     nydus_in = nydus
             distbb = 99999
-            nydus_out = None
+            nydus_out = self.dummyunit
             for nydus in self.future_nydus_ports:
                 dist = distance(nydus.position, goal)
                 if dist < distbb:
