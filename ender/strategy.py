@@ -384,7 +384,7 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 5
             self.result_plan[UnitTypeId.ROACH] = 20
             self.result_plan[UnitTypeId.RAVAGER] = 10
-        elif gameplan == self.Gameplan.SWARM:
+        elif gameplan == self.Gameplan.SWARM:  # lairtech
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 5
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
@@ -392,7 +392,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.ZERGLING] = 2
             self.result_plan[UnitTypeId.BANELING] = 2
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-        elif gameplan == self.Gameplan.TO_SPIRE:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.TO_SPIRE:  # lairtech
             self.structures_at_hatches = 4
             self.result_plan[UnitTypeId.HATCHERY] = 5
             self.result_plan[UnitTypeId.EXTRACTOR] = 8
@@ -403,7 +404,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
             self.iffadd_result(UnitTypeId.LURKERDENMP, UnitTypeId.LURKERMP, 2)
             self.result_plan[UnitTypeId.SPIRE] = 1
-        elif gameplan == self.Gameplan.MUTAS:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.MUTAS:  # lairtech
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 4
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
@@ -411,7 +413,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.MUTALISK] = 20
             self.result_plan[UnitTypeId.BANELING] = 2
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-        elif gameplan == self.Gameplan.LINGBANEMUTA:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.LINGBANEMUTA:  # lairtech
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 4
             self.result_plan[UnitTypeId.EXTRACTOR] = 7
@@ -419,7 +422,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.BANELING] = 20
             self.result_plan[UnitTypeId.MUTALISK] = 20
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-        elif gameplan == self.Gameplan.FIVEBASE:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.FIVEBASE:  # lairtech
             self.structures_at_hatches = 5
             self.result_plan[UnitTypeId.HATCHERY] = 5
             self.result_plan[UnitTypeId.EXTRACTOR] = 9
@@ -429,7 +433,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.RAVAGER] = 5
             self.result_plan[UnitTypeId.HYDRALISK] = 20
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-        elif gameplan == self.Gameplan.TO_HIVE:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.TO_HIVE:  # lairtech
             self.structures_at_hatches = 6
             self.result_plan[UnitTypeId.HATCHERY] = 6
             self.result_plan[UnitTypeId.HIVE] = 1
@@ -441,7 +446,8 @@ class Strategy(Tech):
             self.result_plan[UnitTypeId.HYDRALISK] = 16
             self.result_plan[UnitTypeId.INFESTOR] = 3
             self.result_plan[UnitTypeId.OVERLORDTRANSPORT] = 2
-        elif gameplan == self.Gameplan.ENDGAME:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.ENDGAME:  # hivetech
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
@@ -456,19 +462,22 @@ class Strategy(Tech):
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.CORRUPTOR, 14)
             self.iffadd_result(UnitTypeId.GREATERSPIRE, UnitTypeId.BROODLORD, 7)
             self.iffadd_result(UnitTypeId.SPIRE, UnitTypeId.VIPER, 3)
-        elif gameplan == self.Gameplan.LINGWAVE:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.LINGWAVE:  # hivetech
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.result_plan[UnitTypeId.ZERGLING] = 2 * (self.supplycap_army - self.army_supply_used) + len(
                 self.units(UnitTypeId.ZERGLING)
             )
-        elif gameplan == self.Gameplan.ULTRAWAVE:
+            self.result_plan[UnitTypeId.OVERSEER] = 1
+        elif gameplan == self.Gameplan.ULTRAWAVE:  # hivetech
             self.structures_at_hatches = 99
             self.result_plan[UnitTypeId.HATCHERY] = len(self.freeexpos) + self.nbases
             self.result_plan[UnitTypeId.EXTRACTOR] = len(self.freegeysers) + len(self.extractors)
             self.result_plan[UnitTypeId.ULTRALISK] = 10
             self.result_plan[UnitTypeId.MUTALISK] = 15
+            self.result_plan[UnitTypeId.OVERSEER] = 1
         self.result_plan[UnitTypeId.DRONE] = self.droneformula()
         self.add_morphers()
         self.tech_close()
@@ -639,8 +648,11 @@ class Strategy(Tech):
                                 plan = self.Gameplan.TWOBASE
                             elif mybases == 3:
                                 plan = self.Gameplan.THREEBASE
-                            elif mybases >= 4:
+                            elif mybases == 4:
                                 plan = self.Gameplan.FOURBASE
+                            elif mybases >= 5:
+                                # greed anyway
+                                plan = self.Gameplan.GREED
                 else:  # no agression
                     plan = self.Gameplan.GREED
                 if plan:

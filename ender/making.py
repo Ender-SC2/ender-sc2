@@ -106,7 +106,7 @@ class Making(Map_if, Resources, Strategy):
         self.importance["hive_building"] = 70
         self.importance["lone_building"] = 60
         self.importance["upgrade"] = 50
-        self.importance["extractor"] = 40
+        self.importance["extractor"] = 40  # can be dynamic 75
         self.importance["hatchery"] = 30
         self.importance["army"] = 10  # leave room to add subimportance
         self.importance["sporespine"] = 0
@@ -148,6 +148,8 @@ class Making(Map_if, Resources, Strategy):
         self.framecache_atleast_started = {}
         self.framecache_we_finished_a = {}
         await self.egg_admin()
+        #
+        await self.dynamic_importance()
         #
         await self.do_make_plan()
         #
@@ -196,6 +198,12 @@ class Making(Map_if, Resources, Strategy):
         await self.learn_administration()
         await self.read_experience()
         await self.write_experience()
+
+    async def dynamic_importance(self):
+        if (self.minerals >= 1000) and (self.vespene < 100):
+            self.importance["extractor"] = 75
+        else:
+            self.importance["extractor"] = 40
 
     async def check_making(self):
         if self.function_listens("check_making", 9):
@@ -1046,6 +1054,15 @@ class Making(Map_if, Resources, Strategy):
                 return False
         return True
 
+    def restrict_half(self, unty, morphed, morpher, morphing) -> bool:
+        if unty == morphed:
+            willbe = len(self.units(morphed)) + len(self.units(morphing))
+            if len(self.units(morpher)) < willbe:
+                if unty == self.example:
+                    logger.info("example " + self.example.name + " is restricted on " + morpher.name)
+                return True
+        return False
+
     def check_wannado_unit(self, unty) -> bool:
         if not self.tech_check(unty):
             return False
@@ -1062,11 +1079,11 @@ class Making(Map_if, Resources, Strategy):
                     if unty == self.example:
                         logger.info("example " + self.example.name + " waits for hall without queen")
                     return False
-        # less banes than zerglings
-        if unty == UnitTypeId.BANELING:
-            tobanes = len(self.units(UnitTypeId.BANELING)) + len(self.units(UnitTypeId.BANELINGCOCOON))
-            if len(self.units(UnitTypeId.ZERGLING)) < tobanes:
-                return False
+        #
+        if self.restrict_half(unty, UnitTypeId.BANELING, UnitTypeId.ZERGLING, UnitTypeId.BANELINGCOCOON):
+            return False
+        if self.restrict_half(unty, UnitTypeId.BROODLORD, UnitTypeId.CORRUPTOR, UnitTypeId.BROODLORDCOCOON):
+            return False
         #
         max_count = 200
         if unty == UnitTypeId.DRONE:
